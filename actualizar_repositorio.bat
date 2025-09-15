@@ -13,7 +13,7 @@ git rev-parse --is-inside-work-tree >nul 2>&1
 if %errorlevel% neq 0 (
     echo.
     echo 1. Inicializando repositorio git...
-    git init -b main
+    git init
 )
 
 :: Verificar si el remoto 'origin' existe
@@ -33,8 +33,12 @@ echo 4. Creando commit...
 git commit -m "Codigo actual del sistema de gestion"
 
 echo.
-echo 5. Subiendo cambios a GitHub...
-git push -u origin main
+echo 5. Renombrando rama a 'main'...
+git branch -M main
+
+echo.
+echo 6. Subiendo cambios a GitHub...
+git push -u --force origin main
 
 if %errorlevel% neq 0 (
     echo.
