@@ -1,0 +1,26 @@
+{
+  "name": "erp-saas-gestion",
+  "version": "0.1.0",
+  "private": true,
+  "description": "ERP SaaS para la gestión de insumos de limpieza, artículos en general y electricidad.",
+  "scripts": {
+    "dev": "cd frontend && npm run dev",
+    "build": "cd frontend && npm run build",
+    "supabase:start": "npx supabase start",
+    "supabase:deploy": "npx supabase db push"
+  },
+  "keywords": [
+    "erp",
+    "saas",
+    "react",
+    "supabase",
+    "gestion"
+  ],
+  "author": "",
+  "dependencies": {
+    "jspdf": "^3.0.2",
+    "jspdf-autotable": "^5.0.2",
+    "pdfmake": "^0.2.20",
+    "xlsx": "^0.18.5"
+  }
+}
