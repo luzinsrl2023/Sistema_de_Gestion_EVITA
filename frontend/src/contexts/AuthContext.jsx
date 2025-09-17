@@ -24,16 +24,6 @@ export const AuthProvider = ({ children }) => {
 
         if (session?.user) {
           setUser(session.user)
-        } else if (db.isLocal) {
-          // Auto-login in local/dev mode with demo user
-          console.log('🧪 Local mode: auto-signing in demo user')
-          const { data, error } = await db.auth.signInWithPassword({
-            email: 'admin@evita.com',
-            password: 'evita123'
-          })
-          if (data?.user && !error) {
-            setUser(data.user)
-          }
         } else {
           setUser(null)
         }
@@ -98,10 +88,6 @@ export const AuthProvider = ({ children }) => {
   }
 
   const resetPassword = async (email) => {
-    // For local development, just return success
-    if (db.isLocal) {
-      return { data: { message: 'Password reset not available in local mode' }, error: null }
-    }
     const { data, error } = await db.auth.resetPasswordForEmail(email)
     return { data, error }
   }
