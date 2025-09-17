@@ -10,7 +10,7 @@ async function migratePasswords() {
   try {
     // 1. Fetch all users
     const { data: users, error: fetchError } = await supabase
-      .from('users')
+      .from('usuarios_app')
       .select('id, password'); // Assuming 'password' column exists and is plain text
 
     if (fetchError) {
@@ -31,7 +31,7 @@ async function migratePasswords() {
         const hashedPassword = await bcrypt.hash(user.password, 10);
 
         const { error: updateError } = await supabase
-          .from('users')
+          .from('usuarios_app')
           .update({ password: hashedPassword })
           .eq('id', user.id);
 
