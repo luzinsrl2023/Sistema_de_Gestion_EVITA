@@ -1,29 +1,56 @@
+import { supabase } from '../lib/supabaseClient';
 import bcrypt from 'bcryptjs';
 
-const users = [
-  {
-    id: 1,
-    email: 'test@example.com',
-    passwordHash: bcrypt.hashSync('password123', 10),
-    username: 'testuser',
-  },
-];
-
-export const login = async (email, password) => {
-  const user = users.find((u) => u.email === email);
-  if (user && bcrypt.compareSync(password, user.passwordHash)) {
-    const session = {
-      user: { id: user.id, email: user.email, username: user.username },
-      token: 'fake-jwt-token',
-    };
-    localStorage.setItem('session', JSON.stringify(session));
-    return { session, error: null };
-  }
-  return { session: null, error: 'Invalid login credentials' };
+// Fallback user for demo purposes
+const fallbackUser = {
+  id: '00000000-0000-0000-0000-000000000000',
+  email: 'admin@evita.com',
+  passwordHash: bcrypt.hashSync('evita123', 10), // Ensure you have a fallback password
+  username: 'Admin',
 };
 
-export const logout = () => {
+export const login = async (email, password) => {
+  try {
+    const { data, error } = await supabase
+      .from('usuarios_app')
+      .select('*')
+      .eq('email', email)
+      .single();
+
+    if (error || !data) {
+      // Fallback to hardcoded user if not found in DB
+      if (email === fallbackUser.email && bcrypt.compareSync(password, fallbackUser.passwordHash)) {
+        const session = {
+          user: { id: fallbackUser.id, email: fallbackUser.email, username: fallbackUser.username },
+          token: 'fake-fallback-token',
+        };
+        localStorage.setItem('session', JSON.stringify(session));
+        return { session, error: null };
+      }
+      return { session: null, error: 'Invalid login credentials' };
+    }
+
+    const passwordMatch = await bcrypt.compare(password, data.password);
+    if (passwordMatch) {
+      const session = {
+        user: { id: data.id, email: data.email, username: data.username || data.email.split('@')[0] },
+        token: 'fake-supabase-token', // In a real scenario, you would use Supabase's session
+      };
+      localStorage.setItem('session', JSON.stringify(session));
+      return { session, error: null };
+    }
+
+    return { session: null, error: 'Invalid login credentials' };
+  } catch (error) {
+    console.error('Login error:', error);
+    return { session: null, error: 'An unexpected error occurred' };
+  }
+};
+
+export const logout = async () => {
   localStorage.removeItem('session');
+  // Also sign out from Supabase if you are using its auth session
+  await supabase.auth.signOut();
 };
 
 export const getSession = () => {
@@ -32,15 +59,32 @@ export const getSession = () => {
 };
 
 export const register = async (email, password, username) => {
-  if (users.find((u) => u.email === email)) {
-    return { user: null, error: 'User already exists' };
+  try {
+    const { data: existingUser, error: fetchError } = await supabase
+      .from('usuarios_app')
+      .select('email')
+      .eq('email', email)
+      .single();
+
+    if (existingUser) {
+      return { user: null, error: 'User already exists' };
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    const { data: newUser, error: insertError } = await supabase
+      .from('usuarios_app')
+      .insert([{ email, password: passwordHash, username }])
+      .select()
+      .single();
+
+    if (insertError) {
+      throw insertError;
+    }
+
+    return { user: newUser, error: null };
+  } catch (error) {
+    console.error('Registration error:', error);
+    return { user: null, error: 'Failed to register user' };
   }
-  const newUser = {
-    id: users.length + 1,
-    email,
-    passwordHash: bcrypt.hashSync(password, 10),
-    username,
-  };
-  users.push(newUser);
-  return { user: newUser, error: null };
 };
