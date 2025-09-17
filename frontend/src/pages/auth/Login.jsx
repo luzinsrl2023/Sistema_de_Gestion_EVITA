@@ -5,7 +5,7 @@ import { Package, Mail, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react'
 
 export default function Login() {
   const navigate = useNavigate()
-  const { signIn, user } = useAuth()
+  const { login, user } = useAuth()
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -70,27 +70,17 @@ export default function Login() {
 
     try {
       console.log('🚀 Attempting login with EVITA system...')
-      const { data, error } = await signIn(formData.email, formData.password)
+      const { session, error } = await login(formData.email, formData.password)
       
-      console.log('📊 Login result:', { data, error })
+      console.log('📊 Login result:', { session, error })
       
       if (error) {
         console.error('❌ Login error:', error)
-        if (error.message.includes('Invalid login credentials')) {
-          setErrors({ general: 'Email o contraseña incorrectos. Usa las credenciales de demo: admin@evita.com / evita123' })
-        } else if (error.message.includes('Email not confirmed')) {
-          setErrors({ general: 'Por favor confirma tu email antes de iniciar sesión' })
-        } else {
-          setErrors({ general: `Error: ${error.message}` })
-        }
-      } else if (data?.user) {
-        console.log('✅ Login successful, user data:', data.user)
+        setErrors({ general: 'Email o contraseña incorrectos. Usa las credenciales de demo: test@example.com / password123' })
+      } else if (session?.user) {
+        console.log('✅ Login successful, user data:', session.user)
         console.log('🔄 Waiting for navigation...')
-        // Force navigation after successful login
-        setTimeout(() => {
-          console.log('🚀 Navigating to tablero...')
-          navigate('/tablero')
-        }, 500)
+        // The navigation is handled by the useEffect hook watching the user state
       } else {
         console.log('⚠️ Login succeeded but no user data')
         setErrors({ general: 'Error en la autenticación. Inténtalo de nuevo.' })
@@ -232,8 +222,8 @@ export default function Login() {
               type="button"
               onClick={() => {
                 setFormData({
-                  email: 'admin@evita.com',
-                  password: 'evita123'
+                  email: 'test@example.com',
+                  password: 'password123'
                 })
               }}
               className="text-xs bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded transition-colors"
@@ -244,11 +234,11 @@ export default function Login() {
           <div className="text-sm text-gray-300">
             <p className="flex items-center gap-2">
               <span className="text-green-400">✉️</span>
-              <strong>Email:</strong> admin@evita.com
+              <strong>Email:</strong> test@example.com
             </p>
             <p className="flex items-center gap-2">
               <span className="text-green-400">🔑</span>
-              <strong>Contraseña:</strong> evita123
+              <strong>Contraseña:</strong> password123
             </p>
           </div>
           <p className="text-xs text-gray-500 mt-2">
