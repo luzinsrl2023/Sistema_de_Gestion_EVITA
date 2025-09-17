@@ -9,12 +9,11 @@ import AppRoutes from './routes/AppRoutes'
 import './index.css'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
-import { db } from './lib/database'
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth()
 
-  console.log('🔒 ProtectedRoute check:', { user, loading, isLocal: db?.isLocal })
+  console.log('🔒 ProtectedRoute check:', { user, loading })
 
   if (loading) {
     console.log('⏳ ProtectedRoute: Loading...')
@@ -29,10 +28,6 @@ function ProtectedRoute({ children }) {
   }
 
   if (!user) {
-    if (db?.isLocal) {
-      console.log('🤝 Local mode without user: allowing access')
-      return children
-    }
     console.log('❌ ProtectedRoute: No user, redirecting to login')
     return <Navigate to="/login" replace />
   }

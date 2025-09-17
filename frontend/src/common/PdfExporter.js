@@ -1,12 +1,7 @@
 import pdfMake from 'pdfmake/build/pdfmake'
-import pdfFonts from 'pdfmake/build/vfs_fonts'
+import * as pdfFonts from 'pdfmake/build/vfs_fonts'
 
-// Check if pdfFonts is properly loaded before accessing vfs
-if (pdfFonts && pdfFonts.pdfMake && pdfFonts.pdfMake.vfs) {
-  pdfMake.vfs = pdfFonts.pdfMake.vfs
-} else {
-  console.warn('pdfMake vfs_fonts not loaded properly')
-}
+pdfMake.vfs = pdfFonts.pdfMake.vfs;
 
 
 // Helpers for branding header with logo
