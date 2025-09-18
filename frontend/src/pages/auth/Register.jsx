@@ -5,13 +5,11 @@ import { Mail, Lock, Eye, EyeOff, AlertCircle, User, Building } from 'lucide-rea
 
 export default function Register() {
   const navigate = useNavigate()
-  const { signUp, user } = useAuth()
+  const { register, user } = useAuth()
   const [formData, setFormData] = useState({
-    name: '',
     email: '',
     password: '',
-    confirmPassword: '',
-    company: 'EVITA Artículos de Limpieza'
+    confirmPassword: ''
   })
   const [errors, setErrors] = useState({})
   const [loading, setLoading] = useState(false)
@@ -42,10 +40,6 @@ export default function Register() {
   const validateForm = () => {
     const newErrors = {}
 
-    if (!formData.name.trim()) {
-      newErrors.name = 'El nombre es requerido'
-    }
-
     if (!formData.email) {
       newErrors.email = 'El email es requerido'
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
@@ -64,10 +58,6 @@ export default function Register() {
       newErrors.confirmPassword = 'Las contraseñas no coinciden'
     }
 
-    if (!formData.company.trim()) {
-      newErrors.company = 'El nombre de la empresa es requerido'
-    }
-
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
@@ -78,26 +68,18 @@ export default function Register() {
     if (!validateForm()) return
 
     setLoading(true)
+    setErrors({}) // Clear previous errors
 
     try {
-      const { error } = await signUp(formData.email, formData.password, {
-        name: formData.name,
-        company: formData.company,
-        role: 'user'
-      })
+      const { error } = await register(formData.email, formData.password)
       
       if (error) {
-        if (error.message.includes('User already registered')) {
-          setErrors({ general: 'Este email ya está registrado' })
-        } else if (error.message.includes('Password should be at least')) {
-          setErrors({ password: 'La contraseña debe tener al menos 6 caracteres' })
-        } else {
-          setErrors({ general: error.message })
-        }
+        setErrors({ general: error.message || 'Error al crear la cuenta.' })
       } else {
-        navigate('/dashboard')
+        // On successful registration, redirect to login to let the user sign in.
+        navigate('/login')
       }
-    } catch (error) {
+    } catch (err) {
       setErrors({ general: 'Error al crear la cuenta. Inténtalo de nuevo.' })
     } finally {
       setLoading(false)
@@ -144,29 +126,6 @@ export default function Register() {
             )}
 
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-white mb-2">
-                Nombre Completo
-              </label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                <input
-                  id="name"
-                  name="name"
-                  type="text"
-                  value={formData.name}
-                  onChange={handleChange}
-                  className={`w-full bg-gray-800 border ${
-                    errors.name ? 'border-red-500' : 'border-gray-700'
-                  } rounded-lg pl-10 pr-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors`}
-                  placeholder="Tu nombre completo"
-                />
-              </div>
-              {errors.name && (
-                <p className="mt-1 text-sm text-red-400">{errors.name}</p>
-              )}
-            </div>
-
-            <div>
               <label htmlFor="email" className="block text-sm font-medium text-white mb-2">
                 Email
               </label>
@@ -186,29 +145,6 @@ export default function Register() {
               </div>
               {errors.email && (
                 <p className="mt-1 text-sm text-red-400">{errors.email}</p>
-              )}
-            </div>
-
-            <div>
-              <label htmlFor="company" className="block text-sm font-medium text-white mb-2">
-                Empresa
-              </label>
-              <div className="relative">
-                <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-                <input
-                  id="company"
-                  name="company"
-                  type="text"
-                  value={formData.company}
-                  onChange={handleChange}
-                  className={`w-full bg-gray-800 border ${
-                    errors.company ? 'border-red-500' : 'border-gray-700'
-                  } rounded-lg pl-10 pr-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-colors`}
-                  placeholder="Nombre de tu empresa"
-                />
-              </div>
-              {errors.company && (
-                <p className="mt-1 text-sm text-red-400">{errors.company}</p>
               )}
             </div>
 

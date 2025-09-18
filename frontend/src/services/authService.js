@@ -1,54 +1,85 @@
 import { supabase } from '../lib/supabaseClient';
+import bcrypt from 'bcryptjs';
 
 /**
- * Logs in a user using their email and password.
- * This now uses the standard Supabase Auth method.
- * @param {string} email - The user's email.
- * @param {string} password - The user's password.
- * @returns {Promise<{session: object | null, error: object | null}>}
+ * Registra un nuevo usuario en la tabla personalizada 'usuarios_app'.
+ */
+export const register = async (email, password) => {
+  try {
+    const hashedPassword = bcrypt.hashSync(password, 10);
+
+    const { data, error } = await supabase
+      .from('usuarios_app')
+      .insert([{ email, password_hash: hashedPassword }])
+      .select('id, email')
+      .single();
+
+    if (error) throw error;
+    return { user: data, error: null };
+  } catch (err) {
+    console.error('Registration error:', err);
+    if (err.message.includes('unique constraint')) {
+      return { user: null, error: { message: 'This email is already registered.' } };
+    }
+    return { user: null, error: { message: 'Failed to register user.' } };
+  }
+};
+
+/**
+ * Inicia sesión verificando email + password contra la tabla 'usuarios_app'.
  */
 export const login = async (email, password) => {
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
-  return { session: data.session, error };
+  try {
+    const { data: user, error: fetchError } = await supabase
+      .from('usuarios_app')
+      .select('id, email, password_hash')
+      .eq('email', email)
+      .single();
+
+    if (fetchError || !user) {
+      return { session: null, error: { message: 'Invalid login credentials' } };
+    }
+
+    const passwordMatch = bcrypt.compareSync(password, user.password_hash);
+    if (!passwordMatch) {
+      return { session: null, error: { message: 'Invalid login credentials' } };
+    }
+
+    const session = {
+      user: { id: user.id, email: user.email },
+      token: `custom-session-token-for-${user.id}`,
+    };
+
+    localStorage.setItem('session', JSON.stringify(session));
+    return { session, error: null };
+  } catch (err) {
+    console.error('Login exception:', err);
+    return { session: null, error: { message: 'Unexpected login error.' } };
+  }
 };
 
 /**
- * Logs out the current user.
- * This signs the user out from the Supabase session.
- * @returns {Promise<{error: object | null}>}
+ * Cierra sesión limpiando localStorage.
  */
-export const logout = async () => {
-  const { error } = await supabase.auth.signOut();
-  return { error };
+export const logout = () => {
+  localStorage.removeItem('session');
+  window.location.reload();
 };
 
 /**
- * Gets the current session from Supabase.
- * @returns {Promise<{session: object | null, error: object | null}>}
+ * Recupera la sesión actual desde localStorage.
  */
-export const getSession = async () => {
-  const { data, error } = await supabase.auth.getSession();
-  return { session: data.session, error };
+export const getSession = () => {
+  const sessionData = localStorage.getItem('session');
+  if (sessionData) {
+    try {
+      return JSON.parse(sessionData);
+    } catch (e) {
+      console.error('Failed to parse session data', e);
+      localStorage.removeItem('session');
+      return null;
+    }
+  }
+  return null;
 };
 
-/**
- * Registers a new user.
- * This uses the standard Supabase Auth method for signing up.
- * @param {string} email - The new user's email.
- * @param {string} password - The new user's password.
- * @param {object} options - Additional metadata for the user.
- * @returns {Promise<{user: object | null, error: object | null}>}
- */
-export const register = async (email, password, options = {}) => {
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      data: options, // e.g., { username: 'example' }
-    },
-  });
-  return { user: data.user, error };
-};
