@@ -202,14 +202,6 @@ export default function Login() {
             </button>
           </form>
 
-          <div className="mt-6 text-center">
-            <p className="text-sm text-gray-400">
-              ¿No tienes una cuenta?{' '}
-              <Link to="/register" className="text-green-400 hover:text-green-300 font-medium transition-colors">
-                Regístrate aquí
-              </Link>
-            </p>
-          </div>
         </div>
 
         {/* Demo credentials */}
@@ -244,31 +236,6 @@ export default function Login() {
           <p className="text-xs text-gray-500 mt-2">
             📝 Utiliza estas credenciales para probar todas las funciones del sistema
           </p>
-          
-          {/* Debug navigation - Remove in production */}
-          <div className="mt-2 pt-2 border-t border-gray-700">
-            <button
-              type="button"
-              onClick={() => {
-                console.log('🔧 Debug: Force navigation to dashboard')
-                navigate('/debug-dashboard')
-              }}
-              className="text-xs text-blue-400 hover:text-blue-300 underline mr-4"
-            >
-              🔧 Debug: Ir al Dashboard
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                console.log('🗑️ Resetting localStorage...')
-                localStorage.clear()
-                window.location.reload()
-              }}
-              className="text-xs text-red-400 hover:text-red-300 underline"
-            >
-              🗑️ Reset Data
-            </button>
-          </div>
         </div>
       </div>
     </div>
