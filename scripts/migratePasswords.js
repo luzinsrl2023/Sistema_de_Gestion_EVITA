@@ -1,53 +1,67 @@
 const { createClient } = require('@supabase/supabase-js');
 const bcrypt = require('bcryptjs');
 
-// WARNING: Avoid hardcoding credentials. Use environment variables in a real application.
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_KEY;
-const supabase = createClient(supabaseUrl, supabaseKey);
+// This script will rely on environment variables being set.
+// You can create a .env file and run `node -r dotenv/config scripts/migratePasswords.js`
+// after installing dotenv: npm install dotenv
+
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 async function migratePasswords() {
-  try {
-    // 1. Fetch all users
-    const { data: users, error: fetchError } = await supabase
-      .from('usuarios_app')
-      .select('id, password'); // Assuming 'password' column exists and is plain text
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    console.error('Error: SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be provided as environment variables.');
+    process.exit(1);
+  }
 
-    if (fetchError) {
-      throw fetchError;
-    }
+  const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+  try {
+    console.log('🚀 Starting password migration...');
+
+    // 1. Get all users
+    const { data: users, error } = await supabase
+      .from('usuarios_app')
+      .select('id, email, password_hash');
+
+    if (error) throw error;
 
     if (!users || users.length === 0) {
-      console.log('No users found to migrate.');
+      console.log('✅ No users found to migrate.');
       return;
     }
 
-    console.log(`Found ${users.length} users to migrate.`);
+    console.log(`🔍 Found ${users.length} users. Checking passwords...`);
 
-    // 2. Hash passwords and update records
     for (const user of users) {
-      if (user.password && !user.password.startsWith('$2a$')) { // Basic check if password is not already hashed
-        console.log(`Migrating password for user ID: ${user.id}`);
-        const hashedPassword = await bcrypt.hash(user.password, 10);
+      const pwd = user.password_hash;
 
-        const { error: updateError } = await supabase
-          .from('usuarios_app')
-          .update({ password: hashedPassword })
-          .eq('id', user.id);
+      // 2. Detect if it's already hashed (bcrypt hashes start with $2a$, $2b$, or $2y$)
+      if (!pwd || pwd.startsWith('$2a$') || pwd.startsWith('$2b$') || pwd.startsWith('$2y$')) {
+        console.log(`✅ User ${user.email} password already hashed or empty. Skipping.`);
+        continue;
+      }
 
-        if (updateError) {
-          console.error(`Failed to update password for user ID: ${user.id}`, updateError);
-        } else {
-          console.log(`Successfully migrated password for user ID: ${user.id}`);
-        }
+      // 3. Generate new hash
+      console.log(`⏳ Hashing password for ${user.email}...`);
+      const hashed = bcrypt.hashSync(pwd, 10);
+
+      // 4. Update the row
+      const { error: updateError } = await supabase
+        .from('usuarios_app')
+        .update({ password_hash: hashed })
+        .eq('id', user.id);
+
+      if (updateError) {
+        console.error(`❌ Error updating ${user.email}:`, updateError.message);
       } else {
-        console.log(`Skipping user ID: ${user.id} (password may already be hashed or is empty).`);
+        console.log(`🔑 Password migrated successfully for ${user.email}`);
       }
     }
 
-    console.log('Password migration process completed.');
-  } catch (error) {
-    console.error('An error occurred during password migration:', error);
+    console.log('🎉 Migration completed!');
+  } catch (err) {
+    console.error('💥 An error occurred during migration:', err.message);
   }
 }
 
