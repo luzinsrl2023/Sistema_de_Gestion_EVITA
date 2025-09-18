@@ -42,10 +42,10 @@ export const AuthProvider = ({ children }) => {
   };
 
   // Register function.
-  const register = async (email, password, username) => {
+  const register = async (email, password) => {
     // The service handles the registration, no need to set user state here
     // as login is a separate step.
-    return await authService.register(email, password, username);
+    return await authService.register(email, password);
   };
 
   const value = {
