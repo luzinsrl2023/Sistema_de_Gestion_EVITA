@@ -22,7 +22,7 @@ export default function Login() {
 
     // Log system status for debugging
     console.log('🎆 EVITA Sistema de Gestión cargado')
-    console.log('🚀 Demo disponible: admin@evita.com / evita123')
+    console.log('🚀 Demo disponible: test@example.com / password123')
     console.log('📄 Current user state:', user)
   }, [user, navigate])
 
