@@ -1,7 +1,5 @@
-import pdfMake from 'pdfmake/build/pdfmake'
-import * as pdfFonts from 'pdfmake/build/vfs_fonts'
-
-pdfMake.vfs = pdfFonts.pdfMake.vfs;
+import pdfMake from "pdfmake/build/pdfmake.min.js";
+import "pdfmake/build/vfs_fonts.js";
 
 
 // Helpers for branding header with logo
