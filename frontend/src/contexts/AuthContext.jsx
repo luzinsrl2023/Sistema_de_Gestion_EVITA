@@ -15,30 +15,37 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // On initial load, check if a session exists in localStorage.
   useEffect(() => {
+    // This is now a synchronous call.
     const session = authService.getSession();
-    if (session) {
+    if (session && session.user) {
       setUser(session.user);
     }
     setLoading(false);
   }, []);
 
+  // Login function that updates user state on success.
   const login = async (email, password) => {
     const { session, error } = await authService.login(email, password);
-    if (session) {
+    if (session && session.user) {
       setUser(session.user);
     }
+    // Return the result so the UI can handle errors.
     return { session, error };
   };
 
-  const signOut = async () => {
-    await authService.logout();
+  // SignOut function that clears user state.
+  const signOut = () => {
+    authService.logout();
     setUser(null);
   };
 
+  // Register function.
   const register = async (email, password, username) => {
-    const { user, error } = await authService.register(email, password, username);
-    return { user, error };
+    // The service handles the registration, no need to set user state here
+    // as login is a separate step.
+    return await authService.register(email, password, username);
   };
 
   const value = {
