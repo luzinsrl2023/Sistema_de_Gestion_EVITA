@@ -30,6 +30,22 @@ export const register = async (email, password) => {
  * Este es el método seguro y recomendado.
  */
 export const login = async (email, password) => {
+  // Demo user functionality
+  if (email.toLowerCase() === 'test@example.com') {
+    console.log('Activating demo mode.');
+    const session = {
+      user: {
+        id: 'demo-user',
+        email: 'test@example.com',
+        demo: true, // Flag to identify demo user
+      },
+      token: 'demo-session-token',
+    };
+    localStorage.setItem('session', JSON.stringify(session));
+    return { session, error: null };
+  }
+
+  // Existing login logic for real users
   try {
     const { data, error } = await supabase.functions.invoke('validate-login', {
       body: { email, password },

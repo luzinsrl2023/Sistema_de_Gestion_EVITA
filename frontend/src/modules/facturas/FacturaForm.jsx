@@ -2,8 +2,12 @@ import React from 'react'
 import { Plus, Trash2 } from 'lucide-react'
 import { useCotizaciones } from '../../hooks/useCotizaciones'
 import { useProductos } from '../../hooks/useProductos'
+import { useAuth } from '../../contexts/AuthContext'
 
 export default function FacturaForm() {
+  const { user } = useAuth()
+  const isDemoMode = user?.demo === true
+
   const { data: cotizaciones = [] } = useCotizaciones()
   const { data: productos = [] } = useProductos()
   const [selectedCot, setSelectedCot] = React.useState('')
@@ -20,6 +24,15 @@ export default function FacturaForm() {
     }
   }
 
+  const handleSubmit = (e) => {
+    e.preventDefault()
+    if (isDemoMode) {
+      alert('Acción no permitida en modo demo.')
+      return
+    }
+    // Handle form submission logic here
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -30,7 +43,12 @@ export default function FacturaForm() {
       </div>
       
       <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
-        <form className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {isDemoMode && (
+            <div className="p-3 mb-4 text-sm text-yellow-300 bg-yellow-900/30 rounded-lg" role="alert">
+              <span className="font-medium">Modo Demo:</span> Las funciones de guardado están deshabilitadas.
+            </div>
+          )}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-white mb-2">
@@ -158,7 +176,12 @@ export default function FacturaForm() {
             </button>
             <button
               type="submit"
-              className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
+              disabled={isDemoMode}
+              className={`px-6 py-2 text-white rounded-lg font-medium transition-colors ${
+                isDemoMode
+                  ? 'bg-gray-500 cursor-not-allowed'
+                  : 'bg-green-600 hover:bg-green-700'
+              }`}
             >
               Guardar Factura
             </button>
