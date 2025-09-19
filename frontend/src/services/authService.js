@@ -57,10 +57,10 @@ export const login = async (email, password) => {
       return { session: null, error: { message: 'Error connecting to authentication service.' } };
     }
 
-    if (!data.ok) {
+    if (!data.success) {
       // Credentials validation failed inside the function
-      console.warn('Login validation failed:', data.message);
-      return { session: null, error: { message: data.message || 'Invalid credentials' } };
+      console.warn('Login validation failed:', data.error);
+      return { session: null, error: { message: data.error || 'Invalid credentials' } };
     }
 
     // Login successful
