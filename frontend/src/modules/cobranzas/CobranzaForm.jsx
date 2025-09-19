@@ -4,10 +4,14 @@ import { formatCurrency, formatDate } from '../../lib/utils'
 import { useFacturas } from '../../hooks/useFacturas'
 import { usePagos } from '../../hooks/usePagos'
 import { useRecibos } from '../../hooks/useRecibos'
+import { useAuth } from '../../contexts/AuthContext'
 
 import { exportReceiptPDF } from '../../common/PdfExporter'
 
 export default function CobranzaForm(props) {
+  const { user } = useAuth()
+  const isDemoMode = user?.demo === true
+
   const { facturaId } = useParams()
   const location = useLocation()
   const navigate = useNavigate()
@@ -44,6 +48,10 @@ export default function CobranzaForm(props) {
   }
 
   const submitWithAmount = async (amount) => {
+    if (isDemoMode) {
+      alert('Acción no permitida en modo demo.')
+      return
+    }
     if (!amount || amount <= 0) return
     const pending = Number(effectivePending)
     const usedAmount = Math.min(amount, pending)
@@ -135,6 +143,11 @@ export default function CobranzaForm(props) {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            {isDemoMode && (
+              <div className="p-3 mb-4 text-sm text-yellow-300 bg-yellow-900/30 rounded-lg" role="alert">
+                <span className="font-medium">Modo Demo:</span> Las funciones de guardado están deshabilitadas.
+              </div>
+            )}
             <div>
               <label className="block text-sm font-medium text-white mb-2">
                 Monto a Pagar
@@ -204,13 +217,15 @@ export default function CobranzaForm(props) {
               <button
                 type="button"
                 onClick={handleSubmitPartial}
-                className="px-6 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg font-medium transition-colors"
+                disabled={isDemoMode}
+                className={`px-6 py-2 text-white rounded-lg font-medium transition-colors ${isDemoMode ? 'bg-gray-500 cursor-not-allowed' : 'bg-yellow-600 hover:bg-yellow-700'}`}
               >
                 Registrar pago parcial
               </button>
               <button
                 type="submit"
-                className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
+                disabled={isDemoMode}
+                className={`px-6 py-2 text-white rounded-lg font-medium transition-colors ${isDemoMode ? 'bg-gray-500 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'}`}
               >
                 Registrar Pago
               </button>

@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { X, Plus, Minus } from 'lucide-react'
+import { useAuth } from '../../contexts/AuthContext'
 
 const categories = [
   'Limpieza',
@@ -10,6 +11,9 @@ const categories = [
 ]
 
 export default function ProductoForm({ onClose, onSubmit }) {
+  const { user } = useAuth()
+  const isDemoMode = user?.demo === true
+
   const [formData, setFormData] = useState({
     name: '',
     category: 'Limpieza',
@@ -33,6 +37,10 @@ export default function ProductoForm({ onClose, onSubmit }) {
 
   const handleSubmit = (e) => {
     e.preventDefault()
+    if (isDemoMode) {
+      alert('Acción no permitida en modo demo.')
+      return
+    }
     onSubmit({
       ...formData,
       id: `EVT${Date.now().toString().slice(-6)}`,
@@ -54,6 +62,11 @@ export default function ProductoForm({ onClose, onSubmit }) {
         </div>
         
         <form onSubmit={handleSubmit} className="space-y-6">
+          {isDemoMode && (
+            <div className="p-3 mb-4 text-sm text-yellow-300 bg-yellow-900/30 rounded-lg" role="alert">
+              <span className="font-medium">Modo Demo:</span> Las funciones de guardado están deshabilitadas.
+            </div>
+          )}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-white mb-2">
@@ -183,7 +196,12 @@ export default function ProductoForm({ onClose, onSubmit }) {
             </button>
             <button
               type="submit"
-              className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
+              disabled={isDemoMode}
+              className={`px-6 py-2 text-white rounded-lg font-medium transition-colors ${
+                isDemoMode
+                  ? 'bg-gray-500 cursor-not-allowed'
+                  : 'bg-green-600 hover:bg-green-700'
+              }`}
             >
               Guardar Producto
             </button>

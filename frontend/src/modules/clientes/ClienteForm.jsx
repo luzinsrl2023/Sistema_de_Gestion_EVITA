@@ -1,7 +1,11 @@
 import React, { useState } from 'react'
 import { X } from 'lucide-react'
+import { useAuth } from '../../contexts/AuthContext'
 
 export default function ClienteForm({ onClose, onSubmit, initialData = null }) {
+  const { user } = useAuth()
+  const isDemoMode = user?.demo === true
+
   const [formData, setFormData] = useState({
     name: initialData?.name || '',
     email: initialData?.email || '',
@@ -20,6 +24,10 @@ export default function ClienteForm({ onClose, onSubmit, initialData = null }) {
 
   const handleSubmit = (e) => {
     e.preventDefault()
+    if (isDemoMode) {
+      alert('Acción no permitida en modo demo.')
+      return
+    }
     onSubmit({
       ...formData,
       id: initialData?.id || `CLI${Date.now().toString().slice(-6)}`,
@@ -46,6 +54,11 @@ export default function ClienteForm({ onClose, onSubmit, initialData = null }) {
         </div>
         
         <form onSubmit={handleSubmit} className="space-y-4">
+          {isDemoMode && (
+            <div className="p-3 mb-4 text-sm text-yellow-300 bg-yellow-900/30 rounded-lg" role="alert">
+              <span className="font-medium">Modo Demo:</span> Las funciones de guardado están deshabilitadas.
+            </div>
+          )}
           <div>
             <label className="block text-sm font-medium text-white mb-2">
               Nombre Completo *
@@ -128,7 +141,12 @@ export default function ClienteForm({ onClose, onSubmit, initialData = null }) {
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
+              disabled={isDemoMode}
+              className={`px-4 py-2 text-white rounded-lg font-medium transition-colors ${
+                isDemoMode
+                  ? 'bg-gray-500 cursor-not-allowed'
+                  : 'bg-green-600 hover:bg-green-700'
+              }`}
             >
               {initialData ? 'Actualizar Cliente' : 'Agregar Cliente'}
             </button>
