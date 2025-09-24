@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useTheme } from '../../contexts/ThemeContext'
 import { 
@@ -12,70 +12,177 @@ import {
   Plus,
   ExternalLink,
   ArrowUp,
-  ArrowDown
+  ArrowDown,
+  FileText,
+  CreditCard,
+  Calendar,
+  RefreshCw
 } from 'lucide-react'
 import { formatCurrency, formatDate, cn } from '../../lib/utils'
+import { getEstadisticasVentas } from '../../services/ventas'
+import { getClientes } from '../../services/clientes'
+import { getProductosStockBajo } from '../../services/productos'
+import { getFacturasByEstado } from '../../services/facturas'
+import { getCobranzasDelDia, getResumenCobranzas } from '../../services/cobranzas'
+import { getProveedores } from '../../services/proveedores'
 
-const stats = [
+// Datos dummy que serán reemplazados por datos reales
+const defaultStats = [
   {
-    name: 'Ventas Totales (Mes)',
-    value: 25450,
-    change: '+15%',
-    changeType: 'positive',
+    name: 'Ventas del Mes',
+    value: 0,
+    change: 'Cargando...',
+    changeType: 'neutral',
     icon: TrendingUp,
     color: 'bg-green-500/10 text-green-400'
   },
   {
-    name: 'Compras Totales (Mes)',
-    value: 12300,
-    change: '+5%',
-    changeType: 'positive',
-    icon: TrendingDown,
+    name: 'Facturas Pendientes',
+    value: 0,
+    change: 'Cargando...',
+    changeType: 'neutral',
+    icon: FileText,
     color: 'bg-orange-500/10 text-orange-400'
   },
   {
-    name: 'Flujo de Caja Disponible',
-    value: 13150,
-    change: 'Actualizado hoy',
+    name: 'Cobranzas de Hoy',
+    value: 0,
+    change: 'Cargando...',
     changeType: 'neutral',
-    icon: Wallet,
+    icon: CreditCard,
     color: 'bg-blue-500/10 text-blue-400'
   },
   {
-    name: 'Productos en Stock',
-    value: 1547,
-    change: '-3%',
-    changeType: 'negative',
-    icon: Package,
+    name: 'Clientes Registrados',
+    value: 0,
+    change: 'Cargando...',
+    changeType: 'neutral',
+    icon: Users,
     color: 'bg-purple-500/10 text-purple-400'
   }
-]
-
-const topProducts = [
-  { name: 'Limpiador Multiuso EVITA Pro', category: 'Limpieza', units: 150, revenue: 3000 },
-  { name: 'Detergente Ecológico Concentrado', category: 'Limpieza', units: 120, revenue: 2400 },
-  { name: 'Desinfectante Antibacterial', category: 'Limpieza', units: 110, revenue: 2200 },
-  { name: 'Bombillas LED Ahorro Energía', category: 'Electricidad', units: 100, revenue: 1500 },
-  { name: 'Jabón Líquido para Manos', category: 'Limpieza', units: 85, revenue: 850 }
-]
-
-const recentActivities = [
-  { type: 'sale', description: 'Nueva venta #INV-001234', amount: 450, time: '2 min' },
-  { type: 'purchase', description: 'Orden de compra #PO-005678', amount: 1200, time: '15 min' },
-  { type: 'payment', description: 'Pago recibido - Cliente ABC', amount: 850, time: '1 hora' },
-  { type: 'alert', description: 'Stock bajo: Jabón para platos', amount: null, time: '2 horas' }
-]
-
-const lowStockAlerts = [
-  { product: 'Jabón para Platos EVITA', current: 20, minimum: 50, category: 'Limpieza' },
-  { product: 'Desinfectante de Superficies', current: 15, minimum: 40, category: 'Limpieza' },
-  { product: 'Cable Eléctrico 2.5mm', current: 8, minimum: 25, category: 'Electricidad' },
-  { product: 'Bolsas Basura Biodegradables', current: 12, minimum: 30, category: 'Artículos Generales' }
 ]
 
 export default function Dashboard() {
   const { theme } = useTheme()
   const [dateRange, setDateRange] = useState('month')
+  const [loading, setLoading] = useState(true)
+  const [stats, setStats] = useState(defaultStats)
+  const [lowStockProducts, setLowStockProducts] = useState([])
+  const [recentActivities, setRecentActivities] = useState([])
+  const [error, setError] = useState(null)
+
+  // Función para cargar todos los datos del dashboard
+  const loadDashboardData = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+
+      // Cargar datos en paralelo
+      const [
+        estadisticasVentas,
+        clientes,
+        productosStockBajo,
+        facturasPendientes,
+        cobranzasHoy
+      ] = await Promise.all([
+        getEstadisticasVentas(),
+        getClientes(),
+        getProductosStockBajo(10),
+        getFacturasByEstado('emitida'),
+        getCobranzasDelDia()
+      ])
+
+      // Actualizar estadísticas
+      const newStats = [
+        {
+          name: 'Ventas del Mes',
+          value: estadisticasVentas.data?.totalMes || 0,
+          change: `${estadisticasVentas.data?.cantidadVentasMes || 0} ventas`,
+          changeType: estadisticasVentas.data?.totalMes > 0 ? 'positive' : 'neutral',
+          icon: TrendingUp,
+          color: 'bg-green-500/10 text-green-400'
+        },
+        {
+          name: 'Facturas Pendientes',
+          value: facturasPendientes.data?.length || 0,
+          change: 'Sin pagar',
+          changeType: (facturasPendientes.data?.length || 0) > 0 ? 'negative' : 'positive',
+          icon: FileText,
+          color: 'bg-orange-500/10 text-orange-400'
+        },
+        {
+          name: 'Cobranzas de Hoy',
+          value: cobranzasHoy.data?.reduce((sum, c) => sum + parseFloat(c.monto || 0), 0) || 0,
+          change: `${cobranzasHoy.data?.length || 0} pagos`,
+          changeType: (cobranzasHoy.data?.length || 0) > 0 ? 'positive' : 'neutral',
+          icon: CreditCard,
+          color: 'bg-blue-500/10 text-blue-400'
+        },
+        {
+          name: 'Clientes Registrados',
+          value: clientes.data?.length || 0,
+          change: 'Total activos',
+          changeType: 'neutral',
+          icon: Users,
+          color: 'bg-purple-500/10 text-purple-400'
+        }
+      ]
+
+      setStats(newStats)
+      setLowStockProducts(productosStockBajo.data || [])
+
+      // Generar actividades recientes basadas en datos reales
+      const activities = []
+      
+      // Añadir cobranzas de hoy
+      cobranzasHoy.data?.slice(0, 2).forEach(cobranza => {
+        activities.push({
+          type: 'payment',
+          description: `Pago recibido - ${cobranza.clientes?.nombre || 'Cliente'}`,
+          amount: parseFloat(cobranza.monto || 0),
+          time: 'Hoy'
+        })
+      })
+
+      // Añadir alertas de stock bajo
+      if (productosStockBajo.data?.length > 0) {
+        activities.push({
+          type: 'alert',
+          description: `Stock bajo: ${productosStockBajo.data[0].nombre}`,
+          amount: null,
+          time: 'Ahora'
+        })
+      }
+
+      // Completar con actividades dummy si no hay suficientes
+      while (activities.length < 4) {
+        activities.push({
+          type: 'sale',
+          description: 'Sistema funcionando correctamente',
+          amount: null,
+          time: 'Activo'
+        })
+      }
+
+      setRecentActivities(activities.slice(0, 4))
+      
+    } catch (error) {
+      console.error('Error loading dashboard data:', error)
+      setError('Error al cargar los datos del dashboard')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Cargar datos al montar el componente
+  useEffect(() => {
+    loadDashboardData()
+  }, [])
+
+  // Función para refrescar datos
+  const handleRefresh = () => {
+    loadDashboardData()
+  }
 
   return (
     <div className="space-y-6">
@@ -104,13 +211,17 @@ export default function Dashboard() {
             <option value="quarter">Este Trimestre</option>
             <option value="year">Este Año</option>
           </select>
-          <button className={cn(
-            "flex items-center gap-2 text-white px-4 py-2 rounded-lg font-medium transition-colors",
-            `bg-${theme.colors.primary}`,
-            `hover:bg-${theme.colors.primaryHover}`
-          )}>
-            <Plus className="h-4 w-4" />
-            Nueva Entrada
+          <button 
+            onClick={handleRefresh}
+            disabled={loading}
+            className={cn(
+              "flex items-center gap-2 text-white px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50",
+              `bg-${theme.colors.primary}`,
+              `hover:bg-${theme.colors.primaryHover}`
+            )}
+          >
+            <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
+            {loading ? 'Cargando...' : 'Actualizar'}
           </button>
         </div>
       </div>
@@ -157,40 +268,80 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Top Products */}
+        {/* Productos con Stock Bajo */}
         <div className={cn("border rounded-xl", `bg-${theme.colors.surface}`, `border-${theme.colors.border}`)}>
           <div className={cn("p-6 border-b flex items-center justify-between", `border-${theme.colors.border}`)}>
-            <h3 className={cn("text-xl font-semibold", `text-${theme.colors.text}`)}>Productos Más Vendidos</h3>
+            <h3 className={cn("text-xl font-semibold", `text-${theme.colors.text}`)}>Productos con Stock Bajo</h3>
             <Link 
-              to="/products"
+              to="/inventario"
               className={cn("text-sm font-medium flex items-center gap-1 transition-colors", `text-${theme.colors.primaryText}`, `hover:text-${theme.colors.primary}`)}
             >
-              Ver todos
+              Ver inventario
               <ExternalLink className="h-3 w-3" />
             </Link>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-left">
-              <thead className={cn("bg-opacity-50", `bg-${theme.colors.background}`)}
-              >
-                <tr>
-                  <th className={cn("p-4 text-sm font-semibold", `text-${theme.colors.textSecondary}`)}>Producto</th>
-                  <th className={cn("p-4 text-sm font-semibold", `text-${theme.colors.textSecondary}`)}>Categoría</th>
-                  <th className={cn("p-4 text-sm font-semibold text-right", `text-${theme.colors.textSecondary}`)}>Unidades</th>
-                  <th className={cn("p-4 text-sm font-semibold text-right", `text-${theme.colors.textSecondary}`)}>Ingresos</th>
-                </tr>
-              </thead>
-              <tbody className={cn("divide-y", `divide-${theme.colors.border}`)}>
-                {topProducts.map((product, index) => (
-                  <tr key={index} className={cn("hover:bg-opacity-30 transition-colors", `hover:bg-${theme.colors.background}`)}>
-                    <td className={cn("p-4 font-medium", `text-${theme.colors.text}`)}>{product.name}</td>
-                    <td className={cn("p-4", `text-${theme.colors.textSecondary}`)}>{product.category}</td>
-                    <td className={cn("p-4 text-right font-mono", `text-${theme.colors.text}`)}>{product.units}</td>
-                    <td className={cn("p-4 text-right font-mono", `text-${theme.colors.text}`)}>{formatCurrency(product.revenue)}</td>
+            {loading ? (
+              <div className="p-8 text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-400 mx-auto"></div>
+                <p className={cn("mt-2 text-sm", `text-${theme.colors.textSecondary}`)}>Cargando productos...</p>
+              </div>
+            ) : lowStockProducts.length === 0 ? (
+              <div className="p-8 text-center">
+                <Package className={cn("h-12 w-12 mx-auto mb-4", `text-${theme.colors.textSecondary}`)} />
+                <p className={cn("text-sm", `text-${theme.colors.textSecondary}`)}>No hay productos con stock bajo</p>
+              </div>
+            ) : (
+              <table className="w-full text-left">
+                <thead className={cn("bg-opacity-50", `bg-${theme.colors.background}`)}
+                >
+                  <tr>
+                    <th className={cn("p-4 text-sm font-semibold", `text-${theme.colors.textSecondary}`)}>Producto</th>
+                    <th className={cn("p-4 text-sm font-semibold", `text-${theme.colors.textSecondary}`)}>Stock Actual</th>
+                    <th className={cn("p-4 text-sm font-semibold text-right", `text-${theme.colors.textSecondary}`)}>Precio</th>
+                    <th className={cn("p-4 text-sm font-semibold text-center", `text-${theme.colors.textSecondary}`)}>Estado</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className={cn("divide-y", `divide-${theme.colors.border}`)}>
+                  {lowStockProducts.slice(0, 5).map((product, index) => (
+                    <tr key={index} className={cn("hover:bg-opacity-30 transition-colors", `hover:bg-${theme.colors.background}`)}>
+                      <td className={cn("p-4", `text-${theme.colors.text}`)}>
+                        <div>
+                          <p className="font-medium">{product.nombre}</p>
+                          {product.proveedores && (
+                            <p className={cn("text-xs", `text-${theme.colors.textSecondary}`)}>
+                              Proveedor: {product.proveedores.nombre}
+                            </p>
+                          )}
+                        </div>
+                      </td>
+                      <td className={cn("p-4 font-mono", `text-${theme.colors.text}`)}>
+                        <span className={cn(
+                          "px-2 py-1 rounded text-xs font-medium",
+                          product.stock <= 5 ? "bg-red-500/20 text-red-400" : 
+                          product.stock <= 10 ? "bg-yellow-500/20 text-yellow-400" : 
+                          "bg-orange-500/20 text-orange-400"
+                        )}>
+                          {product.stock} unidades
+                        </span>
+                      </td>
+                      <td className={cn("p-4 text-right font-mono", `text-${theme.colors.text}`)}>
+                        {formatCurrency(product.precio)}
+                      </td>
+                      <td className="p-4 text-center">
+                        <span className={cn(
+                          "px-2 py-1 rounded text-xs font-medium",
+                          product.stock <= 5 ? "bg-red-500/20 text-red-400" : 
+                          "bg-yellow-500/20 text-yellow-400"
+                        )}>
+                          {product.stock <= 5 ? 'Crítico' : 'Bajo'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
         </div>
 
@@ -227,30 +378,59 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Low Stock Alerts */}
+      {/* Error Message */}
+      {error && (
+        <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-6">
+          <div className="flex items-center gap-3">
+            <AlertTriangle className="h-6 w-6 text-red-400" />
+            <div>
+              <h3 className={cn("font-semibold", `text-red-400`)}>Error al cargar datos</h3>
+              <p className={cn("text-sm mt-1", `text-${theme.colors.textSecondary}`)}>{error}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Resumen General */}
       <div className={cn("border rounded-xl", `bg-${theme.colors.surface}`, `border-${theme.colors.border}`)}>
-        <div className={cn("p-6 border-b flex items-center gap-2", `border-${theme.colors.border}`)}>
-          <AlertTriangle className="h-5 w-5 text-yellow-400" />
-          <h3 className={cn("text-xl font-semibold", `text-${theme.colors.text}`)}>Alertas de Stock Bajo</h3>
+        <div className={cn("p-6 border-b", `border-${theme.colors.border}`)}>
+          <h3 className={cn("text-xl font-semibold flex items-center gap-2", `text-${theme.colors.text}`)}>
+            <Calendar className="h-5 w-5" />
+            Estado del Sistema EVITA
+          </h3>
         </div>
         <div className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {lowStockAlerts.map((alert, index) => (
-              <div key={index} className="bg-yellow-500/5 border border-yellow-500/20 rounded-lg p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <h4 className={cn("font-medium", `text-${theme.colors.text}`)}>{alert.product}</h4>
-                  <span className="text-xs bg-yellow-500/20 text-yellow-400 px-2 py-1 rounded">
-                    {alert.category}
-                  </span>
-                </div>
-                <p className={cn("text-sm mb-2", `text-${theme.colors.textSecondary}`)}>
-                  Stock actual: <span className="text-yellow-400 font-medium">{alert.current}</span>
-                </p>
-                <p className={cn("text-sm", `text-${theme.colors.textSecondary}`)}>
-                  Mínimo requerido: <span className={cn("font-medium", `text-${theme.colors.text}`)}>{alert.minimum}</span>
-                </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="text-center">
+              <div className={cn("text-2xl font-bold mb-1", `text-${theme.colors.text}`)}>
+                {lowStockProducts.length}
               </div>
-            ))}
+              <div className={cn("text-sm", `text-${theme.colors.textSecondary}`)}>Productos con stock bajo</div>
+            </div>
+            <div className="text-center">
+              <div className={cn("text-2xl font-bold mb-1", stats.find(s => s.name.includes('Facturas'))?.value > 0 ? 'text-orange-400' : 'text-green-400')}>
+                {stats.find(s => s.name.includes('Facturas'))?.value || 0}
+              </div>
+              <div className={cn("text-sm", `text-${theme.colors.textSecondary}`)}>Facturas pendientes</div>
+            </div>
+            <div className="text-center">
+              <div className={cn("text-2xl font-bold mb-1 text-blue-400")}>
+                {stats.find(s => s.name.includes('Clientes'))?.value || 0}
+              </div>
+              <div className={cn("text-sm", `text-${theme.colors.textSecondary}`)}>Clientes activos</div>
+            </div>
+          </div>
+          
+          <div className="mt-6 pt-6 border-t border-gray-700">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                <span className={cn("text-sm", `text-${theme.colors.textSecondary}`)}>Sistema operativo</span>
+              </div>
+              <div className={cn("text-xs", `text-${theme.colors.textSecondary}`)}>
+                Última actualización: {loading ? 'Actualizando...' : 'Ahora'}
+              </div>
+            </div>
           </div>
         </div>
       </div>
