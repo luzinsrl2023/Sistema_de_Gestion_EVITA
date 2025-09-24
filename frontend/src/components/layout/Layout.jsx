@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { useTheme } from '../../contexts/ThemeContext'
-import Settings from '../ui/Settings'
 import { useClientes } from '../../hooks/useClientes'
 import { useProductos } from '../../hooks/useProductos'
 import {
@@ -59,7 +58,6 @@ export default function Layout({ children }) {
   const { user, signOut } = useAuth()
   const { getThemeClasses, theme } = useTheme()
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [settingsOpen, setSettingsOpen] = useState(false)
   const [notificationsOpen, setNotificationsOpen] = useState(false)
   const [logoUrl, setLogoUrl] = useState(localStorage.getItem('evita-logo') || null)
 
@@ -462,12 +460,6 @@ export default function Layout({ children }) {
               </div>
             </div>
             <div className="flex items-center gap-4">
-              <button
-                onClick={() => setSettingsOpen(true)}
-                className={cn("relative p-2 hover:text-white transition-colors", `text-${theme.colors.textSecondary}`)}
-              >
-                <SettingsIcon className="h-5 w-5" />
-              </button>
               <div className="relative">
                 <button
                   onClick={() => setNotificationsOpen(!notificationsOpen)}
@@ -540,8 +532,6 @@ export default function Layout({ children }) {
         </main>
       </div>
 
-      {/* Settings Modal */}
-      <Settings isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} onLogoChange={setLogoUrl} />
     </div>
   )
 }

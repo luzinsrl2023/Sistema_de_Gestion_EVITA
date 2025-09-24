@@ -78,6 +78,33 @@ export const uploadFile = async (file, bucketName, fileName = null, options = {}
       throw new Error('No se proporcionó archivo')
     }
 
+    // En modo desarrollo, simular subida de archivos usando URL local
+    const isDevelopment = import.meta.env.DEV || import.meta.env.VITE_USE_LOCAL_DB !== 'false'
+    if (isDevelopment) {
+      const fileUrl = URL.createObjectURL(file)
+      const fileExt = file.name.split('.').pop()
+      const finalFileName = fileName || `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
+      
+      // Guardar en localStorage para persistencia en desarrollo
+      if (bucketName === BUCKETS.LOGOS) {
+        localStorage.setItem('evita-logo', fileUrl)
+      }
+      
+      return {
+        success: true,
+        data: {
+          path: `dev/${finalFileName}`,
+          fullPath: `dev/${bucketName}/${finalFileName}`,
+          publicUrl: fileUrl,
+          bucketName,
+          fileName: finalFileName,
+          originalName: file.name,
+          size: file.size,
+          type: file.type
+        }
+      }
+    }
+
     if (!Object.values(BUCKETS).includes(bucketName)) {
       throw new Error(`Bucket ${bucketName} no está configurado`)
     }

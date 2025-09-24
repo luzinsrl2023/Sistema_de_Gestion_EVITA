@@ -22,6 +22,7 @@ import { formatCurrency, formatDate, getStatusColor, cn } from '../../lib/utils'
 import { DataTable, exportToExcel, exportTableToPDF } from '../../common'
 import * as XLSX from 'xlsx'
 import { useClientes } from '../../hooks/useClientes'
+import ClienteForm from './ClienteForm'
 
 import { useLocation } from 'react-router-dom'
 
@@ -107,6 +108,8 @@ export default function ClientesList() {
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [showAddClient, setShowAddClient] = useState(false)
+  const [showEditClient, setShowEditClient] = useState(false)
+  const [editingClient, setEditingClient] = useState(null)
   const [selectedClients, setSelectedClients] = useState([])
   const [newClient, setNewClient] = useState({
     name: '',
@@ -280,7 +283,10 @@ export default function ClientesList() {
       Header: 'Acciones',
       Cell: ({ row }) => (
         <div className="flex items-center justify-end gap-2">
-          <button className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors">
+          <button 
+            onClick={() => handleEditClient(row.original)}
+            className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
+          >
             <Edit className="h-4 w-4" />
           </button>
           <button
@@ -408,6 +414,20 @@ export default function ClientesList() {
       }
       return client
     }))
+  }
+
+  const handleEditClient = (client) => {
+    setEditingClient(client)
+    setShowEditClient(true)
+  }
+
+  const handleSaveEditClient = (updatedClient) => {
+    setClients(prev => prev.map(client => 
+      client.id === updatedClient.id ? updatedClient : client
+    ))
+    setShowEditClient(false)
+    setEditingClient(null)
+    alert('Cliente actualizado exitosamente')
   }
 
   return (
@@ -588,6 +608,18 @@ export default function ClientesList() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Edit Client Modal */}
+      {showEditClient && editingClient && (
+        <ClienteForm
+          onClose={() => {
+            setShowEditClient(false)
+            setEditingClient(null)
+          }}
+          onSubmit={handleSaveEditClient}
+          initialData={editingClient}
+        />
       )}
     </div>
   )
