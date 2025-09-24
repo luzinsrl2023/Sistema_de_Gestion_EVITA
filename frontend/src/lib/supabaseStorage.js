@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { supabase } from './supabaseAuth'
+import { supabase } from './supabaseClient'
 
 // Configuración de buckets
 const BUCKETS = {
