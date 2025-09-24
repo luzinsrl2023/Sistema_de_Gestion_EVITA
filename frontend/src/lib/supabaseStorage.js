@@ -15,35 +15,52 @@ const BUCKETS = {
  */
 export const initializeBuckets = async () => {
   try {
+    console.log('Inicializando buckets de Supabase Storage...')
+    
     const { data: buckets, error: listError } = await supabase.storage.listBuckets()
     
     if (listError) {
       console.error('Error listing buckets:', listError)
-      return
+      // Intentar crear buckets aunque falle la lista
     }
 
-    const existingBuckets = buckets.map(bucket => bucket.name)
+    const existingBuckets = buckets ? buckets.map(bucket => bucket.name) : []
+    console.log('Buckets existentes:', existingBuckets)
 
     // Crear buckets que no existen
     for (const [key, bucketName] of Object.entries(BUCKETS)) {
       if (!existingBuckets.includes(bucketName)) {
-        const { data, error } = await supabase.storage.createBucket(bucketName, {
+        console.log(`Creando bucket: ${bucketName}`)
+        
+        const bucketConfig = {
           public: key === 'LOGOS' || key === 'PRODUCTS', // Logos y productos son públicos
           fileSizeLimit: key === 'INVOICES' ? 50000000 : 10000000, // 50MB para facturas, 10MB para otros
           allowedMimeTypes: key === 'LOGOS' || key === 'PRODUCTS' 
             ? ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp']
             : ['image/png', 'image/jpeg', 'image/jpg', 'application/pdf', 'text/plain']
-        })
+        }
+        
+        const { data, error } = await supabase.storage.createBucket(bucketName, bucketConfig)
         
         if (error) {
           console.error(`Error creating bucket ${bucketName}:`, error)
+          // Continuar con otros buckets aunque uno falle
         } else {
-          console.log(`Bucket ${bucketName} created successfully`)
+          console.log(`✅ Bucket ${bucketName} created successfully`)
         }
+      } else {
+        console.log(`✓ Bucket ${bucketName} ya existe`)
       }
     }
+    
+    // Verificar buckets después de la creación
+    const { data: finalBuckets } = await supabase.storage.listBuckets()
+    console.log('Buckets finales:', finalBuckets?.map(b => b.name) || [])
+    
+    return true
   } catch (error) {
     console.error('Error initializing buckets:', error)
+    return false
   }
 }
 
