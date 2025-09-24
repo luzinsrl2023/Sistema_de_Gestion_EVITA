@@ -13,6 +13,7 @@ import { CuentasCorrientes, ComposicionSaldos, CobranzaForm, RecibosList } from 
 import { VentasReport, ComprasReport, StockReport, DashboardReport as ReportesDashboard } from '../modules/reportes'
 import { Cotizaciones } from '../modules/cotizaciones'
 import { Facturador } from '../modules/facturador'
+import ConfiguracionPage from '../pages/configuracion/ConfiguracionPage'
 
 // Loading component for Suspense
 const LoadingComponent = () => (
@@ -67,6 +68,9 @@ const AppRoutes = () => {
           <Route path="/reportes/ventas" element={<VentasReport />} />
           <Route path="/reportes/compras" element={<ComprasReport />} />
           <Route path="/reportes/stock" element={<StockReport />} />
+
+          {/* Configuración */}
+          <Route path="/configuracion" element={<ConfiguracionPage />} />
 
           {/* Catch all route */}
           <Route path="*" element={<Navigate to="/tablero" replace />} />

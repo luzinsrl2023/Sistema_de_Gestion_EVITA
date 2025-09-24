@@ -50,6 +50,7 @@ const navigation = [
     { name: 'Compras', href: '/reportes/compras' },
     { name: 'Stock', href: '/reportes/stock' },
   ]},
+  { name: 'Configuración', href: '/configuracion', icon: SettingsIcon },
 ]
 
 export default function Layout({ children }) {
