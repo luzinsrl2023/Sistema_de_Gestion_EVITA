@@ -12,7 +12,6 @@ import {
   Bell,
   Shield,
   Monitor,
-  Smartphone,
   Database,
   BarChart3,
   Download,
@@ -30,7 +29,7 @@ import { uploadLogo, deleteFile, BUCKETS, initializeBuckets } from '../../lib/su
 
 export default function ConfiguracionPage() {
   const { user } = useAuth()
-  const { currentTheme, changeTheme, getThemeClasses } = useTheme()
+  const { currentTheme, changeTheme, theme } = useTheme()
   const [activeSection, setActiveSection] = useState('general')
   
   // Estados para datos de empresa
@@ -62,11 +61,6 @@ export default function ConfiguracionPage() {
   const [autoSave, setAutoSave] = useState(
     () => JSON.parse(localStorage.getItem('evita-auto-save') || 'true')
   )
-  const [darkMode, setDarkMode] = useState(
-    () => JSON.parse(localStorage.getItem('evita-dark-mode') || 'true')
-  )
-  
-  const themeClasses = getThemeClasses()
 
   // Inicializar buckets de Supabase Storage
   useEffect(() => {
@@ -160,7 +154,6 @@ export default function ConfiguracionPage() {
   const saveSystemSettings = () => {
     try {
       localStorage.setItem('evita-auto-save', JSON.stringify(autoSave))
-      localStorage.setItem('evita-dark-mode', JSON.stringify(darkMode))
       
       showSuccessMessage('Configuración del sistema guardada')
     } catch (error) {
@@ -170,13 +163,11 @@ export default function ConfiguracionPage() {
   }
 
   const showSuccessMessage = (message) => {
-    // Aquí puedes integrar con un sistema de notificaciones toast
     console.log('✅ Success:', message)
     alert(message) // Temporal
   }
 
   const showErrorMessage = (message) => {
-    // Aquí puedes integrar con un sistema de notificaciones toast
     console.error('❌ Error:', message)
     alert(message) // Temporal
   }
@@ -276,8 +267,8 @@ export default function ConfiguracionPage() {
     }
   }
 
-  const getThemePreview = (theme) => {
-    const colors = theme.colors
+  const getThemePreview = (themeData) => {
+    const colors = themeData.colors
     return (
       <div className="flex gap-2 mb-3">
         <div className={`w-5 h-5 rounded-full bg-${colors.primary} border-2 border-white/20`}></div>
@@ -293,23 +284,23 @@ export default function ConfiguracionPage() {
         return (
           <div className="space-y-8">
             <div>
-              <h2 className={cn("text-2xl font-bold mb-2", `text-${themeClasses.colors.text}`)}>
+              <h2 className={cn("text-2xl font-bold mb-2", `text-${theme.colors.text}`)}>
                 Configuración General
               </h2>
-              <p className={cn("text-sm mb-6", `text-${themeClasses.colors.textSecondary}`)}>
+              <p className={cn("text-sm mb-6", `text-${theme.colors.textSecondary}`)}>
                 Configuraciones básicas del sistema EVITA
               </p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className={cn("p-6 rounded-xl border", `bg-${themeClasses.colors.surface}`, `border-${themeClasses.colors.border}`)}>
+              <div className={cn("p-6 rounded-xl border", `bg-${theme.colors.surface}`, `border-${theme.colors.border}`)}>
                 <div className="flex items-center gap-3 mb-4">
-                  <div className={cn("p-2 rounded-lg", `bg-${themeClasses.colors.primary}/10`, `text-${themeClasses.colors.primary}`)}>
+                  <div className={cn("p-2 rounded-lg", `bg-${theme.colors.primary}/10`, `text-${theme.colors.primary}`)}>
                     <Zap className="h-5 w-5" />
                   </div>
-                  <h3 className={cn("font-semibold", `text-${themeClasses.colors.text}`)}>Auto-guardado</h3>
+                  <h3 className={cn("font-semibold", `text-${theme.colors.text}`)}>Auto-guardado</h3>
                 </div>
-                <p className={cn("text-sm mb-4", `text-${themeClasses.colors.textSecondary}`)}>
+                <p className={cn("text-sm mb-4", `text-${theme.colors.textSecondary}`)}>
                   Guardar automáticamente los cambios mientras trabajas
                 </p>
                 <label className="flex items-center">
@@ -317,28 +308,28 @@ export default function ConfiguracionPage() {
                     type="checkbox"
                     checked={autoSave}
                     onChange={(e) => setAutoSave(e.target.checked)}
-                    className={cn("form-checkbox h-4 w-4 rounded", `text-${themeClasses.colors.primary}`)}
+                    className={cn("form-checkbox h-4 w-4 rounded", `text-${theme.colors.primary}`)}
                   />
-                  <span className={cn("ml-2 text-sm", `text-${themeClasses.colors.text}`)}>
+                  <span className={cn("ml-2 text-sm", `text-${theme.colors.text}`)}>
                     Activar auto-guardado
                   </span>
                 </label>
               </div>
 
-              <div className={cn("p-6 rounded-xl border", `bg-${themeClasses.colors.surface}`, `border-${themeClasses.colors.border}`)}>
+              <div className={cn("p-6 rounded-xl border", `bg-${theme.colors.surface}`, `border-${theme.colors.border}`)}>
                 <div className="flex items-center gap-3 mb-4">
-                  <div className={cn("p-2 rounded-lg", `bg-${themeClasses.colors.accent}/10`, `text-${themeClasses.colors.accent}`)}>
+                  <div className={cn("p-2 rounded-lg", `bg-${theme.colors.accent}/10`, `text-${theme.colors.accent}`)}>
                     <Globe className="h-5 w-5" />
                   </div>
-                  <h3 className={cn("font-semibold", `text-${themeClasses.colors.text}`)}>Idioma</h3>
+                  <h3 className={cn("font-semibold", `text-${theme.colors.text}`)}>Idioma</h3>
                 </div>
                 <select className={cn(
                   "w-full px-3 py-2 rounded-lg border",
-                  `bg-${themeClasses.colors.background}`,
-                  `border-${themeClasses.colors.border}`,
-                  `text-${themeClasses.colors.text}`,
+                  `bg-${theme.colors.background}`,
+                  `border-${theme.colors.border}`,
+                  `text-${theme.colors.text}`,
                   "focus:outline-none focus:ring-2",
-                  `focus:ring-${themeClasses.colors.primary}`
+                  `focus:ring-${theme.colors.primary}`
                 )}>
                   <option value="es">Español</option>
                   <option value="en">English</option>
@@ -352,9 +343,9 @@ export default function ConfiguracionPage() {
                 onClick={saveSystemSettings}
                 className={cn(
                   "flex items-center gap-2 px-6 py-2 rounded-lg font-medium transition-colors",
-                  `bg-${themeClasses.colors.primary}`,
-                  `text-${themeClasses.colors.primaryText}`,
-                  `hover:bg-${themeClasses.colors.primaryLight}`
+                  `bg-${theme.colors.primary}`,
+                  `text-${theme.colors.primaryText}`,
+                  `hover:bg-${theme.colors.primaryHover}`
                 )}
               >
                 <Check className="h-4 w-4" />
@@ -368,19 +359,19 @@ export default function ConfiguracionPage() {
         return (
           <div className="space-y-8">
             <div>
-              <h2 className={cn("text-2xl font-bold mb-2", `text-${themeClasses.colors.text}`)}>
+              <h2 className={cn("text-2xl font-bold mb-2", `text-${theme.colors.text}`)}>
                 Información de la Empresa
               </h2>
-              <p className={cn("text-sm mb-6", `text-${themeClasses.colors.textSecondary}`)}>
+              <p className={cn("text-sm mb-6", `text-${theme.colors.textSecondary}`)}>
                 Esta información aparecerá en facturas, reportes y documentos PDF
               </p>
             </div>
 
             {/* Logo Section */}
-            <div className={cn("p-6 rounded-xl border", `bg-${themeClasses.colors.surface}`, `border-${themeClasses.colors.border}`)}>
+            <div className={cn("p-6 rounded-xl border", `bg-${theme.colors.surface}`, `border-${theme.colors.border}`)}>
               <div className="flex items-center gap-3 mb-4">
-                <div className={cn("p-2 rounded-lg", `bg-${themeClasses.colors.primary}/10`)}>
-                  <svg fill="none" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" className={cn("w-5 h-5", `text-${themeClasses.colors.primary}`)}>
+                <div className={cn("p-2 rounded-lg", `bg-${theme.colors.primary}/10`)}>
+                  <svg fill="none" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" className={cn("w-5 h-5", `text-${theme.colors.primary}`)}>
                     <path d="M8 10h16c1.1 0 2 .9 2 2v8c0 1.1-.9 2-2 2H8c-1.1 0-2-.9-2-2v-8c0-1.1.9-2 2-2z" fill="currentColor" opacity="0.3"/>
                     <path d="M10 14h8v1H10v-1zm0 2h6v1h-6v-1z" fill="currentColor"/>
                     <circle cx="9" cy="12" r="1" fill="currentColor"/>
@@ -391,8 +382,8 @@ export default function ConfiguracionPage() {
                   </svg>
                 </div>
                 <div>
-                  <h3 className={cn("font-semibold", `text-${themeClasses.colors.text}`)}>Logo de la Empresa</h3>
-                  <p className={cn("text-sm", `text-${themeClasses.colors.textSecondary}`)}>
+                  <h3 className={cn("font-semibold", `text-${theme.colors.text}`)}>Logo de la Empresa</h3>
+                  <p className={cn("text-sm", `text-${theme.colors.textSecondary}`)}>
                     Personaliza el logo que aparece en el sistema
                   </p>
                 </div>
@@ -406,8 +397,8 @@ export default function ConfiguracionPage() {
                       <img src={logoUrl} alt="Logo actual" className="max-w-full max-h-full object-contain" />
                     </div>
                     <div>
-                      <p className={cn("font-medium", `text-${themeClasses.colors.text}`)}>Logo actual</p>
-                      <p className={cn("text-sm", `text-${themeClasses.colors.textSecondary}`)}>
+                      <p className={cn("font-medium", `text-${theme.colors.text}`)}>Logo actual</p>
+                      <p className={cn("text-sm", `text-${theme.colors.textSecondary}`)}>
                         Almacenado en Supabase Storage
                       </p>
                     </div>
@@ -419,16 +410,16 @@ export default function ConfiguracionPage() {
               {uploadingLogo && (
                 <div className="mb-4">
                   <div className="flex items-center justify-between mb-2">
-                    <span className={cn("text-sm", `text-${themeClasses.colors.textSecondary}`)}>
+                    <span className={cn("text-sm", `text-${theme.colors.textSecondary}`)}>
                       {logoProgress === 100 ? 'Completado' : 'Subiendo...'}
                     </span>
-                    <span className={cn("text-sm", `text-${themeClasses.colors.textSecondary}`)}>
+                    <span className={cn("text-sm", `text-${theme.colors.textSecondary}`)}>
                       {logoProgress}%
                     </span>
                   </div>
-                  <div className={cn("w-full rounded-full h-2", `bg-${themeClasses.colors.border}`)}>
+                  <div className={cn("w-full rounded-full h-2", `bg-${theme.colors.border}`)}>
                     <div 
-                      className={cn("h-2 rounded-full transition-all duration-300", `bg-${themeClasses.colors.primary}`)}
+                      className={cn("h-2 rounded-full transition-all duration-300", `bg-${theme.colors.primary}`)}
                       style={{ width: `${logoProgress}%` }}
                     ></div>
                   </div>
@@ -439,9 +430,9 @@ export default function ConfiguracionPage() {
                 <label className={cn(
                   "flex items-center gap-2 px-4 py-2 rounded-lg cursor-pointer transition-colors",
                   uploadingLogo ? "opacity-50 cursor-not-allowed" : "",
-                  `bg-${themeClasses.colors.primary}`,
-                  `text-${themeClasses.colors.primaryText}`,
-                  `hover:bg-${themeClasses.colors.primaryLight}`
+                  `bg-${theme.colors.primary}`,
+                  `text-${theme.colors.primaryText}`,
+                  `hover:bg-${theme.colors.primaryHover}`
                 )}>
                   {uploadingLogo ? (
                     <Loader className="h-4 w-4 animate-spin" />
@@ -474,7 +465,7 @@ export default function ConfiguracionPage() {
                 </button>
               </div>
 
-              <div className={cn("mt-3 text-xs", `text-${themeClasses.colors.textSecondary}`)}>
+              <div className={cn("mt-3 text-xs", `text-${theme.colors.textSecondary}`)}>
                 Formatos soportados: PNG, JPG, GIF, WebP • Tamaño máximo: 5MB
               </div>
 
@@ -493,14 +484,14 @@ export default function ConfiguracionPage() {
             </div>
 
             {/* Company Information */}
-            <div className={cn("p-6 rounded-xl border", `bg-${themeClasses.colors.surface}`, `border-${themeClasses.colors.border}`)}>
-              <h3 className={cn("font-semibold mb-4", `text-${themeClasses.colors.text}`)}>
+            <div className={cn("p-6 rounded-xl border", `bg-${theme.colors.surface}`, `border-${theme.colors.border}`)}>
+              <h3 className={cn("font-semibold mb-4", `text-${theme.colors.text}`)}>
                 Datos Corporativos
               </h3>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className={cn("block text-sm font-medium mb-2", `text-${themeClasses.colors.text}`)}>
+                  <label className={cn("block text-sm font-medium mb-2", `text-${theme.colors.text}`)}>
                     Nombre Comercial
                   </label>
                   <input
@@ -509,11 +500,11 @@ export default function ConfiguracionPage() {
                     onChange={(e) => setCompanyName(e.target.value)}
                     className={cn(
                       "w-full px-3 py-2 rounded-lg border",
-                      `bg-${themeClasses.colors.background}`,
-                      `border-${themeClasses.colors.border}`,
-                      `text-${themeClasses.colors.text}`,
+                      `bg-${theme.colors.background}`,
+                      `border-${theme.colors.border}`,
+                      `text-${theme.colors.text}`,
                       "placeholder-gray-400 focus:outline-none focus:ring-2",
-                      `focus:ring-${themeClasses.colors.primary}`,
+                      `focus:ring-${theme.colors.primary}`,
                       "focus:border-transparent"
                     )}
                     placeholder="EVITA Artículos de Limpieza"
@@ -521,7 +512,7 @@ export default function ConfiguracionPage() {
                 </div>
 
                 <div>
-                  <label className={cn("block text-sm font-medium mb-2", `text-${themeClasses.colors.text}`)}>
+                  <label className={cn("block text-sm font-medium mb-2", `text-${theme.colors.text}`)}>
                     CUIT / RUC
                   </label>
                   <input
@@ -530,11 +521,11 @@ export default function ConfiguracionPage() {
                     onChange={(e) => setCompanyCUIT(e.target.value)}
                     className={cn(
                       "w-full px-3 py-2 rounded-lg border",
-                      `bg-${themeClasses.colors.background}`,
-                      `border-${themeClasses.colors.border}`,
-                      `text-${themeClasses.colors.text}`,
+                      `bg-${theme.colors.background}`,
+                      `border-${theme.colors.border}`,
+                      `text-${theme.colors.text}`,
                       "placeholder-gray-400 focus:outline-none focus:ring-2",
-                      `focus:ring-${themeClasses.colors.primary}`,
+                      `focus:ring-${theme.colors.primary}`,
                       "focus:border-transparent"
                     )}
                     placeholder="20-12345678-3"
@@ -542,7 +533,7 @@ export default function ConfiguracionPage() {
                 </div>
 
                 <div>
-                  <label className={cn("block text-sm font-medium mb-2", `text-${themeClasses.colors.text}`)}>
+                  <label className={cn("block text-sm font-medium mb-2", `text-${theme.colors.text}`)}>
                     Dirección Fiscal
                   </label>
                   <input
@@ -551,11 +542,11 @@ export default function ConfiguracionPage() {
                     onChange={(e) => setCompanyAddress(e.target.value)}
                     className={cn(
                       "w-full px-3 py-2 rounded-lg border",
-                      `bg-${themeClasses.colors.background}`,
-                      `border-${themeClasses.colors.border}`,
-                      `text-${themeClasses.colors.text}`,
+                      `bg-${theme.colors.background}`,
+                      `border-${theme.colors.border}`,
+                      `text-${theme.colors.text}`,
                       "placeholder-gray-400 focus:outline-none focus:ring-2",
-                      `focus:ring-${themeClasses.colors.primary}`,
+                      `focus:ring-${theme.colors.primary}`,
                       "focus:border-transparent"
                     )}
                     placeholder="Av. Principal 123, Ciudad"
@@ -563,7 +554,7 @@ export default function ConfiguracionPage() {
                 </div>
 
                 <div>
-                  <label className={cn("block text-sm font-medium mb-2", `text-${themeClasses.colors.text}`)}>
+                  <label className={cn("block text-sm font-medium mb-2", `text-${theme.colors.text}`)}>
                     Teléfono
                   </label>
                   <input
@@ -572,11 +563,11 @@ export default function ConfiguracionPage() {
                     onChange={(e) => setCompanyPhone(e.target.value)}
                     className={cn(
                       "w-full px-3 py-2 rounded-lg border",
-                      `bg-${themeClasses.colors.background}`,
-                      `border-${themeClasses.colors.border}`,
-                      `text-${themeClasses.colors.text}`,
+                      `bg-${theme.colors.background}`,
+                      `border-${theme.colors.border}`,
+                      `text-${theme.colors.text}`,
                       "placeholder-gray-400 focus:outline-none focus:ring-2",
-                      `focus:ring-${themeClasses.colors.primary}`,
+                      `focus:ring-${theme.colors.primary}`,
                       "focus:border-transparent"
                     )}
                     placeholder="(11) 5555-5555"
@@ -584,7 +575,7 @@ export default function ConfiguracionPage() {
                 </div>
 
                 <div className="md:col-span-2">
-                  <label className={cn("block text-sm font-medium mb-2", `text-${themeClasses.colors.text}`)}>
+                  <label className={cn("block text-sm font-medium mb-2", `text-${theme.colors.text}`)}>
                     Email Corporativo
                   </label>
                   <input
@@ -593,11 +584,11 @@ export default function ConfiguracionPage() {
                     onChange={(e) => setCompanyEmail(e.target.value)}
                     className={cn(
                       "w-full px-3 py-2 rounded-lg border",
-                      `bg-${themeClasses.colors.background}`,
-                      `border-${themeClasses.colors.border}`,
-                      `text-${themeClasses.colors.text}`,
+                      `bg-${theme.colors.background}`,
+                      `border-${theme.colors.border}`,
+                      `text-${theme.colors.text}`,
                       "placeholder-gray-400 focus:outline-none focus:ring-2",
-                      `focus:ring-${themeClasses.colors.primary}`,
+                      `focus:ring-${theme.colors.primary}`,
                       "focus:border-transparent"
                     )}
                     placeholder="info@evita.com"
@@ -611,9 +602,9 @@ export default function ConfiguracionPage() {
                 onClick={saveCompanyData}
                 className={cn(
                   "flex items-center gap-2 px-6 py-2 rounded-lg font-medium transition-colors",
-                  `bg-${themeClasses.colors.primary}`,
-                  `text-${themeClasses.colors.primaryText}`,
-                  `hover:bg-${themeClasses.colors.primaryLight}`
+                  `bg-${theme.colors.primary}`,
+                  `text-${theme.colors.primaryText}`,
+                  `hover:bg-${theme.colors.primaryHover}`
                 )}
               >
                 <Check className="h-4 w-4" />
@@ -627,43 +618,43 @@ export default function ConfiguracionPage() {
         return (
           <div className="space-y-8">
             <div>
-              <h2 className={cn("text-2xl font-bold mb-2", `text-${themeClasses.colors.text}`)}>
+              <h2 className={cn("text-2xl font-bold mb-2", `text-${theme.colors.text}`)}>
                 Personalización Visual
               </h2>
-              <p className={cn("text-sm mb-6", `text-${themeClasses.colors.textSecondary}`)}>
+              <p className={cn("text-sm mb-6", `text-${theme.colors.textSecondary}`)}>
                 Elige el tema que mejor se adapte a tu estilo de trabajo
               </p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {Object.entries(themes).map(([key, theme]) => (
+              {Object.entries(themes).map(([key, themeData]) => (
                 <div
                   key={key}
                   className={cn(
                     "relative p-5 rounded-xl border cursor-pointer transition-all duration-300 hover:scale-105",
                     currentTheme === key
-                      ? `border-${themeClasses.colors.primary} bg-${themeClasses.colors.primary}/5 shadow-lg`
-                      : `border-${themeClasses.colors.border} hover:border-${themeClasses.colors.primary}/50`,
-                    `bg-${themeClasses.colors.surface}`
+                      ? `border-${theme.colors.primary} bg-${theme.colors.primary}/5 shadow-lg`
+                      : `border-${theme.colors.border} hover:border-${theme.colors.primary}/50`,
+                    `bg-${theme.colors.surface}`
                   )}
                   onClick={() => handleThemeChange(key)}
                 >
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
-                        <h3 className={cn("font-semibold", `text-${themeClasses.colors.text}`)}>
-                          {theme.name}
+                        <h3 className={cn("font-semibold", `text-${theme.colors.text}`)}>
+                          {themeData.name}
                         </h3>
                         {currentTheme === key && (
-                          <div className={cn("p-1 rounded-full", `bg-${themeClasses.colors.primary}`)}>
+                          <div className={cn("p-1 rounded-full", `bg-${theme.colors.primary}`)}>
                             <Check className="h-3 w-3 text-white" />
                           </div>
                         )}
                       </div>
-                      <p className={cn("text-sm mb-3", `text-${themeClasses.colors.textSecondary}`)}>
-                        {theme.description}
+                      <p className={cn("text-sm mb-3", `text-${theme.colors.textSecondary}`)}>
+                        {themeData.description}
                       </p>
-                      {getThemePreview(theme)}
+                      {getThemePreview(themeData)}
                     </div>
                   </div>
 
@@ -701,17 +692,17 @@ export default function ConfiguracionPage() {
                     )}
 
                     {/* Background type indicator */}
-                    {theme.background?.type === 'gradient' && (
+                    {themeData.background?.type === 'gradient' && (
                       <span className="px-2 py-1 bg-emerald-500/10 text-emerald-400 rounded">
                         Gradiente
                       </span>
                     )}
-                    {theme.background?.type === 'pattern' && (
+                    {themeData.background?.type === 'pattern' && (
                       <span className="px-2 py-1 bg-amber-500/10 text-amber-400 rounded">
                         Patrón
                       </span>
                     )}
-                    {theme.background?.type === 'solid' && (
+                    {themeData.background?.type === 'solid' && (
                       <span className="px-2 py-1 bg-gray-500/10 text-gray-400 rounded">
                         Sólido
                       </span>
@@ -721,14 +712,14 @@ export default function ConfiguracionPage() {
               ))}
             </div>
 
-            <div className={cn("p-6 rounded-xl border", `bg-${themeClasses.colors.surface}`, `border-${themeClasses.colors.border}`)}>
+            <div className={cn("p-6 rounded-xl border", `bg-${theme.colors.surface}`, `border-${theme.colors.border}`)}>
               <div className="flex items-center gap-3 mb-4">
-                <Info className={cn("h-5 w-5", `text-${themeClasses.colors.primary}`)} />
-                <h3 className={cn("font-semibold", `text-${themeClasses.colors.text}`)}>
+                <Info className={cn("h-5 w-5", `text-${theme.colors.primary}`)} />
+                <h3 className={cn("font-semibold", `text-${theme.colors.text}`)}>
                   Sobre los Temas
                 </h3>
               </div>
-              <ul className={cn("text-sm space-y-2", `text-${themeClasses.colors.textSecondary}`)}>
+              <ul className={cn("text-sm space-y-2", `text-${theme.colors.textSecondary}`)}>
                 <li>• <strong>EVITA Clásico:</strong> Colores verdes corporativos, ideal para uso general</li>
                 <li>• <strong>Empresarial Profesional:</strong> Tonos azules y grises para un ambiente profesional</li>
                 <li>• <strong>Elegante Sofisticado:</strong> Paleta de rosados y morados con estilo sofisticado</li>
@@ -743,25 +734,25 @@ export default function ConfiguracionPage() {
         return (
           <div className="space-y-8">
             <div>
-              <h2 className={cn("text-2xl font-bold mb-2", `text-${themeClasses.colors.text}`)}>
+              <h2 className={cn("text-2xl font-bold mb-2", `text-${theme.colors.text}`)}>
                 Notificaciones y Alertas
               </h2>
-              <p className={cn("text-sm mb-6", `text-${themeClasses.colors.textSecondary}`)}>
+              <p className={cn("text-sm mb-6", `text-${theme.colors.textSecondary}`)}>
                 Configura cómo y cuándo recibir notificaciones del sistema
               </p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className={cn("p-6 rounded-xl border", `bg-${themeClasses.colors.surface}`, `border-${themeClasses.colors.border}`)}>
+              <div className={cn("p-6 rounded-xl border", `bg-${theme.colors.surface}`, `border-${theme.colors.border}`)}>
                 <div className="flex items-center gap-3 mb-4">
-                  <div className={cn("p-2 rounded-lg", `bg-${themeClasses.colors.primary}/10`, `text-${themeClasses.colors.primary}`)}>
+                  <div className={cn("p-2 rounded-lg", `bg-${theme.colors.primary}/10`, `text-${theme.colors.primary}`)}>
                     <Mail className="h-5 w-5" />
                   </div>
-                  <h3 className={cn("font-semibold", `text-${themeClasses.colors.text}`)}>
+                  <h3 className={cn("font-semibold", `text-${theme.colors.text}`)}>
                     Notificaciones por Email
                   </h3>
                 </div>
-                <p className={cn("text-sm mb-4", `text-${themeClasses.colors.textSecondary}`)}>
+                <p className={cn("text-sm mb-4", `text-${theme.colors.textSecondary}`)}>
                   Recibe reportes y alertas importantes por correo electrónico
                 </p>
                 <label className="flex items-center">
@@ -769,24 +760,24 @@ export default function ConfiguracionPage() {
                     type="checkbox"
                     checked={emailNotifications}
                     onChange={(e) => setEmailNotifications(e.target.checked)}
-                    className={cn("form-checkbox h-4 w-4 rounded", `text-${themeClasses.colors.primary}`)}
+                    className={cn("form-checkbox h-4 w-4 rounded", `text-${theme.colors.primary}`)}
                   />
-                  <span className={cn("ml-2 text-sm", `text-${themeClasses.colors.text}`)}>
+                  <span className={cn("ml-2 text-sm", `text-${theme.colors.text}`)}>
                     Activar notificaciones por email
                   </span>
                 </label>
               </div>
 
-              <div className={cn("p-6 rounded-xl border", `bg-${themeClasses.colors.surface}`, `border-${themeClasses.colors.border}`)}>
+              <div className={cn("p-6 rounded-xl border", `bg-${theme.colors.surface}`, `border-${theme.colors.border}`)}>
                 <div className="flex items-center gap-3 mb-4">
-                  <div className={cn("p-2 rounded-lg", `bg-${themeClasses.colors.accent}/10`, `text-${themeClasses.colors.accent}`)}>
+                  <div className={cn("p-2 rounded-lg", `bg-${theme.colors.accent}/10`, `text-${theme.colors.accent}`)}>
                     <AlertTriangle className="h-5 w-5" />
                   </div>
-                  <h3 className={cn("font-semibold", `text-${themeClasses.colors.text}`)}>
+                  <h3 className={cn("font-semibold", `text-${theme.colors.text}`)}>
                     Alertas de Stock
                   </h3>
                 </div>
-                <p className={cn("text-sm mb-4", `text-${themeClasses.colors.textSecondary}`)}>
+                <p className={cn("text-sm mb-4", `text-${theme.colors.textSecondary}`)}>
                   Recibe avisos cuando el stock esté bajo o productos sin disponibilidad
                 </p>
                 <label className="flex items-center">
@@ -794,24 +785,24 @@ export default function ConfiguracionPage() {
                     type="checkbox"
                     checked={stockAlerts}
                     onChange={(e) => setStockAlerts(e.target.checked)}
-                    className={cn("form-checkbox h-4 w-4 rounded", `text-${themeClasses.colors.primary}`)}
+                    className={cn("form-checkbox h-4 w-4 rounded", `text-${theme.colors.primary}`)}
                   />
-                  <span className={cn("ml-2 text-sm", `text-${themeClasses.colors.text}`)}>
+                  <span className={cn("ml-2 text-sm", `text-${theme.colors.text}`)}>
                     Activar alertas de stock
                   </span>
                 </label>
               </div>
 
-              <div className={cn("p-6 rounded-xl border", `bg-${themeClasses.colors.surface}`, `border-${themeClasses.colors.border}`)}>
+              <div className={cn("p-6 rounded-xl border", `bg-${theme.colors.surface}`, `border-${theme.colors.border}`)}>
                 <div className="flex items-center gap-3 mb-4">
                   <div className={cn("p-2 rounded-lg", `bg-yellow-500/10`, "text-yellow-400")}>
                     <Clock className="h-5 w-5" />
                   </div>
-                  <h3 className={cn("font-semibold", `text-${themeClasses.colors.text}`)}>
+                  <h3 className={cn("font-semibold", `text-${theme.colors.text}`)}>
                     Recordatorios de Pago
                   </h3>
                 </div>
-                <p className={cn("text-sm mb-4", `text-${themeClasses.colors.textSecondary}`)}>
+                <p className={cn("text-sm mb-4", `text-${theme.colors.textSecondary}`)}>
                   Enviar recordatorios automáticos a clientes con pagos pendientes
                 </p>
                 <label className="flex items-center">
@@ -819,31 +810,31 @@ export default function ConfiguracionPage() {
                     type="checkbox"
                     checked={paymentReminders}
                     onChange={(e) => setPaymentReminders(e.target.checked)}
-                    className={cn("form-checkbox h-4 w-4 rounded", `text-${themeClasses.colors.primary}`)}
+                    className={cn("form-checkbox h-4 w-4 rounded", `text-${theme.colors.primary}`)}
                   />
-                  <span className={cn("ml-2 text-sm", `text-${themeClasses.colors.text}`)}>
+                  <span className={cn("ml-2 text-sm", `text-${theme.colors.text}`)}>
                     Activar recordatorios de pago
                   </span>
                 </label>
               </div>
 
-              <div className={cn("p-6 rounded-xl border", `bg-${themeClasses.colors.surface}`, `border-${themeClasses.colors.border}`)}>
+              <div className={cn("p-6 rounded-xl border", `bg-${theme.colors.surface}`, `border-${theme.colors.border}`)}>
                 <div className="flex items-center gap-3 mb-4">
                   <div className={cn("p-2 rounded-lg", `bg-blue-500/10`, "text-blue-400")}>
                     <BarChart3 className="h-5 w-5" />
                   </div>
-                  <h3 className={cn("font-semibold", `text-${themeClasses.colors.text}`)}>
+                  <h3 className={cn("font-semibold", `text-${theme.colors.text}`)}>
                     Reportes Automáticos
                   </h3>
                 </div>
-                <p className={cn("text-sm mb-4", `text-${themeClasses.colors.textSecondary}`)}>
+                <p className={cn("text-sm mb-4", `text-${theme.colors.textSecondary}`)}>
                   Configura la frecuencia de reportes automáticos
                 </p>
                 <select className={cn(
                   "w-full px-3 py-2 rounded-lg border",
-                  `bg-${themeClasses.colors.background}`,
-                  `border-${themeClasses.colors.border}`,
-                  `text-${themeClasses.colors.text}`
+                  `bg-${theme.colors.background}`,
+                  `border-${theme.colors.border}`,
+                  `text-${theme.colors.text}`
                 )}>
                   <option value="diario">Diario</option>
                   <option value="semanal">Semanal</option>
@@ -858,9 +849,9 @@ export default function ConfiguracionPage() {
                 onClick={saveNotificationSettings}
                 className={cn(
                   "flex items-center gap-2 px-6 py-2 rounded-lg font-medium transition-colors",
-                  `bg-${themeClasses.colors.primary}`,
-                  `text-${themeClasses.colors.primaryText}`,
-                  `hover:bg-${themeClasses.colors.primaryLight}`
+                  `bg-${theme.colors.primary}`,
+                  `text-${theme.colors.primaryText}`,
+                  `hover:bg-${theme.colors.primaryHover}`
                 )}
               >
                 <Check className="h-4 w-4" />
@@ -874,22 +865,22 @@ export default function ConfiguracionPage() {
         return (
           <div className="space-y-8">
             <div>
-              <h2 className={cn("text-2xl font-bold mb-2", `text-${themeClasses.colors.text}`)}>
+              <h2 className={cn("text-2xl font-bold mb-2", `text-${theme.colors.text}`)}>
                 Perfil de Usuario
               </h2>
-              <p className={cn("text-sm mb-6", `text-${themeClasses.colors.textSecondary}`)}>
+              <p className={cn("text-sm mb-6", `text-${theme.colors.textSecondary}`)}>
                 Administra tu información personal y preferencias de la cuenta
               </p>
             </div>
 
-            <div className={cn("p-6 rounded-xl border", `bg-${themeClasses.colors.surface}`, `border-${themeClasses.colors.border}`)}>
-              <h3 className={cn("font-semibold mb-4", `text-${themeClasses.colors.text}`)}>
+            <div className={cn("p-6 rounded-xl border", `bg-${theme.colors.surface}`, `border-${theme.colors.border}`)}>
+              <h3 className={cn("font-semibold mb-4", `text-${theme.colors.text}`)}>
                 Información Personal
               </h3>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className={cn("block text-sm font-medium mb-2", `text-${themeClasses.colors.text}`)}>
+                  <label className={cn("block text-sm font-medium mb-2", `text-${theme.colors.text}`)}>
                     Nombre Completo
                   </label>
                   <input
@@ -897,18 +888,18 @@ export default function ConfiguracionPage() {
                     defaultValue={user?.user_metadata?.name || ''}
                     className={cn(
                       "w-full px-3 py-2 rounded-lg border",
-                      `bg-${themeClasses.colors.background}`,
-                      `border-${themeClasses.colors.border}`,
-                      `text-${themeClasses.colors.text}`,
+                      `bg-${theme.colors.background}`,
+                      `border-${theme.colors.border}`,
+                      `text-${theme.colors.text}`,
                       "placeholder-gray-400 focus:outline-none focus:ring-2",
-                      `focus:ring-${themeClasses.colors.primary}`
+                      `focus:ring-${theme.colors.primary}`
                     )}
                     placeholder="Tu nombre completo"
                   />
                 </div>
 
                 <div>
-                  <label className={cn("block text-sm font-medium mb-2", `text-${themeClasses.colors.text}`)}>
+                  <label className={cn("block text-sm font-medium mb-2", `text-${theme.colors.text}`)}>
                     Email
                   </label>
                   <input
@@ -917,22 +908,22 @@ export default function ConfiguracionPage() {
                     disabled
                     className={cn(
                       "w-full px-3 py-2 rounded-lg border opacity-50",
-                      `bg-${themeClasses.colors.background}`,
-                      `border-${themeClasses.colors.border}`,
-                      `text-${themeClasses.colors.text}`
+                      `bg-${theme.colors.background}`,
+                      `border-${theme.colors.border}`,
+                      `text-${theme.colors.text}`
                     )}
                   />
                 </div>
 
                 <div>
-                  <label className={cn("block text-sm font-medium mb-2", `text-${themeClasses.colors.text}`)}>
+                  <label className={cn("block text-sm font-medium mb-2", `text-${theme.colors.text}`)}>
                     Rol
                   </label>
                   <select className={cn(
                     "w-full px-3 py-2 rounded-lg border",
-                    `bg-${themeClasses.colors.background}`,
-                    `border-${themeClasses.colors.border}`,
-                    `text-${themeClasses.colors.text}`
+                    `bg-${theme.colors.background}`,
+                    `border-${theme.colors.border}`,
+                    `text-${theme.colors.text}`
                   )}>
                     <option value="admin">Administrador</option>
                     <option value="manager">Gerente</option>
@@ -941,14 +932,14 @@ export default function ConfiguracionPage() {
                 </div>
 
                 <div>
-                  <label className={cn("block text-sm font-medium mb-2", `text-${themeClasses.colors.text}`)}>
+                  <label className={cn("block text-sm font-medium mb-2", `text-${theme.colors.text}`)}>
                     Zona Horaria
                   </label>
                   <select className={cn(
                     "w-full px-3 py-2 rounded-lg border",
-                    `bg-${themeClasses.colors.background}`,
-                    `border-${themeClasses.colors.border}`,
-                    `text-${themeClasses.colors.text}`
+                    `bg-${theme.colors.background}`,
+                    `border-${theme.colors.border}`,
+                    `text-${theme.colors.text}`
                   )}>
                     <option value="America/Argentina/Buenos_Aires">Buenos Aires (GMT-3)</option>
                     <option value="America/Mexico_City">Ciudad de México (GMT-6)</option>
@@ -959,67 +950,13 @@ export default function ConfiguracionPage() {
               </div>
             </div>
 
-            <div className={cn("p-6 rounded-xl border", `bg-${themeClasses.colors.surface}`, `border-${themeClasses.colors.border}`)}>
-              <h3 className={cn("font-semibold mb-4", `text-${themeClasses.colors.text}`)}>
-                Preferencias de Interfaz
-              </h3>
-              
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className={cn("font-medium", `text-${themeClasses.colors.text}`)}>
-                      Tema Automático
-                    </p>
-                    <p className={cn("text-sm", `text-${themeClasses.colors.textSecondary}`)}>
-                      Cambiar automáticamente según la hora del día
-                    </p>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" className="sr-only peer" />
-                    <div className={cn(
-                      "w-11 h-6 rounded-full peer",
-                      "peer-checked:after:translate-x-full peer-checked:after:border-white",
-                      "after:content-[''] after:absolute after:top-[2px] after:left-[2px]",
-                      "after:bg-white after:rounded-full after:h-5 after:w-5",
-                      "after:transition-all",
-                      `bg-${themeClasses.colors.border}`,
-                      `peer-checked:bg-${themeClasses.colors.primary}`
-                    )}></div>
-                  </label>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className={cn("font-medium", `text-${themeClasses.colors.text}`)}>
-                      Animaciones Reducidas
-                    </p>
-                    <p className={cn("text-sm", `text-${themeClasses.colors.textSecondary}`)}>
-                      Reduce las animaciones para mejor rendimiento
-                    </p>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" className="sr-only peer" />
-                    <div className={cn(
-                      "w-11 h-6 rounded-full peer",
-                      "peer-checked:after:translate-x-full peer-checked:after:border-white",
-                      "after:content-[''] after:absolute after:top-[2px] after:left-[2px]",
-                      "after:bg-white after:rounded-full after:h-5 after:w-5",
-                      "after:transition-all",
-                      `bg-${themeClasses.colors.border}`,
-                      `peer-checked:bg-${themeClasses.colors.primary}`
-                    )}></div>
-                  </label>
-                </div>
-              </div>
-            </div>
-
             <div className="flex justify-end">
               <button
                 className={cn(
                   "flex items-center gap-2 px-6 py-2 rounded-lg font-medium transition-colors",
-                  `bg-${themeClasses.colors.primary}`,
-                  `text-${themeClasses.colors.primaryText}`,
-                  `hover:bg-${themeClasses.colors.primaryLight}`
+                  `bg-${theme.colors.primary}`,
+                  `text-${theme.colors.primaryText}`,
+                  `hover:bg-${theme.colors.primaryHover}`
                 )}
               >
                 <Check className="h-4 w-4" />
@@ -1033,38 +970,38 @@ export default function ConfiguracionPage() {
         return (
           <div className="space-y-8">
             <div>
-              <h2 className={cn("text-2xl font-bold mb-2", `text-${themeClasses.colors.text}`)}>
+              <h2 className={cn("text-2xl font-bold mb-2", `text-${theme.colors.text}`)}>
                 Configuración del Sistema
               </h2>
-              <p className={cn("text-sm mb-6", `text-${themeClasses.colors.textSecondary}`)}>
+              <p className={cn("text-sm mb-6", `text-${theme.colors.textSecondary}`)}>
                 Configuraciones avanzadas y herramientas de sistema
               </p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className={cn("p-6 rounded-xl border", `bg-${themeClasses.colors.surface}`, `border-${themeClasses.colors.border}`)}>
+              <div className={cn("p-6 rounded-xl border", `bg-${theme.colors.surface}`, `border-${theme.colors.border}`)}>
                 <div className="flex items-center gap-3 mb-4">
-                  <div className={cn("p-2 rounded-lg", `bg-${themeClasses.colors.primary}/10`, `text-${themeClasses.colors.primary}`)}>
+                  <div className={cn("p-2 rounded-lg", `bg-${theme.colors.primary}/10`, `text-${theme.colors.primary}`)}>
                     <Database className="h-5 w-5" />
                   </div>
-                  <h3 className={cn("font-semibold", `text-${themeClasses.colors.text}`)}>
+                  <h3 className={cn("font-semibold", `text-${theme.colors.text}`)}>
                     Base de Datos
                   </h3>
                 </div>
-                <p className={cn("text-sm mb-4", `text-${themeClasses.colors.textSecondary}`)}>
+                <p className={cn("text-sm mb-4", `text-${theme.colors.textSecondary}`)}>
                   Estado de conexión y herramientas de mantenimiento
                 </p>
                 <div className="space-y-3">
                   <div className="flex items-center gap-2">
                     <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                    <span className={cn("text-sm", `text-${themeClasses.colors.text}`)}>
+                    <span className={cn("text-sm", `text-${theme.colors.text}`)}>
                       Conectado a Supabase
                     </span>
                   </div>
                   <button className={cn(
                     "w-full px-3 py-2 rounded-lg border transition-colors",
-                    `border-${themeClasses.colors.border}`,
-                    `hover:bg-${themeClasses.colors.border}/10`
+                    `border-${theme.colors.border}`,
+                    `hover:bg-${theme.colors.border}/10`
                   )}>
                     <RefreshCw className="h-4 w-4 inline mr-2" />
                     Verificar Conexión
@@ -1072,108 +1009,40 @@ export default function ConfiguracionPage() {
                 </div>
               </div>
 
-              <div className={cn("p-6 rounded-xl border", `bg-${themeClasses.colors.surface}`, `border-${themeClasses.colors.border}`)}>
+              <div className={cn("p-6 rounded-xl border", `bg-${theme.colors.surface}`, `border-${theme.colors.border}`)}>
                 <div className="flex items-center gap-3 mb-4">
-                  <div className={cn("p-2 rounded-lg", `bg-${themeClasses.colors.accent}/10`, `text-${themeClasses.colors.accent}`)}>
+                  <div className={cn("p-2 rounded-lg", `bg-${theme.colors.accent}/10`, `text-${theme.colors.accent}`)}>
                     <Download className="h-5 w-5" />
                   </div>
-                  <h3 className={cn("font-semibold", `text-${themeClasses.colors.text}`)}>
+                  <h3 className={cn("font-semibold", `text-${theme.colors.text}`)}>
                     Respaldos
                   </h3>
                 </div>
-                <p className={cn("text-sm mb-4", `text-${themeClasses.colors.textSecondary}`)}>
+                <p className={cn("text-sm mb-4", `text-${theme.colors.textSecondary}`)}>
                   Exportar datos importantes del sistema
                 </p>
                 <div className="space-y-2">
                   <button className={cn(
                     "w-full px-3 py-2 text-sm rounded-lg border transition-colors",
-                    `border-${themeClasses.colors.border}`,
-                    `hover:bg-${themeClasses.colors.border}/10`
+                    `border-${theme.colors.border}`,
+                    `hover:bg-${theme.colors.border}/10`
                   )}>
                     Exportar Productos
                   </button>
                   <button className={cn(
                     "w-full px-3 py-2 text-sm rounded-lg border transition-colors",
-                    `border-${themeClasses.colors.border}`,
-                    `hover:bg-${themeClasses.colors.border}/10`
+                    `border-${theme.colors.border}`,
+                    `hover:bg-${theme.colors.border}/10`
                   )}>
                     Exportar Clientes
                   </button>
                   <button className={cn(
                     "w-full px-3 py-2 text-sm rounded-lg border transition-colors",
-                    `border-${themeClasses.colors.border}`,
-                    `hover:bg-${themeClasses.colors.border}/10`
+                    `border-${theme.colors.border}`,
+                    `hover:bg-${theme.colors.border}/10`
                   )}>
                     Exportar Facturas
                   </button>
-                </div>
-              </div>
-
-              <div className={cn("p-6 rounded-xl border", `bg-${themeClasses.colors.surface}`, `border-${themeClasses.colors.border}`)}>
-                <div className="flex items-center gap-3 mb-4">
-                  <div className={cn("p-2 rounded-lg", "bg-yellow-500/10", "text-yellow-400")}>
-                    <Shield className="h-5 w-5" />
-                  </div>
-                  <h3 className={cn("font-semibold", `text-${themeClasses.colors.text}`)}>
-                    Seguridad
-                  </h3>
-                </div>
-                <p className={cn("text-sm mb-4", `text-${themeClasses.colors.textSecondary}`)}>
-                  Configuración de seguridad y acceso
-                </p>
-                <div className="space-y-3">
-                  <label className="flex items-center">
-                    <input
-                      type="checkbox"
-                      defaultChecked
-                      className={cn("form-checkbox h-4 w-4 rounded", `text-${themeClasses.colors.primary}`)}
-                    />
-                    <span className={cn("ml-2 text-sm", `text-${themeClasses.colors.text}`)}>
-                      Sesión automática
-                    </span>
-                  </label>
-                  <label className="flex items-center">
-                    <input
-                      type="checkbox"
-                      defaultChecked
-                      className={cn("form-checkbox h-4 w-4 rounded", `text-${themeClasses.colors.primary}`)}
-                    />
-                    <span className={cn("ml-2 text-sm", `text-${themeClasses.colors.text}`)}>
-                      Logs de actividad
-                    </span>
-                  </label>
-                </div>
-              </div>
-
-              <div className={cn("p-6 rounded-xl border", `bg-${themeClasses.colors.surface}`, `border-${themeClasses.colors.border}`)}>
-                <div className="flex items-center gap-3 mb-4">
-                  <div className={cn("p-2 rounded-lg", "bg-blue-500/10", "text-blue-400")}>
-                    <Monitor className="h-5 w-5" />
-                  </div>
-                  <h3 className={cn("font-semibold", `text-${themeClasses.colors.text}`)}>
-                    Rendimiento
-                  </h3>
-                </div>
-                <p className={cn("text-sm mb-4", `text-${themeClasses.colors.textSecondary}`)}>
-                  Optimización y monitoreo del sistema
-                </p>
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className={cn("text-sm", `text-${themeClasses.colors.text}`)}>
-                      Cache del navegador
-                    </span>
-                    <button className="text-xs text-blue-400 hover:text-blue-300">
-                      Limpiar
-                    </button>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className={cn("text-sm", `text-${themeClasses.colors.text}`)}>
-                      Datos temporales
-                    </span>
-                    <button className="text-xs text-blue-400 hover:text-blue-300">
-                      Limpiar
-                    </button>
-                  </div>
                 </div>
               </div>
             </div>
@@ -1206,30 +1075,38 @@ export default function ConfiguracionPage() {
   return (
     <div className={cn(
       "min-h-screen",
-      themeClasses.background?.type === 'solid' ? themeClasses.background.value : "bg-transparent"
+      theme.background?.type === 'solid' ? theme.background.value : "bg-transparent"
     )}>
-      <div className="max-w-7xl mx-auto p-6">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-4 mb-4">
-            <div className={cn("p-3 rounded-xl", `bg-${themeClasses.colors.primary}/10`)}>
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={cn("h-6 w-6", `text-${themeClasses.colors.primary}`)}>
-                <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
-                <circle cx="12" cy="12" r="3"></circle>
-              </svg>
-            </div>
-            <div>
-              <h1 className={cn("text-3xl font-bold", `text-${themeClasses.colors.text}`)}>
-                Configuración del Sistema
-              </h1>
-              <p className={cn("text-lg", `text-${themeClasses.colors.textSecondary}`)}>
-                Personaliza EVITA según tus necesidades
-              </p>
+      {/* Layout con sidebar */}
+      <div className="flex min-h-screen">
+        {/* Sidebar Navigation */}
+        <div className={cn(
+          "w-80 p-6 border-r backdrop-blur-sm",
+          `bg-${theme.colors.surface}/80`,
+          `border-${theme.colors.border}`
+        )}>
+          {/* Header del sidebar */}
+          <div className="mb-8">
+            <div className="flex items-center gap-3 mb-4">
+              <div className={cn("p-2 rounded-xl", `bg-${theme.colors.primary}/10`)}>
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={cn("h-5 w-5", `text-${theme.colors.primary}`)}>
+                  <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+              </div>
+              <div>
+                <h1 className={cn("text-xl font-bold", `text-${theme.colors.text}`)}>
+                  Configuración
+                </h1>
+                <p className={cn("text-sm", `text-${theme.colors.textSecondary}`)}>
+                  Sistema EVITA
+                </p>
+              </div>
             </div>
           </div>
 
-          {/* Navigation Pills */}
-          <div className="flex flex-wrap gap-2 overflow-x-auto pb-2">
+          {/* Navigation Menu */}
+          <nav className="space-y-2">
             {sections.map((section) => {
               const Icon = section.icon
               const isActive = activeSection === section.id
@@ -1239,24 +1116,38 @@ export default function ConfiguracionPage() {
                   key={section.id}
                   onClick={() => setActiveSection(section.id)}
                   className={cn(
-                    "flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all whitespace-nowrap",
+                    "w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-all duration-200",
                     isActive
-                      ? `bg-${themeClasses.colors.primary} text-${themeClasses.colors.primaryText} shadow-lg`
-                      : `bg-${themeClasses.colors.surface} text-${themeClasses.colors.textSecondary} hover:text-${themeClasses.colors.text} hover:bg-${themeClasses.colors.border}/10`
+                      ? `bg-${theme.colors.primary} text-${theme.colors.primaryText} shadow-lg scale-[1.02]`
+                      : `text-${theme.colors.textSecondary} hover:text-${theme.colors.text} hover:bg-${theme.colors.surface} hover:scale-[1.01]`
                   )}
                 >
-                  <Icon className="h-4 w-4" />
-                  <span>{section.name}</span>
+                  <Icon className="h-5 w-5" />
+                  <div>
+                    <div className={cn("font-medium", isActive ? `text-${theme.colors.primaryText}` : `text-${theme.colors.text}`)}>
+                      {section.name}
+                    </div>
+                    <div className={cn("text-xs", isActive ? `text-${theme.colors.primaryText}/80` : `text-${theme.colors.textSecondary}`)}>
+                      {section.description}
+                    </div>
+                  </div>
                 </button>
               )
             })}
-          </div>
+          </nav>
         </div>
 
-        {/* Content */}
-        <div className={cn("rounded-2xl border", `bg-${themeClasses.colors.surface}/50`, `border-${themeClasses.colors.border}`, "backdrop-blur-sm")}>
-          <div className="p-8">
-            {renderContent()}
+        {/* Main Content */}
+        <div className="flex-1 p-6">
+          <div className={cn(
+            "rounded-2xl border h-full overflow-y-auto",
+            `bg-${theme.colors.surface}/30`,
+            `border-${theme.colors.border}`,
+            "backdrop-blur-sm"
+          )}>
+            <div className="p-8">
+              {renderContent()}
+            </div>
           </div>
         </div>
       </div>
