@@ -1,50 +1,180 @@
-// Servicio de Facturas: almacena en localStorage para DEMO
-const STORAGE_KEY = 'evita-facturas'
+import { supabase } from '../lib/supabaseClient';
 
-const defaultData = [
-  { id: 'INV-001', client: 'Juan Pérez', date: '2023-12-10', total: 25000, status: 'pagado', items: 15, dueDate: '2023-12-20' },
-  { id: 'INV-002', client: 'Ana Gómez', date: '2023-11-28', total: 12500, status: 'pendiente', items: 8, dueDate: '2023-12-15' },
-  { id: 'INV-003', client: 'Carlos Rodríguez', date: '2023-12-08', total: 45000, status: 'vencido', items: 22, dueDate: '2023-12-25' },
-  { id: 'INV-004', client: 'Laura Fernández', date: '2023-10-15', total: 5400, status: 'pagado', items: 3, dueDate: '2023-11-01' },
-]
+// Obtener todas las facturas con información de venta y cliente
+export const getFacturas = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('facturas')
+      .select(`
+        *,
+        ventas (
+          id,
+          fecha,
+          total,
+          estado,
+          clientes (
+            id,
+            nombre,
+            email,
+            telefono
+          )
+        )
+      `)
+      .order('created_at', { ascending: false });
 
-function read() {
-  if (typeof window === 'undefined') return []
-  const raw = localStorage.getItem(STORAGE_KEY)
-  if (!raw) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultData))
-    return defaultData
+    if (error) throw error;
+    return { data, error: null };
+  } catch (error) {
+    console.error('Error fetching facturas:', error);
+    return { data: null, error };
   }
-  try { return JSON.parse(raw) } catch { return defaultData }
-}
+};
 
-function write(list) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(list))
-}
+// Obtener factura por ID
+export const getFacturaById = async (id) => {
+  try {
+    const { data, error } = await supabase
+      .from('facturas')
+      .select(`
+        *,
+        ventas (
+          id,
+          fecha,
+          total,
+          estado,
+          clientes (
+            id,
+            nombre,
+            email,
+            telefono,
+            direccion
+          )
+        )
+      `)
+      .eq('id', id)
+      .single();
 
+    if (error) throw error;
+    return { data, error: null };
+  } catch (error) {
+    console.error('Error fetching factura:', error);
+    return { data: null, error };
+  }
+};
+
+// Crear nueva factura
+export const createFactura = async (facturaData) => {
+  try {
+    const { data, error } = await supabase
+      .from('facturas')
+      .insert([facturaData])
+      .select()
+      .single();
+
+    if (error) throw error;
+    return { data, error: null };
+  } catch (error) {
+    console.error('Error creating factura:', error);
+    return { data: null, error };
+  }
+};
+
+// Actualizar factura
+export const updateFactura = async (id, facturaData) => {
+  try {
+    const { data, error } = await supabase
+      .from('facturas')
+      .update(facturaData)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return { data, error: null };
+  } catch (error) {
+    console.error('Error updating factura:', error);
+    return { data: null, error };
+  }
+};
+
+// Eliminar factura
+export const deleteFactura = async (id) => {
+  try {
+    const { error } = await supabase
+      .from('facturas')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+    return { error: null };
+  } catch (error) {
+    console.error('Error deleting factura:', error);
+    return { error };
+  }
+};
+
+// Funciones de compatibilidad con el código existente
 export async function listFacturas() {
-  return Promise.resolve(read())
+  const { data } = await getFacturas();
+  return data || [];
 }
 
-export async function createFactura(factura) {
-  const list = read()
-  const exists = list.some(f => f.id === factura.id)
-  const toSave = exists ? list.map(f => f.id === factura.id ? factura : f) : [...list, factura]
-  write(toSave)
-  return Promise.resolve(factura)
+export async function createFacturaLegacy(factura) {
+  const { data } = await createFactura(factura);
+  return data;
 }
 
-export async function updateFactura(id, patch) {
-  const list = read()
-  const updated = list.map(f => f.id === id ? { ...f, ...patch } : f)
-  write(updated)
-  return Promise.resolve(updated.find(f => f.id === id))
+export async function updateFacturaLegacy(id, patch) {
+  const { data } = await updateFactura(id, patch);
+  return data;
 }
 
-export async function deleteFactura(id) {
-  const list = read()
-  const next = list.filter(f => f.id !== id)
-  write(next)
-  return Promise.resolve({ id })
+export async function deleteFacturaLegacy(id) {
+  const { error } = await deleteFactura(id);
+  return error ? null : { id };
 }
+
+// Generar número de factura automático
+export const generateNumeroFactura = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('facturas')
+      .select('numero_factura')
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    if (error) throw error;
+
+    let lastNumber = 0;
+    if (data && data.length > 0) {
+      const lastFactura = data[0].numero_factura;
+      const numberPart = lastFactura.replace(/\D/g, '');
+      lastNumber = parseInt(numberPart) || 0;
+    }
+
+    const nextNumber = lastNumber + 1;
+    return `FAC-${String(nextNumber).padStart(6, '0')}`;
+  } catch (error) {
+    console.error('Error generating numero factura:', error);
+    return `FAC-${String(Date.now()).slice(-6)}`;
+  }
+};
+
+// Marcar factura como pagada
+export const marcarFacturaPagada = async (id) => {
+  try {
+    const { data, error } = await supabase
+      .from('facturas')
+      .update({ estado: 'pagada' })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return { data, error: null };
+  } catch (error) {
+    console.error('Error marking factura as paid:', error);
+    return { data: null, error };
+  }
+};
 

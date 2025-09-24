@@ -1,39 +1,158 @@
-// Servicio de Productos (demo): localStorage con datos por defecto
-const STORAGE_KEY = 'evita-productos'
+import { supabase } from '../lib/supabaseClient';
 
-const defaultData = [
-  { id: 'EVT001', name: 'Limpiador Multiuso EVITA Pro', category: 'Limpieza', sku: 'LMP-EVT-001', stock: 150, minStock: 50, price: 5.99, cost: 3.50, status: 'activo' },
-  { id: 'EVT002', name: 'Desinfectante Antibacterial EVITA', category: 'Limpieza', sku: 'DES-EVT-002', stock: 120, minStock: 30, price: 8.99, cost: 5.20, status: 'activo' },
-  { id: 'EVT003', name: 'Jabón Líquido para Manos EVITA', category: 'Limpieza', sku: 'JAB-EVT-003', stock: 20,  minStock: 50, price: 3.99, cost: 2.20, status: 'activo' },
-  { id: 'EVT004', name: 'Detergente en Polvo Concentrado', category: 'Limpieza', sku: 'DET-EVT-004', stock: 80,  minStock: 25, price: 12.99, cost: 8.50, status: 'activo' },
-  { id: 'EVT005', name: 'Limpiavidrios Profesional EVITA', category: 'Limpieza', sku: 'LVD-EVT-005', stock: 90,  minStock: 30, price: 4.49, cost: 2.80, status: 'activo' },
-  { id: 'EVT006', name: 'Bombillas LED Eco 12W', category: 'Electricidad', sku: 'LED-ECO-012', stock: 180, minStock: 50, price: 3.49, cost: 2.10, status: 'activo' },
-  { id: 'EVT007', name: 'Cable Eléctrico Flexible 2.5mm', category: 'Electricidad', sku: 'CAB-FLX-25', stock: 45,  minStock: 25, price: 2.99, cost: 1.80, status: 'activo' },
-  { id: 'EVT008', name: 'Enchufe Universal con Toma Tierra', category: 'Electricidad', sku: 'ENC-UNI-TT', stock: 200, minStock: 75, price: 4.79, cost: 3.20, status: 'activo' },
-  { id: 'EVT009', name: 'Bolsas Basura Biodegradables 50L', category: 'Generales', sku: 'BOL-BIO-50', stock: 250, minStock: 100, price: 1.99, cost: 1.20, status: 'activo' },
-  { id: 'EVT010', name: 'Guantes de Nitrilo (Caja x100)', category: 'Seguridad', sku: 'GUA-NIT-100', stock: 60, minStock: 20, price: 14.99, cost: 10.50, status: 'activo' },
-]
+// Obtener todos los productos con información del proveedor
+export const getProductos = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('productos')
+      .select(`
+        *,
+        proveedores (
+          id,
+          nombre,
+          email,
+          telefono
+        )
+      `)
+      .order('created_at', { ascending: false });
 
-function read() {
-  if (typeof window === 'undefined') return []
-  const raw = localStorage.getItem(STORAGE_KEY)
-  if (!raw) { localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultData)); return defaultData }
-  try { return JSON.parse(raw) } catch { return defaultData }
+    if (error) throw error;
+    return { data, error: null };
+  } catch (error) {
+    console.error('Error fetching productos:', error);
+    return { data: null, error };
+  }
+};
+
+// Obtener producto por ID
+export const getProductoById = async (id) => {
+  try {
+    const { data, error } = await supabase
+      .from('productos')
+      .select(`
+        *,
+        proveedores (
+          id,
+          nombre,
+          email,
+          telefono
+        )
+      `)
+      .eq('id', id)
+      .single();
+
+    if (error) throw error;
+    return { data, error: null };
+  } catch (error) {
+    console.error('Error fetching producto:', error);
+    return { data: null, error };
+  }
+};
+
+// Crear nuevo producto
+export const createProducto = async (productoData) => {
+  try {
+    const { data, error } = await supabase
+      .from('productos')
+      .insert([productoData])
+      .select()
+      .single();
+
+    if (error) throw error;
+    return { data, error: null };
+  } catch (error) {
+    console.error('Error creating producto:', error);
+    return { data: null, error };
+  }
+};
+
+// Actualizar producto
+export const updateProducto = async (id, productoData) => {
+  try {
+    const { data, error } = await supabase
+      .from('productos')
+      .update(productoData)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return { data, error: null };
+  } catch (error) {
+    console.error('Error updating producto:', error);
+    return { data: null, error };
+  }
+};
+
+// Eliminar producto
+export const deleteProducto = async (id) => {
+  try {
+    const { error } = await supabase
+      .from('productos')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+    return { error: null };
+  } catch (error) {
+    console.error('Error deleting producto:', error);
+    return { error };
+  }
+};
+
+// Actualizar stock de producto
+export const updateStock = async (id, nuevoStock) => {
+  try {
+    const { data, error } = await supabase
+      .from('productos')
+      .update({ stock: nuevoStock })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return { data, error: null };
+  } catch (error) {
+    console.error('Error updating stock:', error);
+    return { data: null, error };
+  }
+};
+
+// Obtener productos con stock bajo (menos de 10 unidades)
+export const getProductosStockBajo = async (limite = 10) => {
+  try {
+    const { data, error } = await supabase
+      .from('productos')
+      .select(`
+        *,
+        proveedores (
+          nombre
+        )
+      `)
+      .lt('stock', limite)
+      .order('stock', { ascending: true });
+
+    if (error) throw error;
+    return { data, error: null };
+  } catch (error) {
+    console.error('Error fetching productos stock bajo:', error);
+    return { data: null, error };
+  }
+};
+
+// Funciones de compatibilidad con el código existente
+export async function listProductos() {
+  const { data } = await getProductos();
+  return data || [];
 }
 
-function write(list) { localStorage.setItem(STORAGE_KEY, JSON.stringify(list)) }
-
-export async function listProductos() { return Promise.resolve(read()) }
 export async function upsertProducto(producto) {
-  const list = read()
-  const exists = list.some(p => p.id === producto.id)
-  const next = exists ? list.map(p => p.id === producto.id ? { ...p, ...producto } : p) : [...list, producto]
-  write(next)
-  return Promise.resolve(producto)
-}
-export async function deleteProducto(id) {
-  const list = read().filter(p => p.id !== id)
-  write(list)
-  return Promise.resolve({ id })
+  if (producto.id) {
+    const { data } = await updateProducto(producto.id, producto);
+    return data;
+  } else {
+    const { data } = await createProducto(producto);
+    return data;
+  }
 }
 
