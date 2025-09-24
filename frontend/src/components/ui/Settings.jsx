@@ -8,10 +8,14 @@ import {
   Monitor,
   Check,
   X,
-  Building2
+  Building2,
+  Upload,
+  Trash2,
+  Loader
 } from 'lucide-react'
 import { useTheme, themes } from '../../contexts/ThemeContext'
 import { cn } from '../../lib/utils'
+import { uploadLogo, deleteFile, BUCKETS, initializeBuckets } from '../../lib/supabaseStorage'
 
 export default function Settings({ isOpen, onClose, onLogoChange }) {
   const { currentTheme, changeTheme } = useTheme()
@@ -20,6 +24,27 @@ export default function Settings({ isOpen, onClose, onLogoChange }) {
   const [companyCUIT, setCompanyCUIT] = useState(() => localStorage.getItem('evita-company-cuit') || '')
   const [companyAddress, setCompanyAddress] = useState(() => localStorage.getItem('evita-company-address') || '')
   const [companyPhone, setCompanyPhone] = useState(() => localStorage.getItem('evita-company-phone') || '')
+  
+  // Estados para manejo de archivos con Supabase
+  const [uploadingLogo, setUploadingLogo] = useState(false)
+  const [logoProgress, setLogoProgress] = useState(0)
+  const [currentLogoPath, setCurrentLogoPath] = useState(() => localStorage.getItem('evita-logo-path') || null)
+  const [storageInitialized, setStorageInitialized] = useState(false)
+
+  // Inicializar buckets de Supabase Storage
+  React.useEffect(() => {
+    const initStorage = async () => {
+      try {
+        await initializeBuckets()
+        setStorageInitialized(true)
+      } catch (error) {
+        console.error('Error initializing storage:', error)
+      }
+    }
+    if (isOpen && !storageInitialized) {
+      initStorage()
+    }
+  }, [isOpen, storageInitialized])
 
   const saveCompany = () => {
     const payload = {
@@ -47,27 +72,102 @@ export default function Settings({ isOpen, onClose, onLogoChange }) {
   const handleThemeChange = (themeName) => {
     changeTheme(themeName)
   }
-  const handleLogoUpload = (e) => {
-    const file = e.target.files && e.target.files[0]
+  const handleLogoUpload = async (e) => {
+    const file = e.target.files?.[0]
     if (!file) return
-    const reader = new FileReader()
-    reader.onload = () => {
-      try {
-        localStorage.setItem('evita-logo', reader.result)
-        onLogoChange && onLogoChange(reader.result)
-      } catch (err) {
-        console.error('No se pudo guardar el logo:', err)
-      }
+
+    // Validar tipo de archivo
+    const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp']
+    if (!validTypes.includes(file.type)) {
+      alert('Por favor selecciona una imagen válida (PNG, JPG, GIF, WebP)')
+      return
     }
-    reader.readAsDataURL(file)
+
+    // Validar tamaño (máximo 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('La imagen no puede ser mayor a 5MB')
+      return
+    }
+
+    setUploadingLogo(true)
+    setLogoProgress(0)
+
+    try {
+      // Simular progreso
+      const progressInterval = setInterval(() => {
+        setLogoProgress(prev => Math.min(prev + 20, 90))
+      }, 300)
+
+      // Si ya existe un logo, eliminarlo primero
+      if (currentLogoPath) {
+        await deleteFile(BUCKETS.LOGOS, currentLogoPath)
+      }
+
+      // Subir nuevo logo
+      const fileName = `company-logo-${Date.now()}.${file.name.split('.').pop()}`
+      const result = await uploadLogo(file, fileName)
+
+      clearInterval(progressInterval)
+      setLogoProgress(100)
+
+      if (result.success) {
+        // Guardar información del logo
+        localStorage.setItem('evita-logo', result.data.publicUrl)
+        localStorage.setItem('evita-logo-path', result.data.path)
+        setCurrentLogoPath(result.data.path)
+        
+        // Notificar al componente padre
+        onLogoChange?.(result.data.publicUrl)
+        
+        alert('Logo subido exitosamente')
+      } else {
+        throw new Error(result.error)
+      }
+    } catch (error) {
+      console.error('Error uploading logo:', error)
+      alert('Error al subir el logo: ' + error.message)
+    } finally {
+      setTimeout(() => {
+        setUploadingLogo(false)
+        setLogoProgress(0)
+      }, 1000)
+    }
   }
 
-  const handleLogoRemove = () => {
+  const handleLogoRemove = async () => {
+    if (!currentLogoPath) {
+      // Fallback para logos guardados localmente
+      try {
+        localStorage.removeItem('evita-logo')
+        localStorage.removeItem('evita-logo-path')
+        onLogoChange?.(null)
+        setCurrentLogoPath(null)
+        alert('Logo eliminado')
+      } catch (err) {
+        console.error('Error removing local logo:', err)
+      }
+      return
+    }
+
     try {
-      localStorage.removeItem('evita-logo')
-      onLogoChange && onLogoChange(null)
-    } catch (err) {
-      console.error('No se pudo eliminar el logo:', err)
+      setUploadingLogo(true)
+      
+      const result = await deleteFile(BUCKETS.LOGOS, currentLogoPath)
+      
+      if (result.success) {
+        localStorage.removeItem('evita-logo')
+        localStorage.removeItem('evita-logo-path')
+        setCurrentLogoPath(null)
+        onLogoChange?.(null)
+        alert('Logo eliminado exitosamente')
+      } else {
+        throw new Error(result.error)
+      }
+    } catch (error) {
+      console.error('Error deleting logo:', error)
+      alert('Error al eliminar el logo: ' + error.message)
+    } finally {
+      setUploadingLogo(false)
     }
   }
 
@@ -274,21 +374,75 @@ export default function Settings({ isOpen, onClose, onLogoChange }) {
                   <div className="mt-6 p-4 bg-gray-800/50 rounded-lg">
                     <h5 className="font-medium text-white mb-2">Logo de la empresa</h5>
                     <p className="text-sm text-gray-400 mb-3">
-                      Sube un logo en PNG o JPG. Se guarda localmente para la demo.
+                      Sube un logo en PNG, JPG, GIF o WebP. Se almacena de forma segura en Supabase Storage.
                     </p>
+                    
+                    {/* Progress bar */}
+                    {uploadingLogo && (
+                      <div className="mb-3">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs text-gray-400">Subiendo...</span>
+                          <span className="text-xs text-gray-400">{logoProgress}%</span>
+                        </div>
+                        <div className="w-full bg-gray-700 rounded-full h-2">
+                          <div 
+                            className="bg-green-500 h-2 rounded-full transition-all duration-300"
+                            style={{ width: `${logoProgress}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    )}
+
                     <div className="flex items-center gap-3">
-                      <input
-                        type="file"
-                        accept="image/png,image/jpeg"
-                        onChange={handleLogoUpload}
-                        className="text-sm text-gray-300"
-                      />
+                      <label className={cn(
+                        "flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg cursor-pointer transition-colors",
+                        uploadingLogo && "opacity-50 cursor-not-allowed"
+                      )}>
+                        {uploadingLogo ? (
+                          <Loader className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Upload className="h-4 w-4" />
+                        )}
+                        <span className="text-sm font-medium">
+                          {uploadingLogo ? 'Subiendo...' : 'Subir Logo'}
+                        </span>
+                        <input
+                          type="file"
+                          accept="image/png,image/jpeg,image/jpg,image/gif,image/webp"
+                          onChange={handleLogoUpload}
+                          disabled={uploadingLogo}
+                          className="hidden"
+                        />
+                      </label>
+                      
                       <button
                         onClick={handleLogoRemove}
-                        className="px-3 py-2 text-sm bg-gray-700 hover:bg-gray-600 text-white rounded-lg"
+                        disabled={uploadingLogo || (!currentLogoPath && !localStorage.getItem('evita-logo'))}
+                        className={cn(
+                          "flex items-center gap-2 px-3 py-2 text-sm bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors",
+                          (uploadingLogo || (!currentLogoPath && !localStorage.getItem('evita-logo'))) && "opacity-50 cursor-not-allowed"
+                        )}
                       >
-                        Quitar logo
+                        <Trash2 className="h-4 w-4" />
+                        Quitar Logo
                       </button>
+                    </div>
+
+                    <div className="mt-3 text-xs text-gray-500">
+                      Formatos soportados: PNG, JPG, GIF, WebP • Tamaño máximo: 5MB
+                    </div>
+
+                    {/* Storage status */}
+                    <div className="mt-2 flex items-center gap-2 text-xs">
+                      <div className={cn(
+                        "w-2 h-2 rounded-full",
+                        storageInitialized ? "bg-green-400" : "bg-yellow-400"
+                      )}></div>
+                      <span className={cn(
+                        storageInitialized ? "text-green-400" : "text-yellow-400"
+                      )}>
+                        {storageInitialized ? "Almacenamiento listo" : "Inicializando almacenamiento..."}
+                      </span>
                     </div>
                   </div>
 

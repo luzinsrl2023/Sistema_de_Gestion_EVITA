@@ -1,5 +1,5 @@
 # Dependencies
-/node_modules
+node_modules/
 /.pnp
 .pnp.js
 
@@ -10,9 +10,15 @@
 /build
 /dist
 
+# Development
+.vite/
+frontend/node_modules/.vite/
+frontend/dist/
+
 # Misc
 .DS_Store
 *.pem
+*.log
 
 # Environment Variables
 .env
@@ -20,3 +26,9 @@
 
 # Supabase
 /supabase/functions/_lib
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo

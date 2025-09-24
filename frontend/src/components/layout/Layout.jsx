@@ -320,12 +320,30 @@ export default function Layout({ children }) {
                 <p className={`text-${theme.colors.textSecondary}`}>Admin</p>
               </div>
             </div>
-            <button
-              onClick={handleSignOut}
-              className={cn("p-1 hover:text-white transition-colors", `text-${theme.colors.textSecondary}`)}
-            >
-              <LogOut className="h-4 w-4" />
-            </button>
+            <div className="relative group">
+              <button
+                onClick={handleSignOut}
+                className={cn(
+                  "flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-300 transform hover:scale-105",
+                  "bg-gradient-to-r from-red-600/10 to-red-500/10",
+                  "border border-red-500/20 hover:border-red-400/40",
+                  "text-red-400 hover:text-red-300",
+                  "hover:bg-gradient-to-r hover:from-red-600/20 hover:to-red-500/20",
+                  "hover:shadow-lg hover:shadow-red-500/25",
+                  "active:scale-95"
+                )}
+                title="Cerrar sesión"
+              >
+                <LogOut className="h-4 w-4" />
+                <span className="text-xs font-medium hidden lg:block">Salir</span>
+              </button>
+              
+              {/* Tooltip for mobile */}
+              <div className="lg:hidden absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
+                Cerrar sesión
+                <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-gray-900"></div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

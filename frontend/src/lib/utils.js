@@ -13,11 +13,41 @@ export const formatCurrency = (amount) => {
 }
 
 export const formatDate = (date) => {
-  return new Intl.DateTimeFormat('es-ES', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  }).format(new Date(date))
+  try {
+    if (!date || date === null || date === undefined) return 'Sin fecha'
+    
+    // Handle empty strings or whitespace
+    if (typeof date === 'string' && date.trim() === '') return 'Sin fecha'
+    
+    // Convert to string if it's not already
+    const dateStr = String(date)
+    
+    // Check if it's already a valid ISO string or timestamp
+    let parsedDate;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+      // YYYY-MM-DD format
+      parsedDate = new Date(dateStr + 'T00:00:00.000Z')
+    } else if (!isNaN(Date.parse(dateStr))) {
+      parsedDate = new Date(dateStr)
+    } else {
+      return 'Fecha inválida'
+    }
+    
+    // Check if date is valid
+    if (isNaN(parsedDate.getTime())) {
+      return 'Fecha inválida'
+    }
+    
+    return new Intl.DateTimeFormat('es-ES', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      timeZone: 'UTC'
+    }).format(parsedDate)
+  } catch (error) {
+    console.warn('Error formatting date:', date, error)
+    return 'Fecha inválida'
+  }
 }
 
 export const getStatusColor = (status) => {
