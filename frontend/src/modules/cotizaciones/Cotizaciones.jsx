@@ -77,11 +77,11 @@ export default function Cotizaciones() {
 
   return (
     <div className="p-6 space-y-6 max-w-7xl mx-auto">
-      {/* Header Section */}
+      {/* Header Section - Changed teal to green */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-teal-500/10 rounded-lg">
-            <FileText className="h-6 w-6 text-teal-400" />
+          <div className="p-2 bg-green-500/10 rounded-lg">
+            <FileText className="h-6 w-6 text-green-400" />
           </div>
           <div>
             <h1 className="text-2xl font-bold text-white">Cotizaciones</h1>
@@ -91,14 +91,14 @@ export default function Cotizaciones() {
         <div className="flex gap-3">
           <button 
             onClick={handleGuardar} 
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-800 text-white hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-800 text-white hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-green-500"
           >
             <Save className="h-4 w-4" />
             Guardar
           </button>
           <button 
             onClick={handlePDF} 
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-teal-600 text-white hover:bg-teal-500 transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-500 transition-colors focus:outline-none focus:ring-2 focus:ring-green-500"
           >
             <Download className="h-4 w-4" />
             PDF
@@ -108,10 +108,10 @@ export default function Cotizaciones() {
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Client Information Card */}
+        {/* Client Information Card - Changed teal to green */}
         <div className="lg:col-span-1 card p-5">
           <h2 className="font-semibold text-lg text-white mb-4 flex items-center gap-2">
-            <div className="w-2 h-2 bg-teal-500 rounded-full"></div>
+            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
             Cliente
           </h2>
           <div className="space-y-4">
@@ -144,12 +144,12 @@ export default function Cotizaciones() {
           </div>
         </div>
 
-        {/* Metadata and Totals Cards */}
+        {/* Metadata and Totals Cards - Changed teal to green */}
         <div className="lg:col-span-2 space-y-6">
           {/* Metadata Card */}
           <div className="card p-5">
             <h2 className="font-semibold text-lg text-white mb-4 flex items-center gap-2">
-              <div className="w-2 h-2 bg-teal-500 rounded-full"></div>
+              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
               Datos de la cotización
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -188,7 +188,7 @@ export default function Cotizaciones() {
           {/* Totals Card */}
           <div className="card p-5">
             <h2 className="font-semibold text-lg text-white mb-4 flex items-center gap-2">
-              <div className="w-2 h-2 bg-teal-500 rounded-full"></div>
+              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
               Resumen
             </h2>
             <div className="space-y-3">
@@ -202,23 +202,23 @@ export default function Cotizaciones() {
               </div>
               <div className="flex justify-between pt-3 border-t border-gray-800">
                 <span className="font-semibold text-white">Total</span>
-                <span className="font-bold text-lg text-teal-400">$ {totals.total.toFixed(2)}</span>
+                <span className="font-bold text-lg text-green-400">$ {totals.total.toFixed(2)}</span>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Items Section */}
+      {/* Items Section - Changed teal to green */}
       <div className="card p-5">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-5">
           <h2 className="font-semibold text-lg text-white flex items-center gap-2">
-            <div className="w-2 h-2 bg-teal-500 rounded-full"></div>
+            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
             Productos
           </h2>
           <button 
             onClick={addItem} 
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-teal-600/20 text-teal-400 hover:bg-teal-600/30 transition-colors border border-teal-600/30"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-green-600/20 text-green-400 hover:bg-green-600/30 transition-colors border border-green-600/30"
           >
             <Plus className="h-4 w-4" />
             Agregar producto
@@ -285,11 +285,11 @@ export default function Cotizaciones() {
         </div>
       </div>
 
-      {/* Action Buttons */}
+      {/* Action Buttons - Updated to use consistent green color scheme */}
       <div className="flex flex-col sm:flex-row gap-3 mt-6 pt-5 border-t border-gray-800">
         <button
           onClick={handleGuardar}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white transition-colors"
+          className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-green-600 hover:bg-green-500 text-white transition-colors"
         >
           <Save className="h-4 w-4" />
           Guardar Cotización
@@ -314,11 +314,11 @@ export default function Cotizaciones() {
         </button>
       </div>
 
-      {/* Recent Quotations */}
+      {/* Recent Quotations - Changed teal to green */}
       {cotizaciones.length > 0 && (
         <div className="card p-5">
           <h2 className="font-semibold text-lg text-white mb-4 flex items-center gap-2">
-            <div className="w-2 h-2 bg-teal-500 rounded-full"></div>
+            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
             Últimas cotizaciones
           </h2>
           <div className="overflow-x-auto">

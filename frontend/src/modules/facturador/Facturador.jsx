@@ -177,8 +177,8 @@ export default function Facturador() {
       {/* Header Section */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-blue-500/10 rounded-lg">
-            <FileText className="h-6 w-6 text-blue-400" />
+          <div className="p-2 bg-green-500/10 rounded-lg">
+            <FileText className="h-6 w-6 text-green-400" />
           </div>
           <div>
             <h1 className="text-2xl font-bold text-white">Facturador</h1>
@@ -188,14 +188,14 @@ export default function Facturador() {
         <div className="flex gap-3">
           <button 
             onClick={handleGuardar} 
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-800 text-white hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-800 text-white hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-green-500"
           >
             <Save className="h-4 w-4" />
             Guardar
           </button>
           <button 
             onClick={handlePDF} 
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-500 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-500 transition-colors focus:outline-none focus:ring-2 focus:ring-green-500"
           >
             <Download className="h-4 w-4" />
             PDF
@@ -229,7 +229,7 @@ export default function Facturador() {
           <button
             type="button"
             onClick={() => importFromCotizacion(selectedCotId)}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-500 transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-500 transition-colors"
           >
             <Download className="h-4 w-4" /> Importar
           </button>
@@ -239,7 +239,7 @@ export default function Facturador() {
       {/* Client Information */}
       <div className="card p-5">
         <h2 className="font-semibold text-lg text-white mb-5 flex items-center gap-2">
-          <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
           Información del Cliente
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -276,7 +276,7 @@ export default function Facturador() {
       {/* Invoice Information */}
       <div className="card p-5">
         <h2 className="font-semibold text-lg text-white mb-5 flex items-center gap-2">
-          <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
           Información de la Factura
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
@@ -338,12 +338,12 @@ export default function Facturador() {
       <div className="card p-5">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-5">
           <h2 className="font-semibold text-lg text-white flex items-center gap-2">
-            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
             Productos
           </h2>
           <button
             onClick={addItem}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600/20 text-blue-400 hover:bg-blue-600/30 transition-colors border border-blue-600/30"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-green-600/20 text-green-400 hover:bg-green-600/30 transition-colors border border-green-600/30"
           >
             <Plus className="h-4 w-4" />
             Agregar Producto
@@ -422,7 +422,7 @@ export default function Facturador() {
             </div>
             <div className="flex justify-between pt-3 border-t border-gray-700">
               <span className="font-semibold text-white">Total:</span>
-              <span className="font-bold text-lg text-blue-400">$ {totals.total.toFixed(2)}</span>
+              <span className="font-bold text-lg text-green-400">$ {totals.total.toFixed(2)}</span>
             </div>
           </div>
         </div>
@@ -431,7 +431,7 @@ export default function Facturador() {
         <div className="flex flex-col sm:flex-row gap-3 mt-6 pt-5 border-t border-gray-800">
           <button
             onClick={handleGuardar}
-            className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white transition-colors"
+            className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-green-600 hover:bg-green-500 text-white transition-colors"
           >
             <Save className="h-4 w-4" />
             Guardar Factura
@@ -461,7 +461,7 @@ export default function Facturador() {
       {facturas.length > 0 && (
         <div className="card p-5">
           <h2 className="font-semibold text-lg text-white mb-4 flex items-center gap-2">
-            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
             Últimas facturas
           </h2>
           <div className="overflow-x-auto">
