@@ -61,11 +61,27 @@ export default function Layout({ children }) {
   const [notificationsOpen, setNotificationsOpen] = useState(false)
   const [logoUrl, setLogoUrl] = useState(() => {
     try {
-      return localStorage.getItem('evita-logo') || null
+      const savedLogo = localStorage.getItem('evita-logo')
+      return savedLogo && savedLogo.startsWith('http') ? savedLogo : null
     } catch {
       return null
     }
   })
+
+  // Add this effect to handle logo updates
+  useEffect(() => {
+    try {
+      const savedLogo = localStorage.getItem('evita-logo')
+      if (savedLogo && savedLogo.startsWith('http')) {
+        setLogoUrl(savedLogo)
+      } else {
+        setLogoUrl(null)
+      }
+    } catch (error) {
+      console.error('Error loading logo:', error)
+      setLogoUrl(null)
+    }
+  }, [])
 
   useEffect(() => {
     // Listen for logo changes
@@ -140,10 +156,15 @@ export default function Layout({ children }) {
                     alt="Logo" 
                     className="w-full h-full object-contain"
                     onError={(e) => {
+                      console.error('Logo failed to load:', e.target.src)
                       e.target.style.display = 'none'
                       // Show default logo if image fails to load
-                      const defaultLogo = e.target.parentNode.querySelector('.default-logo')
-                      if (defaultLogo) defaultLogo.style.display = 'block'
+                      const parent = e.target.parentNode
+                      const defaultLogo = parent.querySelector('.default-logo')
+                      if (defaultLogo) {
+                        defaultLogo.style.display = 'block'
+                        parent.style.backgroundColor = '#10b981' // green-500
+                      }
                     }}
                   />
                 ) : (

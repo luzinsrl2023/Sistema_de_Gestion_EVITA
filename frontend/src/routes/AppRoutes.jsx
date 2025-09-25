@@ -1,6 +1,7 @@
 import React, { Suspense } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import RouteErrorBoundary from './RouteErrorBoundary'
+import ModuleErrorBoundary from '../components/common/ModuleErrorBoundary'
 
 // Import lazy components (they are already React.lazy in their index.js)
 import ModularDashboard from '../modules/dashboard'
@@ -28,54 +29,56 @@ const LoadingComponent = () => (
 const AppRoutes = () => {
   return (
     <RouteErrorBoundary>
-      <Suspense fallback={<LoadingComponent />}>
-        <Routes>
-          <Route path="/" element={<Navigate to="/tablero" replace />} />
+      <ModuleErrorBoundary>
+        <Suspense fallback={<LoadingComponent />}>
+          <Routes>
+            <Route path="/" element={<Navigate to="/tablero" replace />} />
 
-          <Route path="/tablero" element={<ModularDashboard />} />
+            <Route path="/tablero" element={<ModularDashboard />} />
 
-          <Route path="/productos" element={<ProductosList />} />
+            <Route path="/productos" element={<ProductosList />} />
 
-          <Route path="/clientes" element={<ClientesList />} />
+            <Route path="/clientes" element={<ClientesList />} />
 
-          <Route path="/proveedores" element={<ProveedoresList />} />
+            <Route path="/proveedores" element={<ProveedoresList />} />
 
-          {/* Ventas */}
-          <Route path="/cotizaciones" element={<Cotizaciones />} />
-          <Route path="/facturador" element={<Facturador />} />
+            {/* Ventas */}
+            <Route path="/cotizaciones" element={<Cotizaciones />} />
+            <Route path="/facturador" element={<Facturador />} />
 
-          {/* Compras */}
-          <Route path="/compras" element={<OrdenesList />} />
-          <Route path="/compras/nueva" element={<OrdenForm />} />
+            {/* Compras */}
+            <Route path="/compras" element={<OrdenesList />} />
+            <Route path="/compras/nueva" element={<OrdenForm />} />
 
 
-          <Route path="/compras/actualizacion-productos" element={<ActualizacionProductos />} />
+            <Route path="/compras/actualizacion-productos" element={<ActualizacionProductos />} />
 
-          {/* Facturacion */}
-          <Route path="/facturas" element={<FacturasList />} />
-          <Route path="/facturas/nueva" element={<FacturaForm />} />
-          <Route path="/facturas/:id" element={<FacturaView />} />
+            {/* Facturacion */}
+            <Route path="/facturas" element={<FacturasList />} />
+            <Route path="/facturas/nueva" element={<FacturaForm />} />
+            <Route path="/facturas/:id" element={<FacturaView />} />
 
-          {/* Cobranzas */}
-          <Route path="/cobranzas" element={<Navigate to="/cobranzas/cuentas-corrientes" replace />} />
-          <Route path="/cobranzas/cuentas-corrientes" element={<CuentasCorrientes />} />
-          <Route path="/cobranzas/recibos" element={<RecibosList />} />
-          <Route path="/cobranzas/composicion-saldos/:clienteId" element={<ComposicionSaldos />} />
-          <Route path="/cobranzas/pagos/:facturaId" element={<CobranzaForm />} />
+            {/* Cobranzas */}
+            <Route path="/cobranzas" element={<Navigate to="/cobranzas/cuentas-corrientes" replace />} />
+            <Route path="/cobranzas/cuentas-corrientes" element={<CuentasCorrientes />} />
+            <Route path="/cobranzas/recibos" element={<RecibosList />} />
+            <Route path="/cobranzas/composicion-saldos/:clienteId" element={<ComposicionSaldos />} />
+            <Route path="/cobranzas/pagos/:facturaId" element={<CobranzaForm />} />
 
-          {/* Reportes */}
-          <Route path="/reportes" element={<ReportesDashboard />} />
-          <Route path="/reportes/ventas" element={<VentasReport />} />
-          <Route path="/reportes/compras" element={<ComprasReport />} />
-          <Route path="/reportes/stock" element={<StockReport />} />
+            {/* Reportes */}
+            <Route path="/reportes" element={<ReportesDashboard />} />
+            <Route path="/reportes/ventas" element={<VentasReport />} />
+            <Route path="/reportes/compras" element={<ComprasReport />} />
+            <Route path="/reportes/stock" element={<StockReport />} />
 
-          {/* Configuración */}
-          <Route path="/configuracion" element={<ConfiguracionPage />} />
+            {/* Configuración */}
+            <Route path="/configuracion" element={<ConfiguracionPage />} />
 
-          {/* Catch all route */}
-          <Route path="*" element={<Navigate to="/tablero" replace />} />
-        </Routes>
-      </Suspense>
+            {/* Catch all route */}
+            <Route path="*" element={<Navigate to="/tablero" replace />} />
+          </Routes>
+        </Suspense>
+      </ModuleErrorBoundary>
     </RouteErrorBoundary>
   )
 }

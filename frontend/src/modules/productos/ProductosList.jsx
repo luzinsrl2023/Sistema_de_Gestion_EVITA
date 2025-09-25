@@ -160,10 +160,11 @@ export default function ProductosList() {
     return mockProducts
   })
   
-  // Add missing searchTerm state
+  // Add missing states
   const [searchTerm, setSearchTerm] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('Todos')
   const [stockFilter, setStockFilter] = useState('all')
+  const [showAddProduct, setShowAddProduct] = useState(false) // Add missing state for the "Nuevo Producto" button
   
   // Persist products to localStorage
   useEffect(() => {
