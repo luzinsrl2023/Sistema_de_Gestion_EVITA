@@ -5,7 +5,7 @@ import ModuleErrorBoundary from '../components/common/ModuleErrorBoundary'
 
 // Import lazy components (they are already React.lazy in their index.js)
 import ModularDashboard from '../modules/dashboard'
-import { ProductosList } from '../modules/productos'
+import { ProductosList } from '../modules/productos/index.jsx'
 import { ClientesList } from '../modules/clientes'
 import { ProveedoresList } from '../modules/proveedores'
 import { OrdenesList, OrdenForm, ActualizacionProductos } from '../modules/compras'
