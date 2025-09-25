@@ -76,91 +76,300 @@ export default function Cotizaciones() {
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold flex items-center gap-2"><FileText className="h-5 w-5"/> Cotizaciones</h1>
-        <div className="flex gap-2">
-          <button onClick={handleGuardar} className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-800 text-white hover:bg-gray-700"><Save className="h-4 w-4"/>Guardar</button>
-          <button onClick={handlePDF} className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-500"><Download className="h-4 w-4"/>PDF</button>
+    <div className="p-6 space-y-6 max-w-7xl mx-auto">
+      {/* Header Section */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-teal-500/10 rounded-lg">
+            <FileText className="h-6 w-6 text-teal-400" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-white">Cotizaciones</h1>
+            <p className="text-sm text-gray-400">Gestiona tus cotizaciones comerciales</p>
+          </div>
+        </div>
+        <div className="flex gap-3">
+          <button 
+            onClick={handleGuardar} 
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-800 text-white hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500"
+          >
+            <Save className="h-4 w-4" />
+            Guardar
+          </button>
+          <button 
+            onClick={handlePDF} 
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-teal-600 text-white hover:bg-teal-500 transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500"
+          >
+            <Download className="h-4 w-4" />
+            PDF
+          </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-gray-900/40 p-4 rounded-lg border border-gray-800">
-          <h2 className="font-medium mb-3">Cliente</h2>
-          <div className="space-y-3">
-            <input list="clientes-list" className="w-full px-3 py-2 rounded-md bg-gray-900 border border-gray-700" placeholder="Buscar cliente" value={customer.nombre}
-              onChange={e=>{
-                const nombre = e.target.value
-                const found = clientes.find(c=>c.name===nombre)
-                setCustomer(v=>({ ...v, nombre, email: found?.email || v.email }))
-              }} />
-            <datalist id="clientes-list">
-              {clientes.map(c=> <option key={c.id} value={c.name} />)}
-            </datalist>
-            <input className="w-full px-3 py-2 rounded-md bg-gray-900 border border-gray-700" placeholder="Email" value={customer.email}
-              onChange={e=>setCustomer(v=>({ ...v, email: e.target.value }))} />
-          </div>
-        </div>
-        <div className="bg-gray-900/40 p-4 rounded-lg border border-gray-800">
-          <h2 className="font-medium mb-3">Datos</h2>
-          <div className="space-y-3">
-            <input type="date" className="w-full px-3 py-2 rounded-md bg-gray-900 border border-gray-700" value={meta.fecha} onChange={e=>setMeta(v=>({ ...v, fecha: e.target.value }))} />
-            <input type="number" className="w-full px-3 py-2 rounded-md bg-gray-900 border border-gray-700" placeholder="Validez (días)" value={meta.validezDias} onChange={e=>setMeta(v=>({ ...v, validezDias: Number(e.target.value) }))} />
-            <textarea className="w-full px-3 py-2 rounded-md bg-gray-900 border border-gray-700" placeholder="Notas" value={meta.notas} onChange={e=>setMeta(v=>({ ...v, notas: e.target.value }))} />
-          </div>
-        </div>
-        <div className="bg-gray-900/40 p-4 rounded-lg border border-gray-800">
-          <h2 className="font-medium mb-3">Totales</h2>
-          <div className="space-y-2 text-sm text-gray-300">
-            <div className="flex justify-between"><span>Subtotal</span><span>$ {totals.subtotal.toFixed(2)}</span></div>
-            <div className="flex justify-between"><span>IVA (21%)</span><span>$ {totals.iva.toFixed(2)}</span></div>
-            <div className="flex justify-between font-semibold text-white"><span>Total</span><span>$ {totals.total.toFixed(2)}</span></div>
-          </div>
-        </div>
-      </div>
-
-      <div className="bg-gray-900/40 p-4 rounded-lg border border-gray-800">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="font-medium">Ítems</h2>
-          <button onClick={addItem} className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-gray-700 hover:bg-gray-800"><Plus className="h-4 w-4"/>Agregar</button>
-        </div>
-
-        <div className="space-y-2">
-          {items.map(it => (
-            <div key={it.id} className="grid grid-cols-1 md:grid-cols-12 gap-2 items-center">
-              <input list="productos-list" className="md:col-span-6 px-3 py-2 rounded-md bg-gray-900 border border-gray-700" placeholder="Producto" value={it.nombre}
+      {/* Main Content Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Client Information Card */}
+        <div className="lg:col-span-1 card p-5">
+          <h2 className="font-semibold text-lg text-white mb-4 flex items-center gap-2">
+            <div className="w-2 h-2 bg-teal-500 rounded-full"></div>
+            Cliente
+          </h2>
+          <div className="space-y-4">
+            <div className="form-group">
+              <label className="label">Nombre del cliente</label>
+              <input 
+                list="clientes-list" 
+                className="input" 
+                placeholder="Buscar cliente" 
+                value={customer.nombre}
                 onChange={e=>{
                   const nombre = e.target.value
-                  const p = productos.find(pr=>pr.name===nombre)
-                  updateItem(it.id,{ nombre, precio: p?.price ?? it.precio })
-                }} />
-              <datalist id="productos-list">
-                {productos.map(p=> <option key={p.id} value={p.name} />)}
+                  const found = clientes.find(c=>c.name===nombre)
+                  setCustomer(v=>({ ...v, nombre, email: found?.email || v.email }))
+                }} 
+              />
+              <datalist id="clientes-list">
+                {clientes.map(c=> <option key={c.id} value={c.name} />)}
               </datalist>
-              <input type="number" min="1" className="md:col-span-2 px-3 py-2 rounded-md bg-gray-900 border border-gray-700" placeholder="Cantidad" value={it.cantidad} onChange={e=>updateItem(it.id,{ cantidad: Number(e.target.value) })} />
-              <input type="number" step="0.01" className="md:col-span-2 px-3 py-2 rounded-md bg-gray-900 border border-gray-700" placeholder="Precio" value={it.precio} onChange={e=>updateItem(it.id,{ precio: Number(e.target.value) })} />
-              <div className="md:col-span-1 text-right text-sm">$ {((Number(it.cantidad)||0)*(Number(it.precio)||0)).toFixed(2)}</div>
-              <button onClick={()=>removeItem(it.id)} className="md:col-span-1 w-full md:w-auto inline-flex items-center justify-center p-2 rounded-md border border-gray-700 hover:bg-gray-800 text-red-400"><Trash2 className="h-4 w-4"/></button>
+            </div>
+            <div className="form-group">
+              <label className="label">Correo electrónico</label>
+              <input 
+                className="input" 
+                placeholder="Email" 
+                value={customer.email}
+                onChange={e=>setCustomer(v=>({ ...v, email: e.target.value }))} 
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Metadata and Totals Cards */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Metadata Card */}
+          <div className="card p-5">
+            <h2 className="font-semibold text-lg text-white mb-4 flex items-center gap-2">
+              <div className="w-2 h-2 bg-teal-500 rounded-full"></div>
+              Datos de la cotización
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="form-group">
+                <label className="label">Fecha</label>
+                <input 
+                  type="date" 
+                  className="input" 
+                  value={meta.fecha} 
+                  onChange={e=>setMeta(v=>({ ...v, fecha: e.target.value }))} 
+                />
+              </div>
+              <div className="form-group">
+                <label className="label">Validez (días)</label>
+                <input 
+                  type="number" 
+                  className="input" 
+                  placeholder="Validez (días)" 
+                  value={meta.validezDias} 
+                  onChange={e=>setMeta(v=>({ ...v, validezDias: Number(e.target.value) }))} 
+                />
+              </div>
+              <div className="form-group md:col-span-3">
+                <label className="label">Notas</label>
+                <textarea 
+                  className="input" 
+                  style={{ minHeight: '100px' }}
+                  placeholder="Notas adicionales" 
+                  value={meta.notas} 
+                  onChange={e=>setMeta(v=>({ ...v, notas: e.target.value }))} 
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Totals Card */}
+          <div className="card p-5">
+            <h2 className="font-semibold text-lg text-white mb-4 flex items-center gap-2">
+              <div className="w-2 h-2 bg-teal-500 rounded-full"></div>
+              Resumen
+            </h2>
+            <div className="space-y-3">
+              <div className="flex justify-between text-gray-300">
+                <span>Subtotal</span>
+                <span className="font-medium">$ {totals.subtotal.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-gray-300">
+                <span>IVA (21%)</span>
+                <span className="font-medium">$ {totals.iva.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between pt-3 border-t border-gray-800">
+                <span className="font-semibold text-white">Total</span>
+                <span className="font-bold text-lg text-teal-400">$ {totals.total.toFixed(2)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Items Section */}
+      <div className="card p-5">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-5">
+          <h2 className="font-semibold text-lg text-white flex items-center gap-2">
+            <div className="w-2 h-2 bg-teal-500 rounded-full"></div>
+            Productos
+          </h2>
+          <button 
+            onClick={addItem} 
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-teal-600/20 text-teal-400 hover:bg-teal-600/30 transition-colors border border-teal-600/30"
+          >
+            <Plus className="h-4 w-4" />
+            Agregar producto
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          {items.map((it, index) => (
+            <div key={it.id} className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center p-3 rounded-lg bg-gray-800/30 hover:bg-gray-800/50 transition-colors">
+              <div className="md:col-span-6">
+                <label className="text-xs text-gray-400 mb-1 block">Producto</label>
+                <input 
+                  list={`productos-list-${it.id}`} 
+                  className="input" 
+                  placeholder="Producto" 
+                  value={it.nombre}
+                  onChange={e=>{
+                    const nombre = e.target.value
+                    const p = productos.find(pr=>pr.name===nombre)
+                    updateItem(it.id,{ nombre, precio: p?.price ?? it.precio })
+                  }} 
+                />
+                <datalist id={`productos-list-${it.id}`}>
+                  {productos.map(p=> <option key={p.id} value={p.name} />)}
+                </datalist>
+              </div>
+              <div className="md:col-span-2">
+                <label className="text-xs text-gray-400 mb-1 block">Cantidad</label>
+                <input 
+                  type="number" 
+                  min="1" 
+                  className="input" 
+                  placeholder="Cantidad" 
+                  value={it.cantidad} 
+                  onChange={e=>updateItem(it.id,{ cantidad: Number(e.target.value) })} 
+                />
+              </div>
+              <div className="md:col-span-2">
+                <label className="text-xs text-gray-400 mb-1 block">Precio</label>
+                <input 
+                  type="number" 
+                  step="0.01" 
+                  className="input" 
+                  placeholder="Precio" 
+                  value={it.precio} 
+                  onChange={e=>updateItem(it.id,{ precio: Number(e.target.value) })} 
+                />
+              </div>
+              <div className="md:col-span-1 text-right">
+                <label className="text-xs text-gray-400 mb-1 block">Total</label>
+                <div className="text-white font-medium">$ {((Number(it.cantidad)||0)*(Number(it.precio)||0)).toFixed(2)}</div>
+              </div>
+              <div className="md:col-span-1 flex justify-end">
+                <button 
+                  onClick={()=>removeItem(it.id)} 
+                  className="p-2 rounded-md border border-gray-700 hover:bg-red-500/10 hover:border-red-500/30 text-red-400 hover:text-red-300 transition-colors"
+                  aria-label="Eliminar producto"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
             </div>
           ))}
         </div>
       </div>
 
+      {/* Action Buttons */}
+      <div className="flex flex-col sm:flex-row gap-3 mt-6 pt-5 border-t border-gray-800">
+        <button
+          onClick={handleGuardar}
+          className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white transition-colors"
+        >
+          <Save className="h-4 w-4" />
+          Guardar Cotización
+        </button>
+        <button
+          onClick={handlePDF}
+          className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-green-600 hover:bg-green-500 text-white transition-colors"
+        >
+          <Download className="h-4 w-4" />
+          Generar PDF
+        </button>
+        <button
+          onClick={() => window.print()}
+          className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-white transition-colors"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+            <polyline points="6 9 6 2 18 2 18 9"></polyline>
+            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+            <rect x="6" y="14" width="12" height="8"></rect>
+          </svg>
+          Imprimir
+        </button>
+      </div>
+
+      {/* Recent Quotations */}
       {cotizaciones.length > 0 && (
-        <div className="bg-gray-900/40 p-4 rounded-lg border border-gray-800">
-          <h2 className="font-medium mb-2">Últimas cotizaciones</h2>
-          <div className="text-sm text-gray-300 space-y-1">
-            {cotizaciones.slice(-5).reverse().map(c => (
-              <div key={c.id} className="flex justify-between border-b border-gray-800 pb-1">
-                <span>{c.id} · {c.cliente?.nombre || '-'} · {c.fecha}</span>
-                <span>$ {Number(c.totales?.total||0).toFixed(2)}</span>
-              </div>
-            ))}
+        <div className="card p-5">
+          <h2 className="font-semibold text-lg text-white mb-4 flex items-center gap-2">
+            <div className="w-2 h-2 bg-teal-500 rounded-full"></div>
+            Últimas cotizaciones
+          </h2>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="text-left text-gray-400 text-sm border-b border-gray-800">
+                  <th className="pb-3 font-medium">ID</th>
+                  <th className="pb-3 font-medium">Cliente</th>
+                  <th className="pb-3 font-medium">Fecha</th>
+                  <th className="pb-3 font-medium text-right">Total</th>
+                  <th className="pb-3 font-medium text-right">Acciones</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-800">
+                {cotizaciones.slice(-5).reverse().map(c => (
+                  <tr key={c.id} className="hover:bg-gray-800/30 transition-colors">
+                    <td className="py-3 text-sm text-gray-300">{c.id}</td>
+                    <td className="py-3 text-sm text-gray-300">{c.cliente?.nombre || '-'}</td>
+                    <td className="py-3 text-sm text-gray-300">{c.fecha}</td>
+                    <td className="py-3 text-sm text-right font-medium text-white">$ {Number(c.totales?.total||0).toFixed(2)}</td>
+                    <td className="py-3 text-sm text-right">
+                      <button 
+                        onClick={() => {
+                          // Set the current quotation as the one to view
+                          setCustomer({ nombre: c.cliente?.nombre || '', email: c.cliente?.email || '' });
+                          setMeta({
+                            fecha: c.fecha || new Date().toISOString().slice(0,10),
+                            validezDias: c.validezDias || 15,
+                            notas: c.notas || ''
+                          });
+                          setItems(c.items || [{ id: 1, nombre: '', cantidad: 1, precio: 0 }]);
+                          // Trigger print after a short delay to allow state update
+                          setTimeout(() => window.print(), 100);
+                        }}
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-gray-700 hover:bg-gray-600 text-white text-xs transition-colors"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                          <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                          <rect x="6" y="14" width="12" height="8"></rect>
+                        </svg>
+                        Imprimir
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       )}
     </div>
   )
 }
-

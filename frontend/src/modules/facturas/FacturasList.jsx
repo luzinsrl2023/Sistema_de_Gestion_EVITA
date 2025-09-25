@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Plus, Search, Filter, Edit, Trash2, MoreHorizontal, ChevronDown, Download, FileSpreadsheet, FileText, Eye, Receipt, X } from 'lucide-react'
+import { Plus, Search, Filter, Edit, Trash2, MoreHorizontal, ChevronDown, Download, FileSpreadsheet, FileText, Eye, Receipt, X, Printer } from 'lucide-react'
 import { formatCurrency, formatDate } from '../../lib/utils'
 import { useFacturas } from '../../hooks/useFacturas'
 import { exportToExcel, exportTableToPDF } from '../../common'
@@ -110,6 +110,9 @@ export default function FacturasList() {
           <div className="flex items-center justify-end gap-2">
             <button onClick={() => handleViewInvoice(inv.id)} className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors">
               <Eye className="h-4 w-4" />
+            </button>
+            <button onClick={() => handlePrintInvoice(inv)} className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors">
+              <Printer className="h-4 w-4" />
             </button>
             <button onClick={() => handleOpenEdit(inv)} className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors">
               <Edit className="h-4 w-4" />
@@ -242,6 +245,24 @@ export default function FacturasList() {
   const overdueInvoices = invoices.filter(i => i.status === 'vencido').length
   const totalAmount = invoices.reduce((acc, invoice) => acc + invoice.total, 0)
 
+  // Add this function for printing
+  const handlePrintInvoice = (invoice) => {
+    // Set the invoice data to be printed
+    setViewingInvoice(invoice);
+    // Open the view modal first
+    setShowViewInvoice(true);
+    // After a short delay, trigger the print
+    setTimeout(() => {
+      window.print();
+      // Close the modal after printing
+      setTimeout(() => {
+        setShowViewInvoice(false);
+        setViewingInvoice(null);
+      }, 1000);
+    }, 500);
+  };
+
+  // Also add a print button to the header section
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -259,6 +280,13 @@ export default function FacturasList() {
           >
             <Download className="h-4 w-4" />
             Exportar Excel
+          </button>
+          <button
+            onClick={() => window.print()}
+            className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+          >
+            <Printer className="h-4 w-4" />
+            Imprimir
           </button>
           <button
             onClick={() => setShowAddInvoice(true)}
@@ -319,7 +347,7 @@ export default function FacturasList() {
                 placeholder="Buscar factura por ID o cliente"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-10 pr-4 py-2 text-sm text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-10 pr-4 py-2 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent input"
               />
             </div>
 
@@ -328,7 +356,7 @@ export default function FacturasList() {
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="bg-gray-800 border border-gray-700 text-white rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none pr-8"
+                className="bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none pr-8 input"
               >
                 {statusOptions.map(option => (
                   <option key={option.value} value={option.value}>{option.label}</option>
@@ -361,6 +389,13 @@ export default function FacturasList() {
                 >
                   <FileText className="h-4 w-4" />
                   Exportar PDF
+                </button>
+                <button
+                  onClick={() => window.print()}
+                  className="flex items-center gap-2 w-full px-3 py-2 text-sm text-white hover:bg-gray-700 transition-colors"
+                >
+                  <Printer className="h-4 w-4" />
+                  Imprimir
                 </button>
               </div>
             </div>
@@ -399,7 +434,7 @@ export default function FacturasList() {
                     type="text"
                     required
                     defaultValue={`INV-${String(invoices.length + 1).padStart(3, '0')}`}
-                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500"
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 input"
                     placeholder="INV-XXX"
                   />
                 </div>
@@ -410,7 +445,7 @@ export default function FacturasList() {
                   </label>
                   <select
                     name="client"
-                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-green-500"
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 input"
                   >
                     <option value="">Seleccionar cliente</option>
                     <option value="Juan Pérez">Juan Pérez</option>
@@ -429,7 +464,7 @@ export default function FacturasList() {
                     type="date"
                     required
                     defaultValue={new Date().toISOString().split('T')[0]}
-                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500"
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 input"
                   />
                 </div>
 
@@ -441,7 +476,7 @@ export default function FacturasList() {
                     name="dueDate"
                     type="date"
                     required
-                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500"
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 input"
                   />
                 </div>
               </div>
@@ -465,7 +500,7 @@ export default function FacturasList() {
                       <tbody className="divide-y divide-gray-800">
                         <tr>
                           <td className="px-4 py-2">
-                            <select name="product" className="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1 text-white">
+                            <select name="product" className="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 input">
                               <option>Limpiador Multiuso EVITA Pro</option>
                               <option>Jabón Líquido para Manos EVITA</option>
                               <option>Desinfectante Antibacterial EVITA</option>
@@ -476,7 +511,7 @@ export default function FacturasList() {
                               name="qty"
                               type="number"
                               defaultValue="1"
-                              className="w-20 bg-gray-800 border border-gray-700 rounded px-2 py-1 text-white"
+                              className="w-20 bg-gray-800 border border-gray-700 rounded px-2 py-1 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 input"
                             />
                           </td>
                           <td className="px-4 py-2">
@@ -484,7 +519,7 @@ export default function FacturasList() {
                               name="price"
                               type="number"
                               defaultValue="5.99"
-                              className="w-24 bg-gray-800 border border-gray-700 rounded px-2 py-1 text-white"
+                              className="w-24 bg-gray-800 border border-gray-700 rounded px-2 py-1 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 input"
                             />
                           </td>
                           <td className="px-4 py-2 text-white font-mono">
@@ -619,6 +654,13 @@ export default function FacturasList() {
                   Cerrar
                 </button>
                 <button
+                  onClick={() => window.print()}
+                  className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+                >
+                  <Printer className="h-4 w-4" />
+                  Imprimir
+                </button>
+                <button
                   onClick={() => {
                     const head = ['Campo', 'Valor']
                     const body = [
@@ -639,8 +681,6 @@ export default function FacturasList() {
                   className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
                 >
                   Exportar PDF
-
-
                 </button>
               </div>
             </div>
@@ -666,31 +706,31 @@ export default function FacturasList() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-white mb-2">ID de Factura</label>
-                  <input name="id" type="text" defaultValue={editingInvoice.id} readOnly className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-gray-400" />
+                  <input name="id" type="text" defaultValue={editingInvoice.id} readOnly className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 input" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-white mb-2">Cliente</label>
-                  <input name="client" type="text" defaultValue={editingInvoice.client} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white" />
+                  <input name="client" type="text" defaultValue={editingInvoice.client} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 input" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-white mb-2">Fecha</label>
-                  <input name="date" type="date" defaultValue={editingInvoice.date} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white" />
+                  <input name="date" type="date" defaultValue={editingInvoice.date} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 input" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-white mb-2">Fecha de Vencimiento</label>
-                  <input name="dueDate" type="date" defaultValue={editingInvoice.dueDate} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white" />
+                  <input name="dueDate" type="date" defaultValue={editingInvoice.dueDate} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 input" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-white mb-2">Items</label>
-                  <input name="items" type="number" defaultValue={editingInvoice.items || 1} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white" />
+                  <input name="items" type="number" defaultValue={editingInvoice.items || 1} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 input" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-white mb-2">Total</label>
-                  <input name="total" type="number" step="0.01" defaultValue={editingInvoice.total || 0} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white" />
+                  <input name="total" type="number" step="0.01" defaultValue={editingInvoice.total || 0} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 input" />
                 </div>
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-white mb-2">Estado</label>
-                  <select name="status" defaultValue={editingInvoice.status || 'pendiente'} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white">
+                  <select name="status" defaultValue={editingInvoice.status || 'pendiente'} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 input">
                     <option value="pendiente">Pendiente</option>
                     <option value="pagado">Pagado</option>
                     <option value="vencido">Vencido</option>

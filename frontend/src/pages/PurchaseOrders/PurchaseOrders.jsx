@@ -714,10 +714,11 @@ export default function PurchaseOrders() {
                   Notas (Opcional)
                 </label>
                 <textarea
-                  value={newOrder.notes}
-                  onChange={(e) => setNewOrder({...newOrder, notes: e.target.value})}
-                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 min-h-[80px] resize-y"
-                  placeholder="Añade notas para esta orden de compra"
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 resize-y"
+                  style={{ minHeight: '80px' }}
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="Notas adicionales"
                 />
               </div>
               

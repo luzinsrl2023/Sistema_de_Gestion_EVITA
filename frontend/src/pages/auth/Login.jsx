@@ -13,6 +13,13 @@ export default function Login() {
   const [errors, setErrors] = useState({})
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  const [logoUrl, setLogoUrl] = useState(() => {
+    try {
+      return localStorage.getItem('evita-logo') || null
+    } catch {
+      return null
+    }
+  })
 
   useEffect(() => {
     if (user) {
@@ -24,6 +31,16 @@ export default function Login() {
     console.log('🎆 EVITA Sistema de Gestión cargado')
     console.log('🚀 Demo disponible: test@example.com / password123')
     console.log('📄 Current user state:', user)
+    
+    // Listen for logo changes
+    const handleStorageChange = (e) => {
+      if (e.key === 'evita-logo') {
+        setLogoUrl(e.newValue)
+      }
+    }
+    
+    window.addEventListener('storage', handleStorageChange)
+    return () => window.removeEventListener('storage', handleStorageChange)
   }, [user, navigate])
 
   const handleChange = (e) => {
@@ -100,20 +117,39 @@ export default function Login() {
         <div className="text-center">
           <div className="flex justify-center">
             <div className="h-16 w-16 bg-gradient-to-br from-green-400 via-green-500 to-emerald-600 rounded-2xl flex items-center justify-center shadow-xl">
-              <svg fill="none" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" className="w-9 h-9 text-white">
-                {/* EVITA Logo - Cleaning supplies with sparkle effect */}
-                <path d="M12 15h24c1.7 0 3 1.3 3 3v12c0 1.7-1.3 3-3 3H12c-1.7 0-3-1.3-3-3V18c0-1.7 1.3-3 3-3z" fill="currentColor" opacity="0.3"/>
-                <path d="M15 21h12v1.5H15V21zm0 3h9v1.5h-9V24z" fill="currentColor"/>
-                <circle cx="13.5" cy="18" r="1.5" fill="currentColor"/>
-                <path d="M33 12l3 3-3 3-1.5-1.5 1.5-1.5-1.5-1.5L33 12z" fill="currentColor"/>
-                <circle cx="36" cy="10.5" r="1.2" fill="currentColor" opacity="0.8"/>
-                <circle cx="39" cy="13.5" r="0.9" fill="currentColor" opacity="0.6"/>
-                <circle cx="37.5" cy="16.5" r="0.6" fill="currentColor" opacity="0.4"/>
-              </svg>
+              {logoUrl ? (
+                <img 
+                  src={logoUrl} 
+                  alt="Logo de la empresa" 
+                  className="w-full h-full object-contain rounded-2xl"
+                  onError={(e) => {
+                    e.target.style.display = 'none'
+                    // Show default logo if image fails to load
+                    const defaultLogo = e.target.parentNode.querySelector('.default-logo')
+                    if (defaultLogo) defaultLogo.style.display = 'block'
+                  }}
+                />
+              ) : (
+                <svg 
+                  fill="none" 
+                  viewBox="0 0 48 48" 
+                  xmlns="http://www.w3.org/2000/svg" 
+                  className="w-9 h-9 text-white default-logo"
+                >
+                  {/* EVITA Logo - Cleaning supplies with sparkle effect */}
+                  <path d="M12 15h24c1.7 0 3 1.3 3 3v12c0 1.7-1.3 3-3 3H12c-1.7 0-3-1.3-3-3V18c0-1.7 1.3-3 3-3z" fill="currentColor" opacity="0.3"/>
+                  <path d="M15 21h12v1.5H15V21zm0 3h9v1.5h-9V24z" fill="currentColor"/>
+                  <circle cx="13.5" cy="18" r="1.5" fill="currentColor"/>
+                  <path d="M33 12l3 3-3 3-1.5-1.5 1.5-1.5-1.5-1.5L33 12z" fill="currentColor"/>
+                  <circle cx="36" cy="10.5" r="1.2" fill="currentColor" opacity="0.8"/>
+                  <circle cx="39" cy="13.5" r="0.9" fill="currentColor" opacity="0.6"/>
+                  <circle cx="37.5" cy="16.5" r="0.6" fill="currentColor" opacity="0.4"/>
+                </svg>
+              )}
             </div>
           </div>
           <h2 className="mt-6 text-3xl font-bold text-white">
-            EVITA Artículos de Limpieza
+            {logoUrl ? 'Bienvenido' : 'EVITA Artículos de Limpieza'}
           </h2>
           <p className="mt-2 text-sm text-gray-400">
             Sistema de Gestión Empresarial

@@ -59,7 +59,25 @@ export default function Layout({ children }) {
   const { getThemeClasses, theme } = useTheme()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [notificationsOpen, setNotificationsOpen] = useState(false)
-  const [logoUrl, setLogoUrl] = useState(localStorage.getItem('evita-logo') || null)
+  const [logoUrl, setLogoUrl] = useState(() => {
+    try {
+      return localStorage.getItem('evita-logo') || null
+    } catch {
+      return null
+    }
+  })
+
+  useEffect(() => {
+    // Listen for logo changes
+    const handleStorageChange = (e) => {
+      if (e.key === 'evita-logo') {
+        setLogoUrl(e.newValue)
+      }
+    }
+    
+    window.addEventListener('storage', handleStorageChange)
+    return () => window.removeEventListener('storage', handleStorageChange)
+  }, [])
 
   // Global Search state
   const [searchTerm, setSearchTerm] = useState('')
@@ -117,9 +135,24 @@ export default function Layout({ children }) {
             <div className="flex items-center gap-3">
               <div className={cn("h-10 w-10 rounded-xl flex items-center justify-center overflow-hidden shadow-lg", `bg-${theme.colors.primary}`)}>
                 {logoUrl ? (
-                  <img src={logoUrl} alt="Logo" className="w-full h-full object-contain" />
+                  <img 
+                    src={logoUrl} 
+                    alt="Logo" 
+                    className="w-full h-full object-contain"
+                    onError={(e) => {
+                      e.target.style.display = 'none'
+                      // Show default logo if image fails to load
+                      const defaultLogo = e.target.parentNode.querySelector('.default-logo')
+                      if (defaultLogo) defaultLogo.style.display = 'block'
+                    }}
+                  />
                 ) : (
-                  <svg fill="none" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 text-white">
+                  <svg 
+                    fill="none" 
+                    viewBox="0 0 32 32" 
+                    xmlns="http://www.w3.org/2000/svg" 
+                    className="w-6 h-6 text-white default-logo"
+                  >
                     <path d="M8 10h16c1.1 0 2 .9 2 2v8c0 1.1-.9 2-2 2H8c-1.1 0-2-.9-2-2v-8c0-1.1.9-2 2-2z" fill="currentColor" opacity="0.3"/>
                     <path d="M10 14h8v1H10v-1zm0 2h6v1h-6v-1z" fill="currentColor"/>
                     <circle cx="9" cy="12" r="1" fill="currentColor"/>
@@ -131,8 +164,12 @@ export default function Layout({ children }) {
                 )}
               </div>
               <div>
-                <h1 className={cn("text-lg font-bold leading-tight", `text-${theme.colors.text}`)}>EVITA</h1>
-                <p className={cn("text-xs -mt-0.5 font-medium", `text-${theme.colors.primaryText}`)}>Artículos de Limpieza</p>
+                <h1 className={cn("text-lg font-bold leading-tight", `text-${theme.colors.text}`)}>
+                  {logoUrl ? 'Sistema EVITA' : 'EVITA'}
+                </h1>
+                <p className={cn("text-xs -mt-0.5 font-medium", `text-${theme.colors.primaryText}`)}>
+                  {logoUrl ? 'Gestión Empresarial' : 'Artículos de Limpieza'}
+                </p>
               </div>
             </div>
             <button

@@ -18,7 +18,7 @@ function parseDaysFromTerms(terms) {
   if (!terms) return 30
   const t = String(terms).toLowerCase()
   if (t.includes('contado') || t === 'cod') return 0
-  const m = t.match(/net\s*(\d+)/)
+  const m = t.match(/(\d+)\s*días/)
   return m ? parseInt(m[1], 10) : 30
 }
 
@@ -32,12 +32,12 @@ function getSupplierTermsDays(name) {
     }
   } catch(_) {}
   const fallback = {
-    'TecnoGlobal S.A.': 'Net 30',
-    'Soluciones de Oficina Ltda.': 'Net 15',
-    'Componentes & Cia.': 'Net 60',
-    'Distribuidora Norte': 'COD'
+    'TecnoGlobal S.A.': '30 días',
+    'Soluciones de Oficina Ltda.': '15 días',
+    'Componentes & Cia.': '60 días',
+    'Distribuidora Norte': 'Contado'
   }
-  return parseDaysFromTerms(fallback[name] || 'Net 30')
+  return parseDaysFromTerms(fallback[name] || '30 días')
 }
 
 function addDays(dateStr, days) {

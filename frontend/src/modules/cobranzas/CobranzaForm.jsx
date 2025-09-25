@@ -188,7 +188,8 @@ export default function CobranzaForm(props) {
                 <option value="efectivo">Efectivo</option>
                 <option value="transferencia">Transferencia</option>
                 <option value="mercado-pago">Mercado Pago</option>
-                <option value="tarjeta">Tarjeta de Crédito/Débito</option>
+                <option value="tarjeta-credito">Tarjeta de Crédito</option>
+                <option value="tarjeta-debito">Tarjeta de Débito</option>
                 <option value="cheque">Cheque</option>
               </select>
             </div>

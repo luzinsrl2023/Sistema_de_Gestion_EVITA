@@ -28,7 +28,7 @@ const mockSuppliers = [
     email: 'maria.gonzalez@tecnoglobal.com',
     phone: '+34 912 345 678',
     address: 'Calle Mayor 123, Madrid, España',
-    paymentTerms: 'Net 30',
+    paymentTerms: '30 días',
     status: 'activo',
     totalOrders: 15,
     totalAmount: 25000,
@@ -41,7 +41,7 @@ const mockSuppliers = [
     email: 'carlos@solucionesoficina.com',
     phone: '+34 913 456 789',
     address: 'Av. Constitución 456, Barcelona, España',
-    paymentTerms: 'Net 15',
+    paymentTerms: '15 días',
     status: 'activo',
     totalOrders: 8,
     totalAmount: 12500,
@@ -54,7 +54,7 @@ const mockSuppliers = [
     email: 'ana.lopez@componentescia.com',
     phone: '+34 914 567 890',
     address: 'Polígono Industrial Sur 789, Valencia, España',
-    paymentTerms: 'Net 60',
+    paymentTerms: '60 días',
     status: 'activo',
     totalOrders: 22,
     totalAmount: 45000,
@@ -67,7 +67,7 @@ const mockSuppliers = [
     email: 'luis@distribuidoranorte.es',
     phone: '+34 915 678 901',
     address: 'Calle Industrial 321, Bilbao, España',
-    paymentTerms: 'COD',
+    paymentTerms: 'Contado',
     status: 'inactivo',
     totalOrders: 3,
     totalAmount: 5400,
@@ -75,7 +75,7 @@ const mockSuppliers = [
   }
 ]
 
-const paymentTermsOptions = ['Net 15', 'Net 20', 'Net 30', 'Net 60', 'Net 90', 'Contado']
+const paymentTermsOptions = ['15 días', '20 días', '30 días', '60 días', '90 días', 'Contado']
 
 export default function Suppliers() {
   const [suppliers, setSuppliers] = useState(() => {
@@ -111,7 +111,7 @@ export default function Suppliers() {
     email: '',
     phone: '',
     address: '',
-    paymentTerms: 'Net 30',
+    paymentTerms: '30 días',
     notes: ''
   })
   const fileInputRef = useRef(null)
@@ -186,7 +186,7 @@ export default function Suppliers() {
       email: '',
       phone: '',
       address: '',
-      paymentTerms: 'Net 30',
+      paymentTerms: '30 días',
       notes: ''
     })
     setShowAddSupplier(false)
@@ -232,7 +232,7 @@ export default function Suppliers() {
       email: '',
       phone: '',
       address: '',
-      paymentTerms: 'Net 30',
+      paymentTerms: '30 días',
       notes: ''
     })
     setEditingSupplier(null)
@@ -304,7 +304,7 @@ export default function Suppliers() {
             email: row.Email || row.email || '',
             phone: row.Teléfono || row.phone || '',
             address: row.Dirección || row.address || '',
-            paymentTerms: row['Términos de Pago'] || row.paymentTerms || 'Net 30',
+            paymentTerms: row['Términos de Pago'] || row.paymentTerms || '30 días',
             status: row.Estado || row.status || 'activo',
             totalOrders: parseInt(row['Órdenes Totales'] || row.totalOrders || 0),
             totalAmount: parseFloat(row['Valor Total'] || row.totalAmount || 0),
@@ -661,9 +661,10 @@ export default function Suppliers() {
                     Notas (Opcional)
                   </label>
                   <textarea
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 resize-y"
+                    style={{ minHeight: '80px' }}
                     value={newSupplier.notes}
                     onChange={(e) => setNewSupplier({...newSupplier, notes: e.target.value})}
-                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 min-h-[80px] resize-y"
                     placeholder="Información adicional sobre el proveedor"
                   />
                 </div>
@@ -798,9 +799,10 @@ export default function Suppliers() {
                     Notas (Opcional)
                   </label>
                   <textarea
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 resize-y"
+                    style={{ minHeight: '80px' }}
                     value={newSupplier.notes}
                     onChange={(e) => setNewSupplier({...newSupplier, notes: e.target.value})}
-                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 min-h-[80px] resize-y"
                     placeholder="Información adicional sobre el proveedor"
                   />
                 </div>

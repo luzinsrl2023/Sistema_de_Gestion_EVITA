@@ -28,7 +28,8 @@ const mockProducts = [
     minStock: 50,
     price: 5.99,
     cost: 3.50,
-    status: 'activo'
+    status: 'activo',
+    supplier: 'Distribuidora Norte' // Add supplier field
   },
   {
     id: 'EVT002',
@@ -39,7 +40,8 @@ const mockProducts = [
     minStock: 30,
     price: 8.99,
     cost: 5.20,
-    status: 'activo'
+    status: 'activo',
+    supplier: 'TecnoGlobal S.A.' // Add supplier field
   },
   {
     id: 'EVT003',
@@ -50,7 +52,8 @@ const mockProducts = [
     minStock: 50,
     price: 3.99,
     cost: 2.20,
-    status: 'activo'
+    status: 'activo',
+    supplier: 'Componentes & Cia.' // Add supplier field
   },
   {
     id: 'EVT004',
@@ -61,7 +64,8 @@ const mockProducts = [
     minStock: 25,
     price: 12.99,
     cost: 8.50,
-    status: 'activo'
+    status: 'activo',
+    supplier: 'Soluciones de Oficina Ltda.' // Add supplier field
   },
   {
     id: 'EVT005',
@@ -72,7 +76,8 @@ const mockProducts = [
     minStock: 30,
     price: 4.49,
     cost: 2.80,
-    status: 'activo'
+    status: 'activo',
+    supplier: 'Distribuidora Norte' // Add supplier field
   },
   {
     id: 'EVT006',
@@ -83,7 +88,8 @@ const mockProducts = [
     minStock: 50,
     price: 3.49,
     cost: 2.10,
-    status: 'activo'
+    status: 'activo',
+    supplier: 'Componentes & Cia.' // Add supplier field
   },
   {
     id: 'EVT007',
@@ -94,7 +100,8 @@ const mockProducts = [
     minStock: 25,
     price: 2.99,
     cost: 1.80,
-    status: 'activo'
+    status: 'activo',
+    supplier: 'TecnoGlobal S.A.' // Add supplier field
   },
   {
     id: 'EVT008',
@@ -105,7 +112,8 @@ const mockProducts = [
     minStock: 75,
     price: 4.79,
     cost: 3.20,
-    status: 'activo'
+    status: 'activo',
+    supplier: 'Soluciones de Oficina Ltda.' // Add supplier field
   },
   {
     id: 'EVT009',
@@ -116,7 +124,8 @@ const mockProducts = [
     minStock: 100,
     price: 1.99,
     cost: 1.20,
-    status: 'activo'
+    status: 'activo',
+    supplier: 'Distribuidora Norte' // Add supplier field
   },
   {
     id: 'EVT010',
@@ -127,19 +136,41 @@ const mockProducts = [
     minStock: 150,
     price: 2.99,
     cost: 1.80,
-    status: 'activo'
+    status: 'activo',
+    supplier: 'TecnoGlobal S.A.' // Add supplier field
   }
 ]
 
 const categories = ['Todos', 'Limpieza', 'Artículos Generales', 'Electricidad']
 
 export default function ProductosList() {
-  const [products, setProducts] = useState(mockProducts)
-  const [filteredProducts, setFilteredProducts] = useState(mockProducts)
+  const [products, setProducts] = useState(() => {
+    try {
+      const raw = localStorage.getItem('evita-productos')
+      if (raw) return JSON.parse(raw)
+    } catch (_) {}
+    return mockProducts
+  })
+  
+  const [filteredProducts, setFilteredProducts] = useState(() => {
+    try {
+      const raw = localStorage.getItem('evita-productos')
+      if (raw) return JSON.parse(raw)
+    } catch (_) {}
+    return mockProducts
+  })
+  
+  // Add missing searchTerm state
   const [searchTerm, setSearchTerm] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('Todos')
   const [stockFilter, setStockFilter] = useState('all')
-  const [showAddProduct, setShowAddProduct] = useState(false)
+  
+  // Persist products to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem('evita-productos', JSON.stringify(products))
+    } catch (_) {}
+  }, [products])
 
 	// Prefill search from global query parameter
 	const location = useLocation()
@@ -373,7 +404,7 @@ export default function ProductosList() {
                 placeholder="Buscar productos por nombre o SKU"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-10 pr-4 py-2 text-sm text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-10 pr-4 py-2 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent input"
               />
             </div>
 
@@ -382,7 +413,7 @@ export default function ProductosList() {
               <select
                 value={categoryFilter}
                 onChange={(e) => setCategoryFilter(e.target.value)}
-                className="bg-gray-800 border border-gray-700 text-white rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none pr-8"
+                className="bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none pr-8 input"
               >
                 {categories.map(category => (
                   <option key={category} value={category}>{category}</option>
@@ -396,7 +427,7 @@ export default function ProductosList() {
               <select
                 value={stockFilter}
                 onChange={(e) => setStockFilter(e.target.value)}
-                className="bg-gray-800 border border-gray-700 text-white rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none pr-8"
+                className="bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 appearance-none pr-8 input"
               >
                 <option value="all">Todo el stock</option>
                 <option value="low">Stock bajo</option>
