@@ -484,7 +484,7 @@ export default function ProveedoresList() {
 
   // Add function to update all products from a supplier
   const handleUpdateSupplierMargin = async () => {
-    if (!selectedSupplierForMargin || marginPercentage === 0) {
+    if (!selectedSupplierForMargin || marginPercentage <= 0) {
       alert('Por favor seleccione un proveedor y un porcentaje válido')
       return
     }
@@ -507,17 +507,17 @@ export default function ProveedoresList() {
       const updatedProducts = products.map(product => {
         // Check if product has supplier field and matches selected supplier
         if (product.supplier === selectedSupplierForMargin) {
-          // Calculate new price with margin
+          // Calculate new price with margin - corrected formula
           const marginDecimal = marginPercentage / 100
-          // Ensure cost is greater than 0 to avoid division by zero
-          if (product.cost > 0 && marginDecimal < 1) { // Add check to prevent division by zero
-            const newPrice = product.cost / (1 - marginDecimal)
-            
-            updatedCount++
-            return {
-              ...product,
-              price: isNaN(newPrice) || !isFinite(newPrice) ? product.price : newPrice
-            }
+          // To add a margin, we multiply cost by (1 + margin)
+          // To apply an increase percentage, we also multiply by (1 + percentage/100)
+          const increaseFactor = 1 + marginDecimal
+          const newPrice = product.cost * increaseFactor
+          
+          updatedCount++
+          return {
+            ...product,
+            price: isNaN(newPrice) || !isFinite(newPrice) || newPrice <= 0 ? product.price : newPrice
           }
         }
         return product
@@ -527,7 +527,7 @@ export default function ProveedoresList() {
       localStorage.setItem('evita-productos', JSON.stringify(updatedProducts))
       
       if (updatedCount > 0) {
-        alert(`Se actualizaron los precios de ${updatedCount} productos con un margen del ${marginPercentage}%`)
+        alert(`Se actualizaron los precios de ${updatedCount} productos con un aumento del ${marginPercentage}%`)
       } else {
         alert('No se encontraron productos asociados a este proveedor. Asegúrese de que los productos tengan asignado el proveedor.')
       }

@@ -11,7 +11,8 @@ import {
   Import,
   Download,
   FileSpreadsheet,
-  FileText
+  FileText,
+  X
 } from 'lucide-react'
 import { formatCurrency, getStatusColor, cn } from '../../lib/utils'
 import { useLocation } from 'react-router-dom'
@@ -143,6 +144,9 @@ const mockProducts = [
 
 const categories = ['Todos', 'Limpieza', 'Artículos Generales', 'Electricidad']
 
+// Add import for ProductoForm
+import ProductoForm from './ProductoForm'
+
 export default function ProductosList() {
   const [products, setProducts] = useState(() => {
     try {
@@ -165,6 +169,7 @@ export default function ProductosList() {
   const [categoryFilter, setCategoryFilter] = useState('Todos')
   const [stockFilter, setStockFilter] = useState('all')
   const [showAddProduct, setShowAddProduct] = useState(false) // Add missing state for the "Nuevo Producto" button
+  const [editingProduct, setEditingProduct] = useState(null) // Add state for editing product
   
   // Persist products to localStorage
   useEffect(() => {
@@ -310,6 +315,39 @@ export default function ProductosList() {
     event.target.value = ''
   }
 
+  // Add function to handle adding a new product
+  const handleAddProduct = (productData) => {
+    const newProduct = {
+      ...productData,
+      id: `EVT${(products.length + 1).toString().padStart(3, '0')}`,
+      status: 'activo'
+    }
+    setProducts([...products, newProduct])
+    setShowAddProduct(false)
+  }
+
+  // Add function to handle editing a product
+  const handleEditProduct = (product) => {
+    setEditingProduct(product)
+  }
+
+  // Add function to handle updating a product
+  const handleUpdateProduct = (productData) => {
+    setProducts(products.map(product => 
+      product.id === editingProduct.id 
+        ? { ...product, ...productData } 
+        : product
+    ))
+    setEditingProduct(null)
+  }
+
+  // Add function to handle deleting a product
+  const handleDeleteProduct = (productId) => {
+    if (window.confirm('¿Está seguro de que desea eliminar este producto?')) {
+      setProducts(products.filter(product => product.id !== productId))
+    }
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -395,7 +433,7 @@ export default function ProductosList() {
 
       {/* Filters and Actions */}
       <div className="bg-gray-900 border border-gray-800 rounded-xl">
-        <div className="p-4 border-b border-gray-800 flex flex-wrap items-center justify-between gap-4">
+        <div className="p-4 border-b border-gray-8800 flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3 flex-1">
             {/* Search */}
             <div className="relative max-w-md flex-1">
@@ -517,10 +555,16 @@ export default function ProductosList() {
                     <td className="px-4 py-4 text-sm text-gray-400 text-right font-mono">{getMargin(product)}</td>
                     <td className="px-4 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
-                        <button className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors">
+                        <button 
+                          onClick={() => handleEditProduct(product)}
+                          className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
+                        >
                           <Edit className="h-4 w-4" />
                         </button>
-                        <button className="p-2 text-gray-400 hover:text-red-400 hover:bg-gray-800 rounded-lg transition-colors">
+                        <button 
+                          onClick={() => handleDeleteProduct(product.id)}
+                          className="p-2 text-gray-400 hover:text-red-400 hover:bg-gray-800 rounded-lg transition-colors"
+                        >
                           <Trash2 className="h-4 w-4" />
                         </button>
                       </div>
@@ -528,6 +572,7 @@ export default function ProductosList() {
                   </tr>
                 )
               })}
+
             </tbody>
           </table>
         </div>
@@ -549,6 +594,24 @@ export default function ProductosList() {
           </div>
         </div>
       </div>
+
+      {/* Add Product Modal */}
+      {showAddProduct && (
+        <ProductoForm
+          onClose={() => setShowAddProduct(false)}
+          onSubmit={handleAddProduct}
+        />
+      )}
+
+      {/* Edit Product Modal */}
+      {editingProduct && (
+        <ProductoForm
+          product={editingProduct}
+          onClose={() => setEditingProduct(null)}
+          onSubmit={handleUpdateProduct}
+        />
+      )}
+
     </div>
   )
 }
