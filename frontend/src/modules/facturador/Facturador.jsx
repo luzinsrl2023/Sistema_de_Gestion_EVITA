@@ -343,7 +343,7 @@ export default function Facturador() {
           </h2>
           <button
             onClick={addItem}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-green-600/20 text-green-400 hover:bg-green-600/30 transition-colors border border-green-600/30"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors"
           >
             <Plus className="h-4 w-4" />
             Agregar Producto

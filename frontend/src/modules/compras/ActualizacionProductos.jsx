@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react'
 import * as XLSX from 'xlsx'
-import { useProductos } from '../../hooks/useProductos'
+import { supabase } from '../../lib/supabaseClient'
 
 function getSuppliers() {
   try {
@@ -29,7 +29,6 @@ function parseNumber(v) {
 }
 
 export default function ActualizacionProductos() {
-  const { data: productos = [], saveProducto, isLoading } = useProductos()
   const [proveedor, setProveedor] = useState('')
   const [rows, setRows] = useState([])
   const [missing, setMissing] = useState([])
@@ -85,41 +84,35 @@ export default function ActualizacionProductos() {
   }
 
   async function applyUpdates() {
-    if (!proveedor) { alert('Seleccione un proveedor'); return }
-    if (!rows.length) { alert('Importe un archivo Excel primero'); return }
+    if (!proveedor) {
+      alert('Seleccione un proveedor');
+      return;
+    }
+    if (!rows.length) {
+      alert('Importe un archivo Excel primero');
+      return;
+    }
 
-    setProcessing(true)
+    setProcessing(true);
     try {
-      let updatedCount = 0
-      const notFound = []
-      const bySku = new Map((productos || []).map(p => [String(p.sku || '').trim().toLowerCase(), p]))
-      const byId = new Map((productos || []).map(p => [String(p.id || '').trim().toLowerCase(), p]))
-      const byName = new Map((productos || []).map(p => [String(p.name || '').trim().toLowerCase(), p]))
+      const { data, error } = await supabase.functions.invoke('update-prices-by-supplier', {
+        body: { rows, proveedor },
+      });
 
-      for (const r of rows) {
-        const skuKey = String(r.sku || '').trim().toLowerCase()
-        const nameKey = String(r.nombre || '').trim().toLowerCase()
-        const found = (skuKey && bySku.get(skuKey)) || (skuKey && byId.get(skuKey)) || (nameKey && byName.get(nameKey))
-
-        if (!found) {
-          notFound.push(r)
-          continue
-        }
-        const patch = { ...found }
-        if (r.precio !== null && r.precio !== undefined) patch.price = r.precio
-        if (r.stock !== null && r.stock !== undefined) patch.stock = Math.max(0, Math.round(r.stock))
-        // Nota: no cambiamos id/sku/name aquí para no romper referencias
-        await saveProducto(patch)
-        updatedCount++
+      if (error) {
+        throw error;
       }
-      setMissing(notFound)
-      setUpdated(updatedCount)
-      alert(`Actualización completa: ${updatedCount} productos actualizados${notFound.length ? `, ${notFound.length} no encontrados` : ''}.`)
+
+      const { updatedCount, notFound } = data;
+
+      setMissing(notFound || []);
+      setUpdated(updatedCount || 0);
+      alert(`Actualización completa: ${updatedCount || 0} productos actualizados${(notFound && notFound.length) ? `, ${notFound.length} no encontrados.` : '.'}`);
     } catch (err) {
-      console.error(err)
-      alert('Error aplicando la actualización. Revise el archivo y vuelva a intentar.')
+      console.error(err);
+      alert(`Error aplicando la actualización: ${err.message}`);
     } finally {
-      setProcessing(false)
+      setProcessing(false);
     }
   }
 
@@ -175,7 +168,7 @@ export default function ActualizacionProductos() {
             <h2 className="text-lg font-semibold text-white">Previsualización ({rows.length} filas)</h2>
             <button
               type="button"
-              disabled={processing || isLoading}
+              disabled={processing}
               onClick={applyUpdates}
               className={`px-4 py-2 rounded-lg ${processing ? 'bg-gray-600' : 'bg-green-600 hover:bg-green-500'} text-white`}
             >
@@ -233,4 +226,3 @@ export default function ActualizacionProductos() {
     </div>
   )
 }
-

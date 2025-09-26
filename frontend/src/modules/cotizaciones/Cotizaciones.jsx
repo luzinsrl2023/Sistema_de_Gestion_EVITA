@@ -1,9 +1,10 @@
-import React, { useMemo, useState } from 'react'
+import React, { useMemo, useState, useCallback } from 'react'
 import { Plus, Trash2, Download, Save, FileText } from 'lucide-react'
 import { exportSectionsToPDF } from '../../common'
 import { useCotizaciones } from '../../hooks/useCotizaciones'
 import { useClientes } from '../../hooks/useClientes'
-import { useProductos } from '../../hooks/useProductos'
+import { searchProducts } from '../../services/productos'
+import debounce from 'lodash.debounce'
 
 function nextCotizacionId() {
   try {
@@ -20,11 +21,24 @@ function nextCotizacionId() {
 export default function Cotizaciones() {
   const { data: cotizaciones = [], addCotizacion } = useCotizaciones()
   const { data: clientes = [] } = useClientes()
-  const { data: productos = [] } = useProductos()
 
   const [customer, setCustomer] = useState({ nombre: '', email: '' })
   const [meta, setMeta] = useState({ fecha: new Date().toISOString().slice(0,10), validezDias: 15, notas: '' })
-  const [items, setItems] = useState([{ id: 1, nombre: '', cantidad: 1, precio: 0 }])
+  const [items, setItems] = useState([{ id: 1, nombre: '', cantidad: 1, precio: 0, searchResults: [] }])
+  const [activeSearch, setActiveSearch] = useState(null)
+
+  const handleSearch = useCallback(
+    debounce(async (query, itemId) => {
+      if (query.length < 2) {
+        setItems(prev => prev.map(item => item.id === itemId ? { ...item, searchResults: [] } : item))
+        return
+      }
+      const { data } = await searchProducts(query)
+      setItems(prev => prev.map(item => item.id === itemId ? { ...item, searchResults: data || [] } : item))
+      setActiveSearch(itemId)
+    }, 300),
+    []
+  )
 
   const totals = useMemo(() => {
     const subtotal = items.reduce((acc, it) => acc + (Number(it.cantidad)||0) * (Number(it.precio)||0), 0)
@@ -34,7 +48,7 @@ export default function Cotizaciones() {
   }, [items])
 
   function addItem() {
-    setItems(prev => [...prev, { id: Date.now(), nombre: '', cantidad: 1, precio: 0 }])
+    setItems(prev => [...prev, { id: Date.now(), nombre: '', cantidad: 1, precio: 0, searchResults: [] }])
   }
   function removeItem(id) {
     setItems(prev => prev.length > 1 ? prev.filter(i => i.id !== id) : prev)
@@ -218,7 +232,7 @@ export default function Cotizaciones() {
           </h2>
           <button 
             onClick={addItem} 
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-green-600/20 text-green-400 hover:bg-green-600/30 transition-colors border border-green-600/30"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors"
           >
             <Plus className="h-4 w-4" />
             Agregar producto
@@ -228,22 +242,37 @@ export default function Cotizaciones() {
         <div className="space-y-4">
           {items.map((it, index) => (
             <div key={it.id} className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center p-3 rounded-lg bg-gray-800/30 hover:bg-gray-800/50 transition-colors">
-              <div className="md:col-span-6">
+              <div className="md:col-span-6 relative">
                 <label className="text-xs text-gray-400 mb-1 block">Producto</label>
-                <input 
-                  list={`productos-list-${it.id}`} 
-                  className="input" 
-                  placeholder="Producto" 
+                <input
+                  autoComplete="off"
+                  className="input"
+                  placeholder="Buscar por nombre o SKU"
                   value={it.nombre}
-                  onChange={e=>{
+                  onChange={e => {
                     const nombre = e.target.value
-                    const p = productos.find(pr=>pr.name===nombre)
-                    updateItem(it.id,{ nombre, precio: p?.price ?? it.precio })
-                  }} 
+                    updateItem(it.id, { nombre })
+                    handleSearch(nombre, it.id)
+                  }}
+                  onFocus={() => setActiveSearch(it.id)}
                 />
-                <datalist id={`productos-list-${it.id}`}>
-                  {productos.map(p=> <option key={p.id} value={p.name} />)}
-                </datalist>
+                {activeSearch === it.id && it.searchResults?.length > 0 && (
+                  <div className="absolute z-10 w-full bg-gray-900 border border-gray-700 rounded-md mt-1 shadow-lg max-h-60 overflow-y-auto">
+                    {it.searchResults.map(p => (
+                      <div
+                        key={p.id}
+                        onMouseDown={() => {
+                          updateItem(it.id, { nombre: p.name, precio: p.price, searchResults: [] })
+                          setActiveSearch(null)
+                        }}
+                        className="px-4 py-2 hover:bg-gray-800 cursor-pointer text-sm text-gray-300"
+                      >
+                        <p className="font-semibold">{p.name}</p>
+                        <p className="text-xs text-gray-500">SKU: {p.sku}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
               <div className="md:col-span-2">
                 <label className="text-xs text-gray-400 mb-1 block">Cantidad</label>
