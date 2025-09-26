@@ -140,6 +140,22 @@ export const getProductosStockBajo = async (limite = 10) => {
   }
 };
 
+// Buscar productos por SKU o nombre
+export const searchProducts = async (query) => {
+  if (!query) return { data: [], error: null };
+  try {
+    const { data, error } = await supabase.functions.invoke('search-products', {
+      body: { query },
+    });
+
+    if (error) throw error;
+    return { data, error: null };
+  } catch (error) {
+    console.error('Error searching products:', error);
+    return { data: null, error };
+  }
+};
+
 // Funciones de compatibilidad con el código existente
 export async function listProductos() {
   const { data } = await getProductos();

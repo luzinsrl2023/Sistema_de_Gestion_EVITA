@@ -20,94 +20,15 @@ import {
 import { formatCurrency, formatDate, cn } from '../../lib/utils'
 import { DataTable, exportToExcel, exportTableToPDF } from '../../common'
 import * as XLSX from 'xlsx'
+import { getProveedores, createProveedor, updateProveedor, deleteProveedor } from '../../services/proveedores'
 
 const paymentTermsOptions = ['15 días', '20 días', '30 días', '60 días', '90 días', 'Contado']
-
-// Add new payment methods
 const paymentMethods = ['Efectivo', 'Transferencia', 'Mercado Pago', 'Tarjeta de Crédito', 'Tarjeta de Débito', 'Cheque']
 
-// Update the mock suppliers to use Spanish terms
-const mockSuppliers = [
-  {
-    id: 'SUP001',
-    name: 'TecnoGlobal S.A.',
-    contactName: 'María González',
-    email: 'maria.gonzalez@tecnoglobal.com',
-    phone: '+34 912 345 678',
-    address: 'Calle Mayor 123, Madrid, España',
-    paymentTerms: '30 días',
-    paymentMethod: 'Transferencia',
-    status: 'activo',
-    totalOrders: 15,
-    totalAmount: 25000,
-    lastOrder: '2023-12-10'
-  },
-  {
-    id: 'SUP002',
-    name: 'Soluciones de Oficina Ltda.',
-    contactName: 'Carlos Rodríguez',
-    email: 'carlos@solucionesoficina.com',
-    phone: '+34 913 456 789',
-    address: 'Av. Constitución 456, Barcelona, España',
-    paymentTerms: '15 días',
-    paymentMethod: 'Efectivo',
-    status: 'activo',
-    totalOrders: 8,
-    totalAmount: 12500,
-    lastOrder: '2023-11-28'
-  },
-  {
-    id: 'SUP003',
-    name: 'Componentes & Cia.',
-    contactName: 'Ana López',
-    email: 'ana.lopez@componentescia.com',
-    phone: '+34 914 567 890',
-    address: 'Polígono Industrial Sur 789, Valencia, España',
-    paymentTerms: '60 días',
-    paymentMethod: 'Tarjeta de Crédito',
-    status: 'activo',
-    totalOrders: 22,
-    totalAmount: 45000,
-    lastOrder: '2023-12-08'
-  },
-  {
-    id: 'SUP004',
-    name: 'Distribuidora Norte',
-    contactName: 'Luis Martínez',
-    email: 'luis@distribuidoranorte.es',
-    phone: '+34 915 678 901',
-    address: 'Calle Industrial 321, Bilbao, España',
-    paymentTerms: 'Contado',
-    paymentMethod: 'Mercado Pago',
-    status: 'inactivo',
-    totalOrders: 3,
-    totalAmount: 5400,
-    lastOrder: '2023-10-15'
-  }
-]
-
 export default function ProveedoresList() {
-  const [suppliers, setSuppliers] = useState(() => {
-    try {
-      const raw = localStorage.getItem('evita-suppliers')
-      if (raw) return JSON.parse(raw)
-    } catch (_) {}
-    return mockSuppliers
-  })
-  const [filteredSuppliers, setFilteredSuppliers] = useState(() => {
-    try {
-      const raw = localStorage.getItem('evita-suppliers')
-      if (raw) return JSON.parse(raw)
-    } catch (_) {}
-    return mockSuppliers
-  })
-  // Persist suppliers to localStorage for cross-module usage (e.g., Compras)
-  useEffect(() => {
-    try {
-      localStorage.setItem('evita-suppliers', JSON.stringify(suppliers))
-    } catch (_) {}
-  }, [suppliers])
-
+  const [suppliers, setSuppliers] = useState([])
+  const [filteredSuppliers, setFilteredSuppliers] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [showAddSupplier, setShowAddSupplier] = useState(false)
@@ -122,31 +43,46 @@ export default function ProveedoresList() {
     address: '',
     paymentTerms: '30 días', // Change default to Spanish terms
     paymentMethod: 'Efectivo', // Add payment method
-    notes: ''
+    notes: '',
+    margin: 0
   })
   const fileInputRef = useRef(null)
 
+  const fetchSuppliers = async () => {
+    setIsLoading(true);
+    const { data, error } = await getProveedores();
+    if (error) {
+      alert('Error al cargar los proveedores');
+      console.error(error);
+    } else {
+      setSuppliers(data || []);
+      setFilteredSuppliers(data || []);
+    }
+    setIsLoading(false);
+  };
+
+  useEffect(() => {
+    fetchSuppliers();
+  }, []);
+
   // Filter suppliers
   useEffect(() => {
-    let filtered = suppliers
+    let filtered = suppliers;
 
-    // Apply search filter
     if (searchTerm) {
       filtered = filtered.filter(supplier =>
-        supplier.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        supplier.contactName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        supplier.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        supplier.id.toLowerCase().includes(searchTerm.toLowerCase())
-      )
+        Object.values(supplier).some(value =>
+          String(value).toLowerCase().includes(searchTerm.toLowerCase())
+        )
+      );
     }
 
-    // Apply status filter
     if (statusFilter !== 'all') {
-      filtered = filtered.filter(supplier => supplier.status === statusFilter)
+      filtered = filtered.filter(supplier => supplier.status === statusFilter);
     }
 
-    setFilteredSuppliers(filtered)
-  }, [searchTerm, statusFilter, suppliers])
+    setFilteredSuppliers(filtered);
+  }, [searchTerm, statusFilter, suppliers]);
 
   const handleSelectSupplier = (supplierId) => {
     setSelectedSuppliers(prev => {
@@ -179,35 +115,27 @@ export default function ProveedoresList() {
     )
   }
 
-  const handleAddSupplier = (e) => {
-    e.preventDefault()
-    const supplier = {
-      ...newSupplier,
-      id: `SUP${String(suppliers.length + 1).padStart(3, '0')}`,
-      status: 'activo',
-      totalOrders: 0,
-      totalAmount: 0,
-      lastOrder: null
+  const handleAddSupplier = async (e) => {
+    e.preventDefault();
+    const { error } = await createProveedor({ ...newSupplier, status: 'activo' });
+    if (error) {
+      alert('Error al crear el proveedor');
+      console.error(error);
+    } else {
+      await fetchSuppliers();
+      setNewSupplier({
+        name: '', contactName: '', email: '', phone: '', address: '',
+        paymentTerms: '30 días', paymentMethod: 'Efectivo', notes: '', margin: 0
+      });
+      setShowAddSupplier(false);
+      alert('Proveedor creado exitosamente');
     }
-    setSuppliers([...suppliers, supplier])
-    setNewSupplier({
-      name: '',
-      contactName: '',
-      email: '',
-      phone: '',
-      address: '',
-      paymentTerms: '30 días', // Change default to Spanish terms
-      paymentMethod: 'Efectivo', // Add payment method
-      notes: ''
-    })
-    setShowAddSupplier(false)
-  }
+  };
 
-  // Add these new functions for editing and deleting suppliers
   const handleEditSupplier = (supplierId) => {
-    const supplier = suppliers.find(s => s.id === supplierId)
+    const supplier = suppliers.find(s => s.id === supplierId);
     if (supplier) {
-      setEditingSupplier(supplier)
+      setEditingSupplier(supplier);
       setNewSupplier({
         name: supplier.name,
         contactName: supplier.contactName,
@@ -215,64 +143,61 @@ export default function ProveedoresList() {
         phone: supplier.phone,
         address: supplier.address,
         paymentTerms: supplier.paymentTerms,
-        paymentMethod: supplier.paymentMethod || 'Efectivo', // Add payment method
-        notes: supplier.notes || ''
-      })
-      setShowEditSupplier(true)
+        paymentMethod: supplier.paymentMethod || 'Efectivo',
+        notes: supplier.notes || '',
+        margin: supplier.margin || 0
+      });
+      setShowEditSupplier(true);
     }
-  }
+  };
 
-  const handleUpdateSupplier = (e) => {
-    e.preventDefault()
-    setSuppliers(prev => prev.map(supplier =>
-      supplier.id === editingSupplier.id
-        ? {
-            ...supplier,
-            name: newSupplier.name,
-            contactName: newSupplier.contactName,
-            email: newSupplier.email,
-            phone: newSupplier.phone,
-            address: newSupplier.address,
-            paymentTerms: newSupplier.paymentTerms,
-            paymentMethod: newSupplier.paymentMethod, // Add payment method
-            notes: newSupplier.notes
-          }
-        : supplier
-    ))
-    setNewSupplier({
-      name: '',
-      contactName: '',
-      email: '',
-      phone: '',
-      address: '',
-      paymentTerms: '30 días', // Change default to Spanish terms
-      paymentMethod: 'Efectivo', // Add payment method
-      notes: ''
-    })
-    setEditingSupplier(null)
-    setShowEditSupplier(false)
-  }
+  const handleUpdateSupplier = async (e) => {
+    e.preventDefault();
+    const { error } = await updateProveedor(editingSupplier.id, newSupplier);
+    if (error) {
+      alert('Error al actualizar el proveedor');
+      console.error(error);
+    } else {
+      await fetchSuppliers();
+      setNewSupplier({
+        name: '', contactName: '', email: '', phone: '', address: '',
+        paymentTerms: '30 días', paymentMethod: 'Efectivo', notes: '', margin: 0
+      });
+      setEditingSupplier(null);
+      setShowEditSupplier(false);
+      alert('Proveedor actualizado exitosamente');
+    }
+  };
 
-  const handleDeleteSupplier = (supplierId) => {
+  const handleDeleteSupplier = async (supplierId) => {
     if (confirm('¿Está seguro de que desea eliminar este proveedor?')) {
-      setSuppliers(prev => prev.filter(supplier => supplier.id !== supplierId))
-      alert('Proveedor eliminado exitosamente')
+      const { error } = await deleteProveedor(supplierId);
+      if (error) {
+        alert('Error al eliminar el proveedor');
+        console.error(error);
+      } else {
+        await fetchSuppliers();
+        alert('Proveedor eliminado exitosamente');
+      }
     }
-  }
+  };
 
-  const handleToggleSupplierStatus = (supplierId) => {
-    setSuppliers(prev => prev.map(supplier =>
-      supplier.id === supplierId
-        ? {
-            ...supplier,
-            status: supplier.status === 'activo' ? 'inactivo' : 'activo'
-          }
-        : supplier
-    ))
-    const supplier = suppliers.find(s => s.id === supplierId)
-    const action = supplier?.status === 'activo' ? 'desactivado' : 'activado'
-    alert(`Proveedor ${action} exitosamente`)
-  }
+  const handleToggleSupplierStatus = async (supplierId) => {
+    const supplier = suppliers.find(s => s.id === supplierId);
+    if (!supplier) return;
+
+    const newStatus = supplier.status === 'activo' ? 'inactivo' : 'activo';
+    const { error } = await updateProveedor(supplierId, { status: newStatus });
+
+    if (error) {
+      alert('Error al cambiar el estado del proveedor');
+      console.error(error);
+    } else {
+      await fetchSuppliers();
+      const action = newStatus === 'inactivo' ? 'desactivado' : 'activado';
+      alert(`Proveedor ${action} exitosamente`);
+    }
+  };
 
   const activeSuppliers = suppliers.filter(s => s.status === 'activo').length
   // Columns for DataTable
@@ -750,6 +675,19 @@ export default function ProveedoresList() {
                     onChange={(e) => setNewSupplier({...newSupplier, name: e.target.value})}
                     className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 input"
                     placeholder="Ej. Acme Corporation"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-white mb-2">
+                    Margen (%)
+                  </label>
+                  <input
+                    type="number"
+                    value={newSupplier.margin || ''}
+                    onChange={(e) => setNewSupplier({...newSupplier, margin: parseFloat(e.target.value) || 0})}
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 input"
+                    placeholder="Ej. 15"
                   />
                 </div>
 
