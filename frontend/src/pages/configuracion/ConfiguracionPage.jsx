@@ -26,11 +26,15 @@ import { useTheme, themes } from '../../contexts/ThemeContext'
 import { useAuth } from '../../contexts/AuthContext'
 import { cn } from '../../lib/utils'
 import { uploadLogo, deleteFile, BUCKETS, initializeBuckets } from '../../lib/supabaseStorage'
+import * as XLSX from 'xlsx'
+import Modal from '../../components/common/Modal'
 
 export default function ConfiguracionPage() {
   const { user } = useAuth()
-  const { currentTheme, changeTheme, theme } = useTheme()
+  const { currentTheme, changeTheme, theme, logoUrl, setAppLogo } = useTheme()
   const [activeSection, setActiveSection] = useState('general')
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false)
+  const [exportConfig, setExportConfig] = useState({ type: null, format: 'json' })
   
   // Estados para datos de empresa
   const [companyName, setCompanyName] = useState(() => localStorage.getItem('evita-company-name') || 'EVITA')
@@ -53,8 +57,6 @@ export default function ConfiguracionPage() {
   // Estados para logo
   const [uploadingLogo, setUploadingLogo] = useState(false)
   const [logoProgress, setLogoProgress] = useState(0)
-  const [currentLogoPath, setCurrentLogoPath] = useState(() => localStorage.getItem('evita-logo-path') || null)
-  const [logoUrl, setLogoUrl] = useState(localStorage.getItem('evita-logo') || null)
   const [storageInitialized, setStorageInitialized] = useState(false)
   
   // Estados para configuración del sistema
@@ -206,11 +208,8 @@ export default function ConfiguracionPage() {
         throw new Error(result.error)
       }
 
-      // Actualizar estado local
-      setLogoUrl(result.url)
-      setCurrentLogoPath(result.path)
-      localStorage.setItem('evita-logo', result.url)
-      localStorage.setItem('evita-logo-path', result.path)
+      // Actualizar estado global
+      setAppLogo(result.url, result.path)
 
       showSuccessMessage('Logo actualizado correctamente')
     } catch (error) {
@@ -224,6 +223,7 @@ export default function ConfiguracionPage() {
   }
 
   const handleRemoveLogo = async () => {
+    const currentLogoPath = localStorage.getItem('evita-logo-path')
     if (!currentLogoPath) return
 
     try {
@@ -233,11 +233,8 @@ export default function ConfiguracionPage() {
         throw new Error(result.error)
       }
 
-      // Limpiar estado local
-      setLogoUrl(null)
-      setCurrentLogoPath(null)
-      localStorage.removeItem('evita-logo')
-      localStorage.removeItem('evita-logo-path')
+      // Limpiar estado global
+      setAppLogo(null)
 
       showSuccessMessage('Logo eliminado correctamente')
     } catch (error) {
@@ -246,80 +243,85 @@ export default function ConfiguracionPage() {
     }
   }
 
-  // Add export functions
-  const exportData = (type) => {
+  const openExportModal = (type) => {
+    setExportConfig({ type, format: 'json' });
+    setIsExportModalOpen(true);
+  };
+
+  const handleExport = () => {
+    const { type, format } = exportConfig;
+    setIsExportModalOpen(false);
+
     try {
-      let data = []
-      let filename = `${type}_evita.json`
-      
-      switch(type) {
-        case 'productos':
-          const productos = JSON.parse(localStorage.getItem('evita-productos') || '[]')
-          data = productos
-          filename = 'productos_evita.json'
-          break
-        case 'clientes':
-          const clientes = JSON.parse(localStorage.getItem('evita-clientes') || '[]')
-          data = clientes
-          filename = 'clientes_evita.json'
-          break
-        case 'facturas':
-          const facturas = JSON.parse(localStorage.getItem('evita-facturas') || '[]')
-          data = facturas
-          filename = 'facturas_evita.json'
-          break
-        case 'proveedores':
-          const proveedores = JSON.parse(localStorage.getItem('evita-suppliers') || '[]')
-          data = proveedores
-          filename = 'proveedores_evita.json'
-          break
-        default:
-          throw new Error('Tipo de datos no válido')
+      let data;
+      let filename = `${type}_evita`;
+
+      if (type === 'todo') {
+        data = {
+          productos: JSON.parse(localStorage.getItem('evita-productos') || '[]'),
+          clientes: JSON.parse(localStorage.getItem('evita-clientes') || '[]'),
+          facturas: JSON.parse(localStorage.getItem('evita-facturas') || '[]'),
+          proveedores: JSON.parse(localStorage.getItem('evita-suppliers') || '[]'),
+          cotizaciones: JSON.parse(localStorage.getItem('evita-cotizaciones') || '[]'),
+          ordenes: JSON.parse(localStorage.getItem('evita-ordenes-compra') || '[]'),
+        };
+        filename = 'evita_datos_completos';
+      } else {
+        const keyMap = {
+          productos: 'evita-productos',
+          clientes: 'evita-clientes',
+          facturas: 'evita-facturas',
+          proveedores: 'evita-suppliers',
+        };
+        data = JSON.parse(localStorage.getItem(keyMap[type]) || '[]');
+      }
+
+      if (format === 'json') {
+        const blob = new Blob([JSON.stringify(type === 'todo' ? data : data, null, 2)], { type: 'application/json' });
+        downloadBlob(blob, `${filename}.json`);
+      } else if (format === 'csv' || format === 'excel') {
+        const wb = XLSX.utils.book_new();
+        if (type === 'todo') {
+          Object.keys(data).forEach(key => {
+            if (data[key].length > 0) {
+              const ws = XLSX.utils.json_to_sheet(data[key]);
+              XLSX.utils.book_append_sheet(wb, ws, key);
+            }
+          });
+        } else {
+          const ws = XLSX.utils.json_to_sheet(data);
+          XLSX.utils.book_append_sheet(wb, ws, type);
+        }
+
+        if (format === 'csv') {
+          // For CSV, we'll just export the first sheet if there are multiple
+          const sheetName = wb.SheetNames[0];
+          const csv = XLSX.utils.sheet_to_csv(wb.Sheets[sheetName]);
+          const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+          downloadBlob(blob, `${filename}.csv`);
+        } else { // excel
+          const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+          const blob = new Blob([wbout], { type: 'application/octet-stream' });
+          downloadBlob(blob, `${filename}.xlsx`);
+        }
       }
       
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = filename
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      URL.revokeObjectURL(url)
-      
-      showSuccessMessage(`Datos de ${type} exportados exitosamente`)
+      showSuccessMessage(`Datos de ${type} exportados exitosamente como ${format.toUpperCase()}`);
     } catch (error) {
-      console.error('Error exporting data:', error)
-      showErrorMessage(`Error al exportar datos de ${type}`)
+      console.error('Error exporting data:', error);
+      showErrorMessage(`Error al exportar datos de ${type}`);
     }
-  }
+  };
 
-  const exportAllData = () => {
-    try {
-      const allData = {
-        productos: JSON.parse(localStorage.getItem('evita-productos') || '[]'),
-        clientes: JSON.parse(localStorage.getItem('evita-clientes') || '[]'),
-        facturas: JSON.parse(localStorage.getItem('evita-facturas') || '[]'),
-        proveedores: JSON.parse(localStorage.getItem('evita-suppliers') || '[]'),
-        cotizaciones: JSON.parse(localStorage.getItem('evita-cotizaciones') || '[]'),
-        ordenes: JSON.parse(localStorage.getItem('evita-ordenes-compra') || '[]'),
-      };
-      
-      const blob = new Blob([JSON.stringify(allData, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'evita_datos_completos.json';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      
-      showSuccessMessage('Todos los datos exportados exitosamente');
-    } catch (error) {
-      console.error('Error exporting all data:', error);
-      showErrorMessage('Error al exportar todos los datos');
-    }
+  const downloadBlob = (blob, filename) => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   const renderContent = () => {
@@ -932,31 +934,31 @@ export default function ConfiguracionPage() {
                 </p>
                 <div className="space-y-2">
                   <button 
-                    onClick={() => exportData('productos')}
+                    onClick={() => openExportModal('productos')}
                     className="w-full px-3 py-2 text-sm rounded-lg border transition-colors border-gray-700 hover:bg-gray-800 text-white"
                   >
                     Exportar Productos
                   </button>
                   <button 
-                    onClick={() => exportData('clientes')}
+                    onClick={() => openExportModal('clientes')}
                     className="w-full px-3 py-2 text-sm rounded-lg border transition-colors border-gray-700 hover:bg-gray-800 text-white"
                   >
                     Exportar Clientes
                   </button>
                   <button 
-                    onClick={() => exportData('facturas')}
+                    onClick={() => openExportModal('facturas')}
                     className="w-full px-3 py-2 text-sm rounded-lg border transition-colors border-gray-700 hover:bg-gray-800 text-white"
                   >
                     Exportar Facturas
                   </button>
                   <button 
-                    onClick={() => exportData('proveedores')}
+                    onClick={() => openExportModal('proveedores')}
                     className="w-full px-3 py-2 text-sm rounded-lg border transition-colors border-gray-700 hover:bg-gray-800 text-white"
                   >
                     Exportar Proveedores
                   </button>
                   <button 
-                    onClick={exportAllData}
+                    onClick={() => openExportModal('todo')}
                     className="w-full px-3 py-2 text-sm rounded-lg border transition-colors bg-green-600 hover:bg-green-700 text-white border-green-700"
                   >
                     Exportar Todo
@@ -1027,6 +1029,43 @@ export default function ConfiguracionPage() {
           </div>
         </div>
       </div>
+      <Modal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        title={`Exportar ${exportConfig.type}`}
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-2 text-white">
+              Formato de Exportación
+            </label>
+            <select
+              value={exportConfig.format}
+              onChange={(e) => setExportConfig({ ...exportConfig, format: e.target.value })}
+              className="w-full px-3 py-2 rounded-lg border bg-gray-800 border-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+            >
+              <option value="json">JSON</option>
+              <option value="csv">CSV</option>
+              <option value="excel">Excel (XLSX)</option>
+            </select>
+          </div>
+          <div className="flex justify-end gap-3">
+            <button
+              onClick={() => setIsExportModalOpen(false)}
+              className="px-4 py-2 rounded-lg font-medium transition-colors bg-gray-700 text-white hover:bg-gray-600"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={handleExport}
+              className="px-4 py-2 rounded-lg font-medium transition-colors bg-teal-600 text-white hover:bg-teal-700"
+            >
+              <Download className="h-4 w-4 inline mr-2" />
+              Exportar
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

@@ -2,8 +2,9 @@ import React, { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { useTheme } from '../../contexts/ThemeContext'
-import { useClientes } from '../../hooks/useClientes'
-import { useProductos } from '../../hooks/useProductos'
+import { useDebounce } from '../../hooks/useDebounce'
+import { searchProducts } from '../../services/productos'
+import { searchClients } from '../../services/clientes'
 import {
   LayoutDashboard,
   Package,
@@ -56,68 +57,47 @@ export default function Layout({ children }) {
   const location = useLocation()
   const navigate = useNavigate()
   const { user, signOut } = useAuth()
-  const { getThemeClasses, theme } = useTheme()
+  const { getThemeClasses, theme, logoUrl } = useTheme()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [notificationsOpen, setNotificationsOpen] = useState(false)
-  const [logoUrl, setLogoUrl] = useState(() => {
-    try {
-      const savedLogo = localStorage.getItem('evita-logo')
-      return savedLogo && savedLogo.startsWith('http') ? savedLogo : null
-    } catch {
-      return null
-    }
-  })
-
-  // Add this effect to handle logo updates
-  useEffect(() => {
-    try {
-      const savedLogo = localStorage.getItem('evita-logo')
-      if (savedLogo && savedLogo.startsWith('http')) {
-        setLogoUrl(savedLogo)
-      } else {
-        setLogoUrl(null)
-      }
-    } catch (error) {
-      console.error('Error loading logo:', error)
-      setLogoUrl(null)
-    }
-  }, [])
-
-  useEffect(() => {
-    // Listen for logo changes
-    const handleStorageChange = (e) => {
-      if (e.key === 'evita-logo') {
-        setLogoUrl(e.newValue)
-      }
-    }
-    
-    window.addEventListener('storage', handleStorageChange)
-    return () => window.removeEventListener('storage', handleStorageChange)
-  }, [])
 
   // Global Search state
   const [searchTerm, setSearchTerm] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchResults, setSearchResults] = useState({ productos: [], clientes: [] })
-  const { data: productos = [] } = useProductos()
-  const { data: clientes = [] } = useClientes()
+  const [isSearching, setIsSearching] = useState(false)
+  const debouncedSearchTerm = useDebounce(searchTerm, 300)
 
   useEffect(() => {
-    const q = searchTerm.trim().toLowerCase()
-    if (q.length < 2) {
-      setSearchOpen(false)
-      setSearchResults({ productos: [], clientes: [] })
-      return
+    if (debouncedSearchTerm.length < 2) {
+      setSearchOpen(false);
+      setSearchResults({ productos: [], clientes: [] });
+      return;
     }
-    const p = (productos || []).filter(p =>
-      (p.name || '').toLowerCase().includes(q) || (p.sku || '').toLowerCase().includes(q)
-    ).slice(0, 5)
-    const c = (clientes || []).filter(c =>
-      (c.name || '').toLowerCase().includes(q) || (c.email || '').toLowerCase().includes(q) || (c.id || '').toLowerCase().includes(q)
-    ).slice(0, 5)
-    setSearchResults({ productos: p, clientes: c })
-    setSearchOpen(true)
-  }, [searchTerm, productos, clientes])
+
+    const performSearch = async () => {
+      setIsSearching(true);
+      try {
+        const [productsResult, clientsResult] = await Promise.all([
+          searchProducts(debouncedSearchTerm),
+          searchClients(debouncedSearchTerm)
+        ]);
+
+        setSearchResults({
+          productos: productsResult.data || [],
+          clientes: clientsResult.data || []
+        });
+        setSearchOpen(true);
+      } catch (error) {
+        console.error('Error performing global search:', error);
+        setSearchResults({ productos: [], clientes: [] });
+      } finally {
+        setIsSearching(false);
+      }
+    };
+
+    performSearch();
+  }, [debouncedSearchTerm]);
 
   const [notifications] = useState([
     { id: 1, title: 'Stock Bajo', message: 'Jabón para platos EVITA', time: '5 min', type: 'warning' },
