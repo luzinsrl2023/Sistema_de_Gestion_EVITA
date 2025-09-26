@@ -1,6 +1,6 @@
 import { supabase } from '../lib/supabaseClient';
 
-// Obtener todas las ventas con información del cliente
+// Obtener todas las ventas con información del cliente y los productos vendidos
 export const getVentas = async () => {
   try {
     const { data, error } = await supabase
@@ -12,6 +12,15 @@ export const getVentas = async () => {
           nombre,
           email,
           telefono
+        ),
+        venta_detalle (
+          cantidad,
+          precio_unitario,
+          productos (
+            id,
+            nombre,
+            descripcion
+          )
         )
       `)
       .order('created_at', { ascending: false });
