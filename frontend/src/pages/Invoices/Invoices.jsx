@@ -13,6 +13,7 @@ import {
   Import
 } from 'lucide-react'
 import { formatCurrency, formatDate, cn, exportToCSV, importFromCSV } from '../../lib/utils'
+import InvoiceForm from './InvoiceForm' // Importar el nuevo formulario
 
 const mockInvoices = [
   {
@@ -64,6 +65,18 @@ export default function Invoices() {
   const [statusFilter, setStatusFilter] = useState('all')
   const [showAddInvoice, setShowAddInvoice] = useState(false)
   const fileInputRef = useRef(null)
+
+  const handleSaveInvoice = (newInvoiceData) => {
+    const newInvoice = {
+      ...newInvoiceData,
+      id: `INV-${Math.random().toString(36).substr(2, 5).toUpperCase()}`,
+      client: newInvoiceData.cliente_id, // Adaptar el nombre del campo
+      issueDate: new Date().toISOString().split('T')[0],
+      dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      amount: newInvoiceData.total,
+    }
+    setInvoices(prev => [newInvoice, ...prev])
+  }
 
   // Filter invoices
   useEffect(() => {
@@ -337,6 +350,12 @@ export default function Invoices() {
           </p>
         </div>
       </div>
+
+      <InvoiceForm
+        isOpen={showAddInvoice}
+        onClose={() => setShowAddInvoice(false)}
+        onSave={handleSaveInvoice}
+      />
     </div>
   )
 }
