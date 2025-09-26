@@ -1,175 +1,122 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
   Settings as SettingsIcon,
   Palette,
   User,
-  Moon,
-  Sun,
-  Monitor,
   Check,
   X,
   Building2,
-  Upload,
   Trash2,
   Loader
 } from 'lucide-react'
 import { useTheme, themes } from '../../contexts/ThemeContext'
 import { cn } from '../../lib/utils'
-import { uploadLogo, deleteFile, BUCKETS, initializeBuckets } from '../../lib/supabaseStorage'
+import { BUCKETS, deleteFile } from '../../lib/supabaseStorage'
+import { getCompanyConfig, upsertCompanyConfig } from '../../services/companyService'
+import FileUploader from './FileUploader'
 
 export default function Settings({ isOpen, onClose, onLogoChange }) {
   const { currentTheme, changeTheme } = useTheme()
-  const [activeTab, setActiveTab] = useState('themes')
-  const [companyName, setCompanyName] = useState(() => localStorage.getItem('evita-company-name') || '')
-  const [companyCUIT, setCompanyCUIT] = useState(() => localStorage.getItem('evita-company-cuit') || '')
-  const [companyAddress, setCompanyAddress] = useState(() => localStorage.getItem('evita-company-address') || '')
-  const [companyPhone, setCompanyPhone] = useState(() => localStorage.getItem('evita-company-phone') || '')
-  
-  // Estados para manejo de archivos con Supabase
-  const [uploadingLogo, setUploadingLogo] = useState(false)
-  const [logoProgress, setLogoProgress] = useState(0)
-  const [currentLogoPath, setCurrentLogoPath] = useState(() => localStorage.getItem('evita-logo-path') || null)
-  const [storageInitialized, setStorageInitialized] = useState(false)
+  const [activeTab, setActiveTab] = useState('company')
+  const [companyData, setCompanyData] = useState({
+    nombre: '',
+    cuit: '',
+    direccion: '',
+    telefono: '',
+    email: '',
+    website: '',
+    logo_url: '',
+    logo_path: ''
+  })
+  const [isLoading, setIsLoading] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
 
-  // Inicializar buckets de Supabase Storage
-  React.useEffect(() => {
-    const initStorage = async () => {
-      try {
-        await initializeBuckets()
-        setStorageInitialized(true)
-      } catch (error) {
-        console.error('Error initializing storage:', error)
+  // Cargar datos de la empresa al abrir el modal
+  useEffect(() => {
+    if (isOpen) {
+      const fetchCompanyData = async () => {
+        setIsLoading(true)
+        try {
+          const config = await getCompanyConfig()
+          if (config) {
+            setCompanyData(config)
+            onLogoChange?.(config.logo_url)
+          }
+        } catch (error) {
+          console.error('Failed to fetch company data:', error)
+          alert('Error al cargar los datos de la empresa.')
+        } finally {
+          setIsLoading(false)
+        }
       }
+      fetchCompanyData()
     }
-    if (isOpen && !storageInitialized) {
-      initStorage()
-    }
-  }, [isOpen, storageInitialized])
+  }, [isOpen, onLogoChange])
 
-  const saveCompany = () => {
-    const payload = {
-      name: companyName.trim(),
-      cuit: companyCUIT.trim(),
-      address: companyAddress.trim(),
-      phone: companyPhone.trim(),
-    }
-    try {
-      localStorage.setItem('evita-company', JSON.stringify(payload))
-      localStorage.setItem('evita-company-name', payload.name)
-      localStorage.setItem('evita-company-cuit', payload.cuit)
-      localStorage.setItem('evita-company-address', payload.address)
-      localStorage.setItem('evita-company-phone', payload.phone)
-      alert('Datos de empresa guardados')
-    } catch (e) {
-      console.error('No se pudo guardar datos de empresa', e)
-      alert('No se pudo guardar datos de empresa')
-    }
+  const handleInputChange = (e) => {
+    const { name, value } = e.target
+    setCompanyData(prev => ({ ...prev, [name]: value }))
   }
 
-
-  if (!isOpen) return null
-
-  const handleThemeChange = (themeName) => {
-    changeTheme(themeName)
-  }
-  const handleLogoUpload = async (e) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    // Validar tipo de archivo
-    const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp']
-    if (!validTypes.includes(file.type)) {
-      alert('Por favor selecciona una imagen válida (PNG, JPG, GIF, WebP)')
-      return
-    }
-
-    // Validar tamaño (máximo 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      alert('La imagen no puede ser mayor a 5MB')
-      return
-    }
-
-    setUploadingLogo(true)
-    setLogoProgress(0)
-
+  const handleSaveCompany = async () => {
+    setIsSaving(true)
     try {
-      // Simular progreso
-      const progressInterval = setInterval(() => {
-        setLogoProgress(prev => Math.min(prev + 20, 90))
-      }, 300)
-
-      // Si ya existe un logo, eliminarlo primero
-      if (currentLogoPath) {
-        await deleteFile(BUCKETS.LOGOS, currentLogoPath)
-      }
-
-      // Subir nuevo logo
-      const fileName = `company-logo-${Date.now()}.${file.name.split('.').pop()}`
-      const result = await uploadLogo(file, fileName)
-
-      clearInterval(progressInterval)
-      setLogoProgress(100)
-
-      if (result.success) {
-        // Guardar información del logo
-        localStorage.setItem('evita-logo', result.data.publicUrl)
-        localStorage.setItem('evita-logo-path', result.data.path)
-        setCurrentLogoPath(result.data.path)
-        
-        // Notificar al componente padre
-        onLogoChange?.(result.data.publicUrl)
-        
-        alert('Logo subido exitosamente')
-      } else {
-        throw new Error(result.error)
-      }
+      const savedData = await upsertCompanyConfig(companyData)
+      setCompanyData(savedData)
+      alert('Datos de la empresa guardados exitosamente.')
+      onClose() // Opcional: cerrar modal al guardar
     } catch (error) {
-      console.error('Error uploading logo:', error)
-      alert('Error al subir el logo: ' + error.message)
+      console.error('Failed to save company data:', error)
+      alert('Error al guardar los datos de la empresa.')
     } finally {
-      setTimeout(() => {
-        setUploadingLogo(false)
-        setLogoProgress(0)
-      }, 1000)
+      setIsSaving(false)
+    }
+  }
+
+  const handleLogoUploaded = async (fileInfo) => {
+    try {
+      const updatedConfig = {
+        ...companyData,
+        logo_url: fileInfo.publicUrl,
+        logo_path: fileInfo.path
+      }
+      const savedData = await upsertCompanyConfig(updatedConfig)
+      setCompanyData(savedData)
+      onLogoChange?.(savedData.logo_url)
+      alert('Logo subido y guardado.')
+    } catch (error) {
+      console.error('Failed to save logo info:', error)
+      alert('Error al guardar la información del logo.')
     }
   }
 
   const handleLogoRemove = async () => {
-    if (!currentLogoPath) {
-      // Fallback para logos guardados localmente
-      try {
-        localStorage.removeItem('evita-logo')
-        localStorage.removeItem('evita-logo-path')
-        onLogoChange?.(null)
-        setCurrentLogoPath(null)
-        alert('Logo eliminado')
-      } catch (err) {
-        console.error('Error removing local logo:', err)
-      }
-      return
-    }
+    if (!companyData.logo_path) return
 
+    const confirmDelete = window.confirm('¿Estás seguro de que quieres eliminar el logo?')
+    if (!confirmDelete) return
+
+    setIsSaving(true)
     try {
-      setUploadingLogo(true)
+      // Eliminar el archivo de Supabase Storage
+      await deleteFile(BUCKETS.LOGOS, companyData.logo_path)
       
-      const result = await deleteFile(BUCKETS.LOGOS, currentLogoPath)
+      // Actualizar la base de datos
+      const updatedConfig = { ...companyData, logo_url: null, logo_path: null }
+      const savedData = await upsertCompanyConfig(updatedConfig)
       
-      if (result.success) {
-        localStorage.removeItem('evita-logo')
-        localStorage.removeItem('evita-logo-path')
-        setCurrentLogoPath(null)
-        onLogoChange?.(null)
-        alert('Logo eliminado exitosamente')
-      } else {
-        throw new Error(result.error)
-      }
+      setCompanyData(savedData)
+      onLogoChange?.(null)
+      alert('Logo eliminado exitosamente.')
     } catch (error) {
       console.error('Error deleting logo:', error)
       alert('Error al eliminar el logo: ' + error.message)
     } finally {
-      setUploadingLogo(false)
+      setIsSaving(false)
     }
   }
+
+  if (!isOpen) return null
 
 
   const getThemePreview = (theme) => {
