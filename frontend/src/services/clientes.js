@@ -132,6 +132,22 @@ export const getClientesConHistorial = async () => {
   }
 };
 
+// Buscar clientes por nombre, email o ID
+export const searchClients = async (query) => {
+  if (!query) return { data: [], error: null };
+  try {
+    const { data, error } = await supabase.functions.invoke('search-clients', {
+      body: { query },
+    });
+
+    if (error) throw error;
+    return { data, error: null };
+  } catch (error) {
+    console.error('Error searching clients:', error);
+    return { data: null, error };
+  }
+};
+
 // Funciones de compatibilidad con el código existente
 export async function listClientes() {
   const { data } = await getClientesConHistorial();

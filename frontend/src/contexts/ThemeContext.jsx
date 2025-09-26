@@ -345,15 +345,32 @@ const BackgroundComponents = {
 export const ThemeProvider = ({ children }) => {
   const [currentTheme, setCurrentTheme] = useState('default')
   const [theme, setTheme] = useState(themes.default)
+  const [logoUrl, setLogoUrl] = useState(null)
 
   useEffect(() => {
-    // Load theme from localStorage
+    // Load theme and logo from localStorage
     const savedTheme = localStorage.getItem('evita-theme')
     if (savedTheme && themes[savedTheme]) {
       setCurrentTheme(savedTheme)
       setTheme(themes[savedTheme])
     }
+    const savedLogo = localStorage.getItem('evita-logo')
+    if (savedLogo) {
+      setLogoUrl(savedLogo)
+    }
   }, [])
+
+  const setAppLogo = (url, path) => {
+    if (url) {
+      localStorage.setItem('evita-logo', url)
+      localStorage.setItem('evita-logo-path', path)
+      setLogoUrl(url)
+    } else {
+      localStorage.removeItem('evita-logo')
+      localStorage.removeItem('evita-logo-path')
+      setLogoUrl(null)
+    }
+  }
 
   const changeTheme = (themeName) => {
     if (themes[themeName]) {
@@ -410,6 +427,8 @@ export const ThemeProvider = ({ children }) => {
     changeTheme,
     getThemeClasses,
     renderBackground,
+    logoUrl,
+    setAppLogo,
   }
 
   return (
