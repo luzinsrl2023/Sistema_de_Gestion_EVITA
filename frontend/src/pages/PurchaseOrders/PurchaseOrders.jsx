@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
+import { supabase } from '../../lib/supabaseClient'
 import { 
   Plus, 
   Search, 
@@ -15,105 +16,200 @@ import {
   Minus,
   Clock,
   FileSpreadsheet,
-  FileText
+  FileText,
+  Download,
+  AlertCircle
 } from 'lucide-react'
-import { formatCurrency, formatDate, getStatusColor, cn } from '../../lib/utils'
+import { formatCurrency, formatDate, cn } from '../../lib/utils'
 import * as XLSX from 'xlsx'
 import { exportTableToPDF } from '../../common'
-
-import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, AlignmentType, HeadingLevel } from 'docx'
+import { Document, Packer, Paragraph, Table, TableRow, TableCell, WidthType, AlignmentType, HeadingLevel } from 'docx'
 import { saveAs } from 'file-saver'
 
-const mockPurchaseOrders = [
-  {
-    id: 'PO001',
-    supplier: 'TecnoGlobal S.A.',
-    date: '2023-12-10',
-    status: 'pendiente',
-    items: [
-      { name: 'Laptop Dell', quantity: 2, price: 1200, total: 2400 },
-      { name: 'Mouse Inalámbrico', quantity: 5, price: 25, total: 125 }
-    ],
-    subtotal: 2525,
-    tax: 252.5,
-    shipping: 50,
-    total: 2827.5,
-    notes: 'Entrega urgente requerida'
-  },
-  {
-    id: 'PO002',
-    supplier: 'Componentes & Cia.',
-    date: '2023-12-08',
-    status: 'aprobado',
-    items: [
-      { name: 'Monitor 24"', quantity: 3, price: 300, total: 900 },
-      { name: 'Teclado Mecánico', quantity: 3, price: 75, total: 225 }
-    ],
-    subtotal: 1125,
-    tax: 112.5,
-    shipping: 25,
-    total: 1262.5,
-    notes: ''
-  },
-  {
-    id: 'PO003',
-    supplier: 'Soluciones de Oficina Ltda.',
-    date: '2023-12-05',
-    status: 'recibido',
-    items: [
-      { name: 'Silla Oficina', quantity: 10, price: 150, total: 1500 }
-    ],
-    subtotal: 1500,
-    tax: 150,
-    shipping: 75,
-    total: 1725,
-    notes: 'Instalación incluida'
+// Componente para el modal de nuevo proveedor
+const NewSupplierModal = ({ isOpen, onClose, onSupplierCreated }) => {
+  const [newSupplier, setNewSupplier] = useState({
+    name: '',
+    contact_person: '',
+    email: '',
+    phone: '',
+    address: ''
+  })
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState(null)
+
+  const handleChange = (e) => {
+    const { name, value } = e.target
+    setNewSupplier(prev => ({ ...prev, [name]: value }))
   }
-]
 
-const mockSuppliers = [
-  { id: 'SUP001', name: 'TecnoGlobal S.A.' },
-  { id: 'SUP002', name: 'Soluciones de Oficina Ltda.' },
-  { id: 'SUP003', name: 'Componentes & Cia.' }
-]
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setIsLoading(true)
+    setError(null)
 
-const mockProducts = [
-  { id: 'PRD001', name: 'Laptop Dell', price: 1200 },
-  { id: 'PRD002', name: 'Monitor 24"', price: 300 },
-  { id: 'PRD003', name: 'Teclado Mecánico', price: 75 },
-  { id: 'PRD004', name: 'Mouse Inalámbrico', price: 25 },
-  { id: 'PRD005', name: 'Silla Oficina', price: 150 }
-]
+    try {
+      const { data, error } = await supabase
+        .from('suppliers')
+        .insert([newSupplier])
+        .select()
+        .single()
+
+      if (error) throw error
+
+      alert('Proveedor creado exitosamente!')
+      onSupplierCreated(data)
+      onClose()
+    } catch (error) {
+      setError('Error al crear el proveedor: ' + error.message)
+      console.error('Error creating supplier:', error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  if (!isOpen) return null
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50">
+      <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 w-full max-w-md">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-bold text-white">Nuevo Proveedor</h2>
+          <button onClick={onClose} className="p-2 text-gray-400 hover:text-white">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {error && <p className="text-red-500 text-sm">{error}</p>}
+          <div>
+            <label className="label">Nombre del Proveedor</label>
+            <input name="name" value={newSupplier.name} onChange={handleChange} className="input" required />
+          </div>
+          <div>
+            <label className="label">Persona de Contacto</label>
+            <input name="contact_person" value={newSupplier.contact_person} onChange={handleChange} className="input" />
+          </div>
+          <div>
+            <label className="label">Email</label>
+            <input type="email" name="email" value={newSupplier.email} onChange={handleChange} className="input" />
+          </div>
+          <div>
+            <label className="label">Teléfono</label>
+            <input name="phone" value={newSupplier.phone} onChange={handleChange} className="input" />
+          </div>
+          <div>
+            <label className="label">Dirección</label>
+            <textarea name="address" value={newSupplier.address} onChange={handleChange} className="input" rows="3"></textarea>
+          </div>
+          <div className="flex justify-end gap-4 pt-4">
+            <button type="button" onClick={onClose} className="btn-secondary">Cancelar</button>
+            <button type="submit" className="btn-primary" disabled={isLoading}>
+              {isLoading ? 'Creando...' : 'Crear Proveedor'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
 
 export default function PurchaseOrders() {
-  const [purchaseOrders, setPurchaseOrders] = useState(mockPurchaseOrders)
-  const [filteredOrders, setFilteredOrders] = useState(mockPurchaseOrders)
+  const [purchaseOrders, setPurchaseOrders] = useState([])
+  const [filteredOrders, setFilteredOrders] = useState([])
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
+  const [suppliers, setSuppliers] = useState([])
+  const [products, setProducts] = useState([])
+  const [quotes, setQuotes] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const [showAddOrder, setShowAddOrder] = useState(false)
   const [showEditOrder, setShowEditOrder] = useState(false)
   const [editingOrder, setEditingOrder] = useState(null)
+  const [isSupplierModalOpen, setIsSupplierModalOpen] = useState(false)
+  const [productSearch, setProductSearch] = useState('')
+  const [searchedProducts, setSearchedProducts] = useState([])
+  const [quoteSearch, setQuoteSearch] = useState('')
+
   const [newOrder, setNewOrder] = useState({
-    supplier: '',
-    items: [{ productId: '', name: '', quantity: 1, price: 0, total: 0 }],
-    notes: ''
+    supplier_id: '',
+    items: [{ product_id: '', quantity: 1, price: 0, total: 0 }],
+    notes: '',
+    status: 'Pendiente'
   })
+
+  const handleSupplierCreated = (newSupplier) => {
+    setSuppliers(prev => [...prev, newSupplier])
+    setNewOrder(prev => ({ ...prev, supplier_id: newSupplier.id }))
+    setIsSupplierModalOpen(false)
+  }
+
+  const fetchPurchaseOrders = useCallback(async () => {
+    try {
+      setLoading(true)
+      const { data, error } = await supabase
+        .from('purchase_orders')
+        .select(`
+          *,
+          suppliers (name),
+          purchase_order_items (*)
+        `)
+        .order('created_at', { ascending: false })
+
+      if (error) throw error
+
+      const formattedOrders = data.map(po => ({
+        ...po,
+        supplier: po.suppliers.name,
+        items: po.purchase_order_items
+      }))
+      setPurchaseOrders(formattedOrders)
+    } catch (error) {
+      setError('Error al cargar las órdenes de compra: ' + error.message)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  const fetchInitialData = useCallback(async () => {
+    try {
+      const [suppliersRes, productsRes, quotesRes] = await Promise.all([
+        supabase.from('suppliers').select('*').order('name'),
+        supabase.from('products').select('*').order('name'),
+        supabase.from('quotes').select('id, quote_id').order('created_at', { ascending: false })
+      ])
+
+      if (suppliersRes.error) throw suppliersRes.error
+      if (productsRes.error) throw productsRes.error
+      if (quotesRes.error) throw quotesRes.error
+
+      setSuppliers(suppliersRes.data)
+      setProducts(productsRes.data)
+      setQuotes(quotesRes.data)
+    } catch (error) {
+      setError('Error al cargar datos iniciales: ' + error.message)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchPurchaseOrders()
+    fetchInitialData()
+  }, [fetchPurchaseOrders, fetchInitialData])
 
   // Filter purchase orders
   useEffect(() => {
     let filtered = purchaseOrders
 
-    // Apply search filter
     if (searchTerm) {
       filtered = filtered.filter(order =>
-        order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        order.supplier.toLowerCase().includes(searchTerm.toLowerCase())
+        (order.po_number && order.po_number.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (order.supplier && order.supplier.toLowerCase().includes(searchTerm.toLowerCase()))
       )
     }
 
-    // Apply status filter
     if (statusFilter !== 'all') {
-      filtered = filtered.filter(order => order.status === statusFilter)
+      filtered = filtered.filter(order => order.status.toLowerCase() === statusFilter.toLowerCase())
     }
 
     setFilteredOrders(filtered)
@@ -142,10 +238,35 @@ export default function PurchaseOrders() {
     )
   }
 
+  const handleProductSearch = async (query, index) => {
+    // Update the visual input first
+    const items = [...newOrder.items]
+    items[index].product_name = query
+    setNewOrder({ ...newOrder, items })
+
+    if (query.length < 2) {
+      setSearchedProducts([])
+      return
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .or(`name.ilike.%${query}%,sku.ilike.%${query}%`)
+        .limit(10)
+
+      if (error) throw error
+      setSearchedProducts(data)
+    } catch (error) {
+      console.error('Error searching products:', error)
+    }
+  }
+
   const addOrderItem = () => {
     setNewOrder({
       ...newOrder,
-      items: [...newOrder.items, { productId: '', name: '', quantity: 1, price: 0, total: 0 }]
+      items: [...newOrder.items, { product_id: '', quantity: 1, price: 0, total: 0 }]
     })
   }
 
@@ -156,20 +277,78 @@ export default function PurchaseOrders() {
 
   const updateOrderItem = (index, field, value) => {
     const items = [...newOrder.items]
-    items[index][field] = value
     
-    if (field === 'productId') {
-      const product = mockProducts.find(p => p.id === value)
-      if (product) {
-        items[index].name = product.name
-        items[index].price = product.price
-        items[index].total = items[index].quantity * product.price
-      }
-    } else if (field === 'quantity' || field === 'price') {
-      items[index].total = items[index].quantity * items[index].price
+    if (field === 'product') {
+      items[index].product_id = value.id
+      items[index].product_name = value.name
+      items[index].price = value.price
+    } else {
+      items[index][field] = value
     }
     
+    items[index].total = (items[index].quantity || 0) * (items[index].price || 0)
     setNewOrder({ ...newOrder, items })
+    setSearchedProducts([])
+  }
+
+  const handleImportFromQuote = async () => {
+    if (!quoteSearch) {
+      alert('Por favor, introduce un ID de cotización para importar.')
+      return
+    }
+
+    try {
+      setLoading(true)
+      const { data: quoteData, error: quoteError } = await supabase
+        .from('quotes')
+        .select(`
+          *,
+          quote_items ( * ),
+          suppliers ( * )
+        `)
+        .eq('quote_id', quoteSearch)
+        .single()
+
+      if (quoteError) throw new Error(`Cotización no encontrada o error al cargar: ${quoteError.message}`)
+      if (!quoteData) throw new Error('No se encontró la cotización.')
+
+      const quoteItems = quoteData.quote_items
+
+      // Fetch product details for each item
+      const productIds = quoteItems.map(item => item.product_id)
+      const { data: productsData, error: productsError } = await supabase
+        .from('products')
+        .select('*')
+        .in('id', productIds)
+
+      if (productsError) throw productsError
+
+      const itemsWithDetails = quoteItems.map(item => {
+        const product = productsData.find(p => p.id === item.product_id)
+        return {
+          product_id: item.product_id,
+          product_name: product?.name || 'Producto no encontrado',
+          quantity: item.quantity,
+          price: item.price,
+          total: item.total
+        }
+      })
+
+      setNewOrder({
+        supplier_id: quoteData.supplier_id,
+        items: itemsWithDetails,
+        notes: `Basado en la cotización ${quoteData.quote_id}`,
+        status: 'Pendiente'
+      })
+
+      alert('Cotización importada exitosamente.')
+    } catch (error) {
+      setError('Error al importar la cotización: ' + error.message)
+      alert('Error al importar la cotización: ' + error.message)
+    } finally {
+      setLoading(false)
+      setQuoteSearch('')
+    }
   }
 
   const calculateOrderTotals = () => {
@@ -305,55 +484,88 @@ export default function PurchaseOrders() {
     saveAs(new Blob([buffer]), 'ordenes_compra_evita.docx');
   }
 
-  const handleSubmitOrder = (e) => {
+  const handleSubmitOrder = async (e) => {
     e.preventDefault()
+    
     const { subtotal, tax, shipping, total } = calculateOrderTotals()
-    const supplier = mockSuppliers.find(s => s.id === newOrder.supplier)
-    
-    if (showEditOrder && editingOrder) {
-      // Update existing order
-      const updatedOrder = {
-        ...editingOrder,
-        supplier: supplier?.name || '',
-        items: newOrder.items,
-        subtotal,
-        tax,
-        shipping,
-        total,
-        notes: newOrder.notes
-      }
-      
-      setPurchaseOrders(prev => prev.map(order => 
-        order.id === editingOrder.id ? updatedOrder : order
-      ))
-      alert('Orden de compra actualizada exitosamente')
-    } else {
-      // Create new order
-      const order = {
-        id: `PO${String(purchaseOrders.length + 1).padStart(3, '0')}`,
-        supplier: supplier?.name || '',
-        date: new Date().toISOString().split('T')[0],
-        status: 'pendiente',
-        items: newOrder.items,
-        subtotal,
-        tax,
-        shipping,
-        total,
-        notes: newOrder.notes
-      }
-      
-      setPurchaseOrders([...purchaseOrders, order])
-      alert('Orden de compra creada exitosamente')
+
+    const orderData = {
+      supplier_id: newOrder.supplier_id,
+      subtotal,
+      tax,
+      shipping,
+      total,
+      notes: newOrder.notes,
+      status: newOrder.status
     }
-    
-    setNewOrder({
-      supplier: '',
-      items: [{ productId: '', name: '', quantity: 1, price: 0, total: 0 }],
-      notes: ''
-    })
-    setShowAddOrder(false)
-    setShowEditOrder(false)
-    setEditingOrder(null)
+
+    try {
+      if (showEditOrder && editingOrder) {
+        // Update existing order
+        const { data: updatedPo, error: poUpdateError } = await supabase
+          .from('purchase_orders')
+          .update(orderData)
+          .eq('id', editingOrder.id)
+          .select()
+          .single()
+
+        if (poUpdateError) throw poUpdateError
+
+        // Delete old items
+        await supabase.from('purchase_order_items').delete().eq('po_id', editingOrder.id)
+
+        // Insert new items
+        const itemsToInsert = newOrder.items.map(item => ({
+          po_id: updatedPo.id,
+          product_id: item.product_id,
+          quantity: item.quantity,
+          price: item.price,
+          total: item.total
+        }))
+
+        const { error: itemsError } = await supabase.from('purchase_order_items').insert(itemsToInsert)
+        if (itemsError) throw itemsError
+
+        alert('Orden de compra actualizada exitosamente!')
+      } else {
+        // Create new order
+        const { data: newPo, error: poError } = await supabase
+          .from('purchase_orders')
+          .insert(orderData)
+          .select()
+          .single()
+
+        if (poError) throw poError
+
+        const itemsToInsert = newOrder.items.map(item => ({
+          po_id: newPo.id,
+          product_id: item.product_id,
+          quantity: item.quantity,
+          price: item.price,
+          total: item.total
+        }))
+
+        const { error: itemsError } = await supabase.from('purchase_order_items').insert(itemsToInsert)
+        if (itemsError) throw itemsError
+
+        alert('Orden de compra creada exitosamente!')
+      }
+
+      // Reset form and state
+      setNewOrder({
+        supplier_id: '',
+        items: [{ product_id: '', quantity: 1, price: 0, total: 0 }],
+        notes: '',
+        status: 'Pendiente'
+      })
+      setShowAddOrder(false)
+      setShowEditOrder(false)
+      setEditingOrder(null)
+      fetchPurchaseOrders() // Refresh the list
+    } catch (error) {
+      setError('Error al guardar la orden de compra: ' + error.message)
+      alert('Error al guardar la orden de compra: ' + error.message)
+    }
   }
 
   const totalOrders = purchaseOrders.length
@@ -362,6 +574,11 @@ export default function PurchaseOrders() {
 
   return (
     <div className="space-y-6">
+      <NewSupplierModal
+        isOpen={isSupplierModalOpen}
+        onClose={() => setIsSupplierModalOpen(false)}
+        onSupplierCreated={handleSupplierCreated}
+      />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -586,24 +803,61 @@ export default function PurchaseOrders() {
             <form onSubmit={handleSubmitOrder} className="space-y-6">
               {/* Supplier Selection */}
               <div>
-                <label className="block text-sm font-medium text-white mb-2">
-                  Proveedor
-                </label>
-                <select
-                  required
-                  value={newOrder.supplier}
-                  onChange={(e) => setNewOrder({...newOrder, supplier: e.target.value})}
-                  className="w-full max-w-sm bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-green-500"
-                >
-                  <option value="">Selecciona un proveedor</option>
-                  {mockSuppliers.map(supplier => (
-                    <option key={supplier.id} value={supplier.id}>{supplier.name}</option>
-                  ))}
-                </select>
+                <label className="label">Proveedor</label>
+                <div className="flex items-center gap-2">
+                  <select
+                    required
+                    value={newOrder.supplier_id}
+                    onChange={(e) => setNewOrder({...newOrder, supplier_id: e.target.value})}
+                    className="input w-full max-w-sm"
+                  >
+                    <option value="">Selecciona un proveedor</option>
+                    {suppliers.map(supplier => (
+                      <option key={supplier.id} value={supplier.id}>{supplier.name}</option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => setIsSupplierModalOpen(true)}
+                    className="btn-secondary p-2"
+                    title="Crear nuevo proveedor"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
 
+              {/* Import from Quote */}
+              <div className="card p-5">
+                <div className="flex flex-col md:flex-row gap-4 items-start md:items-end">
+                  <div className="flex-1 w-full">
+                    <label className="label">Importar desde Cotización</label>
+                    <div className="relative">
+                      <input
+                        list="cotizaciones-list"
+                        className="input pr-10"
+                        placeholder="Buscar por ID de cotización (ej: COT-000001)"
+                        value={quoteSearch}
+                        onChange={(e) => setQuoteSearch(e.target.value)}
+                      />
+                      <datalist id="cotizaciones-list">
+                        {quotes.map(q => <option key={q.id} value={q.quote_id} />)}
+                      </datalist>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleImportFromQuote}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-500 transition-colors"
+                  >
+                    <Download className="h-4 w-4" /> Importar
+                  </button>
+                </div>
+              </div>
+
+
               {/* Products */}
-              <div>
+              <div className="card p-5">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold text-white">Productos</h3>
                   <button
@@ -631,25 +885,43 @@ export default function PurchaseOrders() {
                       {newOrder.items.map((item, index) => (
                         <tr key={index}>
                           <td className="px-4 py-3">
-                            <select
-                              required
-                              value={item.productId}
-                              onChange={(e) => updateOrderItem(index, 'productId', e.target.value)}
-                              className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-1.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-                            >
-                              <option value="">Seleccionar producto</option>
-                              {mockProducts.map(product => (
-                                <option key={product.id} value={product.id}>{product.name}</option>
-                              ))}
-                            </select>
+                            <div className="relative">
+                              <input
+                                type="text"
+                                list="products-list"
+                                value={item.product_name || ''}
+                                onChange={(e) => handleProductSearch(e.target.value, index)}
+                                onBlur={() => setTimeout(() => setSearchedProducts([]), 200)}
+                                placeholder="Buscar por nombre o SKU"
+                                className="input w-full"
+                              />
+                              <datalist id={`products-list-${index}`}>
+                                {searchedProducts.map(p => (
+                                  <option key={p.id} value={`${p.name} (${p.sku})`} />
+                                ))}
+                              </datalist>
+                              {searchedProducts.length > 0 && (
+                                <div className="absolute z-10 w-full mt-1 bg-gray-800 border border-gray-700 rounded-md shadow-lg max-h-60 overflow-auto">
+                                  {searchedProducts.map(p => (
+                                    <div
+                                      key={p.id}
+                                      onClick={() => updateOrderItem(index, 'product', p)}
+                                      className="px-4 py-2 text-white cursor-pointer hover:bg-gray-700"
+                                    >
+                                      {p.name} ({p.sku})
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
                           </td>
                           <td className="px-4 py-3">
                             <input
                               type="number"
                               min="1"
                               value={item.quantity}
-                              onChange={(e) => updateOrderItem(index, 'quantity', parseInt(e.target.value) || 0)}
-                              className="w-full bg-gray-700 border border-gray-600 rounded px-3 py-1.5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                              onChange={(e) => updateOrderItem(index, 'quantity', parseInt(e.target.value) || 1)}
+                              className="input"
                             />
                           </td>
                           <td className="px-4 py-3">
