@@ -91,28 +91,28 @@ export default function Cotizaciones() {
 
   return (
     <div className="p-6 space-y-6 max-w-7xl mx-auto">
-      {/* Header Section - Changed teal to green */}
+      {/* Header Section */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-green-500/10 rounded-lg">
-            <FileText className="h-6 w-6 text-green-400" />
+          <div className="icon-badge">
+            <FileText className="h-6 w-6" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-white">Cotizaciones</h1>
-            <p className="text-sm text-gray-400">Gestiona tus cotizaciones comerciales</p>
+            <h1 className="section-title">Cotizaciones</h1>
+            <p className="section-subtitle">Gestiona tus cotizaciones comerciales</p>
           </div>
         </div>
         <div className="flex gap-3">
           <button 
             onClick={handleGuardar} 
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-800 text-white hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-green-500"
+            className="btn-secondary"
           >
             <Save className="h-4 w-4" />
             Guardar
           </button>
           <button 
             onClick={handlePDF} 
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-500 transition-colors focus:outline-none focus:ring-2 focus:ring-green-500"
+            className="btn-primary"
           >
             <Download className="h-4 w-4" />
             PDF
@@ -122,10 +122,10 @@ export default function Cotizaciones() {
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Client Information Card - Changed teal to green */}
+        {/* Client Information Card */}
         <div className="lg:col-span-1 card p-5">
-          <h2 className="font-semibold text-lg text-white mb-4 flex items-center gap-2">
-            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+          <h2 className="font-semibold text-lg text-text-primary mb-4 flex items-center gap-2">
+            <div className="w-2 h-2 bg-accent rounded-full"></div>
             Cliente
           </h2>
           <div className="space-y-4">
@@ -158,12 +158,12 @@ export default function Cotizaciones() {
           </div>
         </div>
 
-        {/* Metadata and Totals Cards - Changed teal to green */}
+        {/* Metadata and Totals Cards */}
         <div className="lg:col-span-2 space-y-6">
           {/* Metadata Card */}
           <div className="card p-5">
-            <h2 className="font-semibold text-lg text-white mb-4 flex items-center gap-2">
-              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+            <h2 className="font-semibold text-lg text-text-primary mb-4 flex items-center gap-2">
+              <div className="w-2 h-2 bg-accent rounded-full"></div>
               Datos de la cotización
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -201,38 +201,38 @@ export default function Cotizaciones() {
 
           {/* Totals Card */}
           <div className="card p-5">
-            <h2 className="font-semibold text-lg text-white mb-4 flex items-center gap-2">
-              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+            <h2 className="font-semibold text-lg text-text-primary mb-4 flex items-center gap-2">
+              <div className="w-2 h-2 bg-accent rounded-full"></div>
               Resumen
             </h2>
             <div className="space-y-3">
-              <div className="flex justify-between text-gray-300">
+              <div className="flex justify-between text-text-secondary">
                 <span>Subtotal</span>
                 <span className="font-medium">$ {totals.subtotal.toFixed(2)}</span>
               </div>
-              <div className="flex justify-between text-gray-300">
+              <div className="flex justify-between text-text-secondary">
                 <span>IVA (21%)</span>
                 <span className="font-medium">$ {totals.iva.toFixed(2)}</span>
               </div>
-              <div className="flex justify-between pt-3 border-t border-gray-800">
-                <span className="font-semibold text-white">Total</span>
-                <span className="font-bold text-lg text-green-400">$ {totals.total.toFixed(2)}</span>
+              <div className="flex justify-between pt-3 border-t border-border">
+                <span className="font-semibold text-text-primary">Total</span>
+                <span className="font-bold text-lg text-accent">$ {totals.total.toFixed(2)}</span>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Items Section - Changed teal to green */}
+      {/* Items Section */}
       <div className="card p-5">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-5">
-          <h2 className="font-semibold text-lg text-white flex items-center gap-2">
-            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+          <h2 className="font-semibold text-lg text-text-primary flex items-center gap-2">
+            <div className="w-2 h-2 bg-accent rounded-full"></div>
             Productos
           </h2>
           <button 
             onClick={addItem} 
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors"
+            className="btn-primary"
           >
             <Plus className="h-4 w-4" />
             Agregar producto
@@ -241,9 +241,9 @@ export default function Cotizaciones() {
 
         <div className="space-y-4">
           {items.map((it, index) => (
-            <div key={it.id} className="grid grid-cols-1 md:grid-cols-12 gap-3 items-center p-3 rounded-lg bg-gray-800/30 hover:bg-gray-800/50 transition-colors">
+            <div key={it.id} className="product-row">
               <div className="md:col-span-6 relative">
-                <label className="text-xs text-gray-400 mb-1 block">Producto</label>
+                <label className="text-xs text-text-muted mb-1 block">Producto</label>
                 <input
                   autoComplete="off"
                   className="input"
@@ -257,7 +257,7 @@ export default function Cotizaciones() {
                   onFocus={() => setActiveSearch(it.id)}
                 />
                 {activeSearch === it.id && it.searchResults?.length > 0 && (
-                  <div className="absolute z-10 w-full bg-gray-900 border border-gray-700 rounded-md mt-1 shadow-lg max-h-60 overflow-y-auto">
+                  <div className="absolute z-10 w-full bg-bg-primary border border-border rounded-md mt-1 shadow-lg max-h-60 overflow-y-auto">
                     {it.searchResults.map(p => (
                       <div
                         key={p.id}
@@ -265,17 +265,17 @@ export default function Cotizaciones() {
                           updateItem(it.id, { nombre: p.name, precio: p.price, searchResults: [] })
                           setActiveSearch(null)
                         }}
-                        className="px-4 py-2 hover:bg-gray-800 cursor-pointer text-sm text-gray-300"
+                        className="px-4 py-2 hover:bg-bg-secondary cursor-pointer text-sm text-text-secondary"
                       >
                         <p className="font-semibold">{p.name}</p>
-                        <p className="text-xs text-gray-500">SKU: {p.sku}</p>
+                        <p className="text-xs text-text-muted">SKU: {p.sku}</p>
                       </div>
                     ))}
                   </div>
                 )}
               </div>
               <div className="md:col-span-2">
-                <label className="text-xs text-gray-400 mb-1 block">Cantidad</label>
+                <label className="text-xs text-text-muted mb-1 block">Cantidad</label>
                 <input 
                   type="number" 
                   min="1" 
@@ -286,7 +286,7 @@ export default function Cotizaciones() {
                 />
               </div>
               <div className="md:col-span-2">
-                <label className="text-xs text-gray-400 mb-1 block">Precio</label>
+                <label className="text-xs text-text-muted mb-1 block">Precio</label>
                 <input 
                   type="number" 
                   step="0.01" 
@@ -297,13 +297,13 @@ export default function Cotizaciones() {
                 />
               </div>
               <div className="md:col-span-1 text-right">
-                <label className="text-xs text-gray-400 mb-1 block">Total</label>
-                <div className="text-white font-medium">$ {((Number(it.cantidad)||0)*(Number(it.precio)||0)).toFixed(2)}</div>
+                <label className="text-xs text-text-muted mb-1 block">Total</label>
+                <div className="text-text-primary font-medium">$ {((Number(it.cantidad)||0)*(Number(it.precio)||0)).toFixed(2)}</div>
               </div>
               <div className="md:col-span-1 flex justify-end">
                 <button 
                   onClick={()=>removeItem(it.id)} 
-                  className="p-2 rounded-md border border-gray-700 hover:bg-red-500/10 hover:border-red-500/30 text-red-400 hover:text-red-300 transition-colors"
+                  className="p-2 rounded-md border border-border hover:bg-error/10 hover:border-error/30 text-error hover:opacity-90 transition-colors"
                   aria-label="Eliminar producto"
                 >
                   <Trash2 className="h-4 w-4" />
@@ -314,25 +314,25 @@ export default function Cotizaciones() {
         </div>
       </div>
 
-      {/* Action Buttons - Updated to use consistent green color scheme */}
-      <div className="flex flex-col sm:flex-row gap-3 mt-6 pt-5 border-t border-gray-800">
+      {/* Action Buttons */}
+      <div className="flex flex-col sm:flex-row gap-3 mt-6 pt-5 border-t border-border">
         <button
           onClick={handleGuardar}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-green-600 hover:bg-green-500 text-white transition-colors"
+          className="btn-primary"
         >
           <Save className="h-4 w-4" />
           Guardar Cotización
         </button>
         <button
           onClick={handlePDF}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-green-600 hover:bg-green-500 text-white transition-colors"
+          className="btn-primary"
         >
           <Download className="h-4 w-4" />
           Generar PDF
         </button>
         <button
           onClick={() => window.print()}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-white transition-colors"
+          className="btn-secondary"
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
             <polyline points="6 9 6 2 18 2 18 9"></polyline>
@@ -343,17 +343,17 @@ export default function Cotizaciones() {
         </button>
       </div>
 
-      {/* Recent Quotations - Changed teal to green */}
+      {/* Recent Quotations */}
       {cotizaciones.length > 0 && (
         <div className="card p-5">
-          <h2 className="font-semibold text-lg text-white mb-4 flex items-center gap-2">
-            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+          <h2 className="font-semibold text-lg text-text-primary mb-4 flex items-center gap-2">
+            <div className="w-2 h-2 bg-accent rounded-full"></div>
             Últimas cotizaciones
           </h2>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="text-left text-gray-400 text-sm border-b border-gray-800">
+                <tr className="text-left text-text-muted text-sm border-b border-border">
                   <th className="pb-3 font-medium">ID</th>
                   <th className="pb-3 font-medium">Cliente</th>
                   <th className="pb-3 font-medium">Fecha</th>
@@ -361,13 +361,13 @@ export default function Cotizaciones() {
                   <th className="pb-3 font-medium text-right">Acciones</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-800">
+              <tbody className="divide-y divide-border">
                 {cotizaciones.slice(-5).reverse().map(c => (
-                  <tr key={c.id} className="hover:bg-gray-800/30 transition-colors">
-                    <td className="py-3 text-sm text-gray-300">{c.id}</td>
-                    <td className="py-3 text-sm text-gray-300">{c.cliente?.nombre || '-'}</td>
-                    <td className="py-3 text-sm text-gray-300">{c.fecha}</td>
-                    <td className="py-3 text-sm text-right font-medium text-white">$ {Number(c.totales?.total||0).toFixed(2)}</td>
+                  <tr key={c.id} className="hover:bg-bg-secondary/30 transition-colors">
+                    <td className="py-3 text-sm text-text-secondary">{c.id}</td>
+                    <td className="py-3 text-sm text-text-secondary">{c.cliente?.nombre || '-'}</td>
+                    <td className="py-3 text-sm text-text-secondary">{c.fecha}</td>
+                    <td className="py-3 text-sm text-right font-medium text-text-primary">$ {Number(c.totales?.total||0).toFixed(2)}</td>
                     <td className="py-3 text-sm text-right">
                       <button 
                         onClick={() => {
@@ -382,7 +382,7 @@ export default function Cotizaciones() {
                           // Trigger print after a short delay to allow state update
                           setTimeout(() => window.print(), 100);
                         }}
-                        className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-gray-700 hover:bg-gray-600 text-white text-xs transition-colors"
+                        className="btn-secondary text-xs"
                       >
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <polyline points="6 9 6 2 18 2 18 9"></polyline>

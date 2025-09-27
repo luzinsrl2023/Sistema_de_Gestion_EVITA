@@ -30,6 +30,16 @@ export default {
   theme: {
     extend: {
       colors: {
+        'bg-primary': 'var(--color-bg-primary)',
+        'bg-secondary': 'var(--color-bg-secondary)',
+        'border': 'var(--color-border)',
+        'text-primary': 'var(--color-text-primary)',
+        'text-secondary': 'var(--color-text-secondary)',
+        'text-muted': 'var(--color-text-muted)',
+        'accent': 'var(--color-accent)',
+        'success': 'var(--color-success)',
+        'warning': 'var(--color-warning)',
+        'error': 'var(--color-error)',
         primary: {
           50: '#ecfdf5',
           100: '#d1fae5',
