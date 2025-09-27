@@ -16,20 +16,24 @@ export const themes = {
     name: 'EVITA Clásico',
     description: 'Colores verdes corporativos, ideal para uso general',
     colors: {
-      primary: 'green-600',
-      primaryHover: 'green-700',
+      primary: 'green-500',
+      primaryHover: 'green-600',
       primaryLight: 'green-500/10',
       primaryText: 'green-400',
-      accent: 'emerald-600',
-      background: 'gray-950',
-      surface: 'gray-900',
-      border: 'gray-800',
+      accent: 'green-500',
+      background: 'slate-900',
+      surface: 'slate-800',
+      border: 'slate-700',
       text: 'white',
-      textSecondary: 'gray-400',
+      textSecondary: 'slate-400',
+      textMuted: 'slate-500',
+      success: 'green-500',
+      warning: 'yellow-500',
+      error: 'red-500'
     },
     background: {
       type: 'solid',
-      value: 'bg-gray-950'
+      value: 'bg-slate-900'
     }
   },
   corporate: {
