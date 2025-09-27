@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useCallback } from 'react'
-import { Plus, Trash2, Download, Save, FileText } from 'lucide-react'
+import { Plus, Trash2, Download, Save, FileText, Search } from 'lucide-react'
 import { exportSectionsToPDF } from '../../common'
 import { useCotizaciones } from '../../hooks/useCotizaciones'
 import { useClientes } from '../../hooks/useClientes'
@@ -32,7 +32,7 @@ export default function Cotizaciones() {
 
   const handleSearch = useCallback(
     debounce(async (query, itemId) => {
-      if (query.length < 2) {
+      if (query.length < 1) {
         setItems(prev => prev.map(item => item.id === itemId ? { ...item, searchResults: [] } : item))
         return
       }
@@ -258,10 +258,12 @@ export default function Cotizaciones() {
             <div key={it.id} className={cn('grid grid-cols-1 md:grid-cols-12 gap-3 items-center p-3 rounded-lg transition-colors', `bg-${theme.colors.background}/50 hover:bg-${theme.colors.background}`)}>
               <div className="md:col-span-6 relative">
                 <label className={cn('text-xs mb-1 block', `text-${theme.colors.textMuted}`)}>Producto</label>
-                <input
-                  autoComplete="off"
-                  className={cn('input', `bg-${theme.colors.surface} border-${theme.colors.border} text-${theme.colors.text}`)}
-                  placeholder="Buscar por nombre o SKU"
+                <div className="relative">
+                  <Search className={cn('absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4', `text-${theme.colors.textMuted}`)} />
+                  <input
+                    autoComplete="off"
+                    className={cn('input pl-10', `bg-${theme.colors.surface} border-${theme.colors.border} text-${theme.colors.text}`)}
+                    placeholder="Buscar por nombre, SKU, descripción o categoría"
                   value={it.nombre}
                   onChange={e => {
                     const nombre = e.target.value
@@ -269,22 +271,32 @@ export default function Cotizaciones() {
                     handleSearch(nombre, it.id)
                   }}
                   onFocus={() => setActiveSearch(it.id)}
-                />
-                {activeSearch === it.id && it.searchResults?.length > 0 && (
+                  onBlur={() => setTimeout(() => setActiveSearch(null), 200)}
+                  />
+                </div>
+                {activeSearch === it.id && it.searchResults && (
                   <div className={cn('absolute z-10 w-full rounded-md mt-1 shadow-lg max-h-60 overflow-y-auto', `bg-${theme.colors.surface} border border-${theme.colors.border}`)}>
-                    {it.searchResults.map(p => (
-                      <div
-                        key={p.id}
-                        onMouseDown={() => {
-                          updateItem(it.id, { nombre: p.name, precio: p.price, searchResults: [] })
-                          setActiveSearch(null)
-                        }}
-                        className={cn('px-4 py-2 cursor-pointer text-sm', `hover:bg-${theme.colors.background} text-${theme.colors.textSecondary}`)}
-                      >
-                        <p className="font-semibold">{p.name}</p>
-                        <p className={cn('text-xs', `text-${theme.colors.textMuted}`)}>SKU: {p.sku}</p>
+                    {it.searchResults.length > 0 ? (
+                      it.searchResults.map(p => (
+                        <div
+                          key={p.id}
+                          onMouseDown={() => {
+                            updateItem(it.id, { nombre: p.name, precio: p.price, searchResults: [] })
+                            setActiveSearch(null)
+                          }}
+                          className={cn('px-4 py-2 cursor-pointer', `hover:bg-${theme.colors.background}`)}
+                        >
+                          <p className={cn('font-semibold', `text-${theme.colors.text}`)}>{p.name}</p>
+                          {p.sku && <p className={cn('text-xs', `text-${theme.colors.textMuted}`)}>SKU: {p.sku}</p>}
+                          {p.description && <p className={cn('text-sm truncate', `text-${theme.colors.textSecondary}`)}>{p.description}</p>}
+                          {p.category_name && <p className={cn('text-xs', `text-${theme.colors.textMuted}`)}>Categoría: {p.category_name}</p>}
+                        </div>
+                      ))
+                    ) : (
+                      <div className={cn('px-4 py-3 text-sm', `text-${theme.colors.textMuted}`)}>
+                        No se encontraron productos. Prueba con otra palabra o revisa la ortografía.
                       </div>
-                    ))}
+                    )}
                   </div>
                 )}
               </div>
