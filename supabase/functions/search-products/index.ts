@@ -19,11 +19,7 @@ serve(async (req) => {
       { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
     )
 
-    const { data, error } = await supabase
-      .from('products')
-      .select('id, name, sku, price')
-      .or(`sku.ilike.%${query}%,name.ilike.%${query}%`)
-      .limit(10)
+    const { data, error } = await supabase.rpc('buscar_productos', { busqueda: query })
 
     if (error) {
       throw error
