@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useCallback } from 'react'
-import { Plus, Trash2, Download, Save, FileText } from 'lucide-react'
+import { Plus, Trash2, Download, Save, FileText, Search } from 'lucide-react'
 import { exportSectionsToPDF } from '../../common'
 import { useCotizaciones } from '../../hooks/useCotizaciones'
 import { useClientes } from '../../hooks/useClientes'
@@ -32,7 +32,7 @@ export default function Cotizaciones() {
 
   const handleSearch = useCallback(
     debounce(async (query, itemId) => {
-      if (query.length < 2) {
+      if (query.length < 1) {
         setItems(prev => prev.map(item => item.id === itemId ? { ...item, searchResults: [] } : item))
         return
       }
@@ -254,25 +254,49 @@ export default function Cotizaciones() {
         </div>
 
         <div className="space-y-4">
-          {items.map((it, index) => (
-            <div key={it.id} className={cn('grid grid-cols-1 md:grid-cols-12 gap-3 items-center p-3 rounded-lg transition-colors', `bg-${theme.colors.background}/50 hover:bg-${theme.colors.background}`)}>
+          {items.map((it) => (
+            <div
+              key={it.id}
+              className={cn(
+                'grid grid-cols-1 md:grid-cols-12 gap-3 items-center p-3 rounded-lg transition-colors',
+                `bg-${theme.colors.background}/50 hover:bg-${theme.colors.background}`
+              )}
+            >
               <div className="md:col-span-6 relative">
                 <label className={cn('text-xs mb-1 block', `text-${theme.colors.textMuted}`)}>Producto</label>
-                <input
-                  autoComplete="off"
-                  className={cn('input', `bg-${theme.colors.surface} border-${theme.colors.border} text-${theme.colors.text}`)}
-                  placeholder="Buscar por nombre, SKU, descripción o categoría"
-                  value={it.nombre}
-                  onChange={e => {
-                    const nombre = e.target.value
-                    updateItem(it.id, { nombre })
-                    handleSearch(nombre, it.id)
-                  }}
-                  onFocus={() => setActiveSearch(it.id)}
-                  onBlur={() => setTimeout(() => setActiveSearch(null), 200)}
-                />
+                {/* Merge result: search icon + input */}
+                <div className="relative">
+                  <Search
+                    className={cn(
+                      'absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4',
+                      `text-${theme.colors.textMuted}`
+                    )}
+                  />
+                  <input
+                    autoComplete="off"
+                    className={cn(
+                      'input pl-10',
+                      `bg-${theme.colors.surface} border-${theme.colors.border} text-${theme.colors.text}`
+                    )}
+                    placeholder="Buscar por nombre, SKU, descripción o categoría"
+                    value={it.nombre}
+                    onChange={e => {
+                      const nombre = e.target.value
+                      updateItem(it.id, { nombre })
+                      handleSearch(nombre, it.id)
+                    }}
+                    onFocus={() => setActiveSearch(it.id)}
+                    onBlur={() => setTimeout(() => setActiveSearch(null), 200)}
+                  />
+                </div>
+
                 {activeSearch === it.id && it.searchResults && (
-                  <div className={cn('absolute z-10 w-full rounded-md mt-1 shadow-lg max-h-60 overflow-y-auto', `bg-${theme.colors.surface} border border-${theme.colors.border}`)}>
+                  <div
+                    className={cn(
+                      'absolute z-10 w-full rounded-md mt-1 shadow-lg max-h-60 overflow-y-auto',
+                      `bg-${theme.colors.surface} border border-${theme.colors.border}`
+                    )}
+                  >
                     {it.searchResults.length > 0 ? (
                       it.searchResults.map(p => (
                         <div
@@ -323,14 +347,13 @@ export default function Cotizaciones() {
                 <label className={cn('text-xs mb-1 block', `text-${theme.colors.textMuted}`)}>Total</label>
                 <div className={cn('font-medium', `text-${theme.colors.text}`)}>$ {((Number(it.cantidad) || 0) * (Number(it.precio) || 0)).toFixed(2)}</div>
               </div>
-              <div className="md:col-span-1 flex justify-end">
+                            <div className="md:col-span-1 flex justify-end items-center mt-5 md:mt-7">
                 <button
                   onClick={() => removeItem(it.id)}
                   className={cn(
-                    'p-2 rounded-md border transition-colors',
-                    `border-${theme.colors.border} hover:bg-${theme.colors.error}/10 hover:border-${theme.colors.error}/30 text-${theme.colors.error} hover:text-${theme.colors.error}`
+                    'inline-flex items-center justify-center p-2 rounded-lg transition-colors',
+                    `bg-${theme.colors.surface} text-${theme.colors.textSecondary} hover:text-red-600`
                   )}
-                  aria-label="Eliminar producto"
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
@@ -339,102 +362,7 @@ export default function Cotizaciones() {
           ))}
         </div>
       </div>
-
-      {/* Action Buttons */}
-      <div className={cn('flex flex-col sm:flex-row gap-3 mt-6 pt-5', `border-t border-${theme.colors.border}`)}>
-        <button
-          onClick={handleGuardar}
-          className={cn(
-            'inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg transition-colors',
-            `bg-${theme.colors.primary} hover:bg-${theme.colors.primaryHover} text-${theme.colors.text}`
-          )}
-        >
-          <Save className="h-4 w-4" />
-          Guardar Cotización
-        </button>
-        <button
-          onClick={handlePDF}
-          className={cn(
-            'inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg transition-colors',
-            `bg-${theme.colors.primary} hover:bg-${theme.colors.primaryHover} text-${theme.colors.text}`
-          )}
-        >
-          <Download className="h-4 w-4" />
-          Generar PDF
-        </button>
-        <button
-          onClick={() => window.print()}
-          className={cn(
-            'inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg transition-colors',
-            `bg-purple-600 hover:bg-purple-500 text-white`
-          )}
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
-            <polyline points="6 9 6 2 18 2 18 9"></polyline>
-            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
-            <rect x="6" y="14" width="12" height="8"></rect>
-          </svg>
-          Imprimir
-        </button>
-      </div>
-
-      {/* Recent Quotations */}
-      {cotizaciones.length > 0 && (
-        <div className={cn('p-5 rounded-lg', `bg-${theme.colors.surface} border border-${theme.colors.border}`)}>
-          <h2 className={cn('font-semibold text-lg mb-4 flex items-center gap-2', `text-${theme.colors.text}`)}>
-            <div className={cn('w-2 h-2 rounded-full', `bg-${theme.colors.primary}`)}></div>
-            Últimas cotizaciones
-          </h2>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className={cn('text-left text-sm', `text-${theme.colors.textMuted} border-b border-${theme.colors.border}`)}>
-                  <th className="pb-3 font-medium">ID</th>
-                  <th className="pb-3 font-medium">Cliente</th>
-                  <th className="pb-3 font-medium">Fecha</th>
-                  <th className="pb-3 font-medium text-right">Total</th>
-                  <th className="pb-3 font-medium text-right">Acciones</th>
-                </tr>
-              </thead>
-              <tbody className={cn('divide-y', `divide-${theme.colors.border}`)}>
-                {cotizaciones.slice(-5).reverse().map(c => (
-                  <tr key={c.id} className={cn('transition-colors', `hover:bg-${theme.colors.background}/50`)}>
-                    <td className={cn('py-3 text-sm', `text-${theme.colors.textSecondary}`)}>{c.id}</td>
-                    <td className={cn('py-3 text-sm', `text-${theme.colors.textSecondary}`)}>{c.cliente?.nombre || '-'}</td>
-                    <td className={cn('py-3 text-sm', `text-${theme.colors.textSecondary}`)}>{c.fecha}</td>
-                    <td className={cn('py-3 text-sm text-right font-medium', `text-${theme.colors.text}`)}>$ {Number(c.totales?.total || 0).toFixed(2)}</td>
-                    <td className="py-3 text-sm text-right">
-                      <button
-                        onClick={() => {
-                          setCustomer({ nombre: c.cliente?.nombre || '', email: c.cliente?.email || '' });
-                          setMeta({
-                            fecha: c.fecha || new Date().toISOString().slice(0, 10),
-                            validezDias: c.validezDias || 15,
-                            notas: c.notas || ''
-                          });
-                          setItems(c.items || [{ id: 1, nombre: '', cantidad: 1, precio: 0 }]);
-                          setTimeout(() => window.print(), 100);
-                        }}
-                        className={cn(
-                          'inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs transition-colors',
-                          `bg-${theme.colors.surface} hover:bg-${theme.colors.border} text-${theme.colors.text}`
-                        )}
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <polyline points="6 9 6 2 18 2 18 9"></polyline>
-                          <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
-                          <rect x="6" y="14" width="12" height="8"></rect>
-                        </svg>
-                        Imprimir
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
+
