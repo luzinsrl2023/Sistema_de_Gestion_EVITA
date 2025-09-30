@@ -1,4 +1,4 @@
-import { supabase } from './supabaseClient'; // Asegúrate de que la ruta a tu cliente supabase sea correcta
+import { supabase } from '../lib/supabaseClient'; // Ruta corregida al cliente de Supabase
 
 /**
  * @typedef {Object} Prospecto
@@ -22,7 +22,7 @@ export const crearProspecto = async (datosProspecto) => {
     .from('prospectos')
     .insert([datosProspecto])
     .select()
-    .single(); // .single() para que devuelva el objeto creado, no un array
+    .single();
 
   if (error) {
     console.error('Error al crear el prospecto:', error.message);
@@ -34,14 +34,13 @@ export const crearProspecto = async (datosProspecto) => {
 
 /**
  * Obtiene todos los prospectos asignados al usuario actual.
- * La política RLS se encarga de filtrar los resultados automáticamente.
  * @returns {Promise<Prospecto[]>} Una lista de los prospectos.
  */
 export const obtenerProspectos = async () => {
   const { data, error } = await supabase
     .from('prospectos')
     .select('*')
-    .order('created_at', { ascending: false }); // Ordenar por fecha de creación descendente
+    .order('created_at', { ascending: false });
 
   if (error) {
     console.error('Error al obtener los prospectos:', error.message);
