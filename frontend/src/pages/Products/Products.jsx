@@ -11,7 +11,8 @@ import {
   Import,
   Download,
   FileSpreadsheet,
-  FileText
+  FileText,
+  Percent
 } from 'lucide-react'
 import { formatCurrency, getStatusColor, cn } from '../../lib/utils'
 import * as XLSX from 'xlsx'
@@ -268,6 +269,30 @@ export default function Products() {
     event.target.value = ''
   }
 
+  const handleUpdatePrices = async () => {
+    // TODO: El ID del proveedor debe ser dinámico, seleccionado desde la UI.
+    const proveedorId = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"; // Usar un ID de proveedor existente para pruebas
+    const margen = prompt("Ingrese el margen (%) a aplicar:", "20");
+    if (!margen) return;
+
+    try {
+      const res = await fetch(`/api/actualizar-precios/${proveedorId}/${margen}`, {
+        method: "POST"
+      });
+      const data = await res.json();
+      if (res.ok) {
+        alert(data.message || "Precios actualizados.");
+        // Opcional: Volver a cargar los productos para ver los cambios.
+        // getProducts();
+      } else {
+        throw new Error(data.message || 'Error al actualizar precios');
+      }
+    } catch (error) {
+      console.error("Error updating prices:", error);
+      alert(`Error: ${error.message}`);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -279,6 +304,13 @@ export default function Products() {
           </p>
         </div>
         <div className="flex items-center gap-3">
+          <button
+            onClick={handleUpdatePrices}
+            className="flex items-center gap-2 bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+          >
+            <Percent className="h-4 w-4" />
+            Actualizar Precios por Proveedor
+          </button>
           <button 
             onClick={handleImportExcel}
             className="flex items-center gap-2 bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg font-medium transition-colors"

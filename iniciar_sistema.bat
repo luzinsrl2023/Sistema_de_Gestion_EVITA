@@ -5,7 +5,7 @@ echo ====================================================
 echo Sistema de Gestion ERP - Inicializacion de la Base de Datos
 echo ====================================================
 
-cd /d "C:\Users\usuario\Desktop\Sistema de Gestion"
+cd /d "%~dp0"
 
 REM Verificar si existe el directorio sqlite
 if not exist "sqlite" (
@@ -13,7 +13,7 @@ if not exist "sqlite" (
     mkdir sqlite
 )
 
-cd /d "C:\Users\usuario\Desktop\Sistema de Gestion\sqlite"
+cd /d "%~dp0\sqlite"
 
 REM Verificar si existe sqlite3.exe
 if not exist "sqlite3.exe" (
@@ -35,6 +35,7 @@ if not exist "sqlite3.exe" (
 
 REM Crear la base de datos SQLite ejecutando el script SQL
 echo Creando base de datos...
+del gestion.db >nul 2>nul
 sqlite3.exe gestion.db < create_tables.sql
 
 if %ERRORLEVEL% EQU 0 (
@@ -60,8 +61,18 @@ echo ====================================================
 echo Iniciando aplicacion...
 echo ====================================================
 
+echo Instalando dependencias del backend...
+cd /d "%~dp0\backend"
+if not exist "node_modules" (
+    npm install
+)
+
+echo Iniciando servidor del backend...
+start "Backend - Sistema de Gestion ERP" cmd /k "node server.js"
+
+echo.
 echo Instalando dependencias del frontend...
-cd /d "C:\Users\usuario\Desktop\Sistema de Gestion\frontend"
+cd /d "%~dp0\frontend"
 if not exist "node_modules" (
     npm install
 )
@@ -72,6 +83,7 @@ start "Frontend - Sistema de Gestion ERP" cmd /k "npm run dev"
 echo.
 echo Aplicacion iniciada correctamente.
 echo El frontend esta disponible en http://localhost:5173
+echo El backend esta disponible en http://localhost:3000
 echo.
 echo Para detener la aplicacion, cierre las ventanas del servidor.
 echo.
