@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { X, Plus, Minus } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
+import ProductImageUpload from '../../components/common/ProductImageUpload'
 
 // Function to get suppliers from localStorage
 function getSuppliers() {
@@ -38,7 +39,8 @@ export default function ProductoForm({ onClose, onSubmit, product }) {
     price: product?.price || 0,
     cost: product?.cost || 0,
     description: product?.description || '',
-    supplier: product?.supplier || '' // Add supplier field
+    supplier: product?.supplier || '', // Add supplier field
+    image_url: product?.image_url || ''
   })
 
   const [margin, setMargin] = useState(() => {
@@ -261,6 +263,21 @@ export default function ProductoForm({ onClose, onSubmit, product }) {
                 placeholder="Información adicional sobre el producto"
               />
             </div>
+
+            {product?.id && (
+              <div className="md:col-span-2">
+                <ProductImageUpload
+                  productId={product.id}
+                  onUploadSuccess={(url) => setFormData(prev => ({...prev, image_url: url}))}
+                />
+                {formData.image_url && (
+                  <div className="mt-4">
+                    <p className="block text-sm font-medium text-white mb-2">Imagen Actual:</p>
+                    <img src={formData.image_url} alt="Producto" className="w-24 h-24 rounded-lg object-cover" />
+                  </div>
+                )}
+              </div>
+            )}
           </div>
           
           <div className="flex justify-end gap-4 pt-4">

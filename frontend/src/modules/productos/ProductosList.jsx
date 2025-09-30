@@ -512,6 +512,7 @@ export default function ProductosList() {
                     className="rounded border-gray-600 text-green-600 focus:ring-green-500 focus:ring-offset-gray-900"
                   />
                 </th>
+                <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-gray-400">Imagen</th>
                 <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-gray-400">Producto</th>
                 <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-gray-400">SKU</th>
                 <th className="px-4 py-3 text-xs font-medium uppercase tracking-wider text-gray-400">Categoría</th>
@@ -534,6 +535,15 @@ export default function ProductosList() {
                         onChange={() => handleSelectProduct(product.id)}
                         className="rounded border-gray-600 text-green-600 focus:ring-green-500 focus:ring-offset-gray-900"
                       />
+                    </td>
+                    <td className="px-4 py-4">
+                      {product.image_url ? (
+                        <img src={product.image_url} alt={product.name} className="w-12 h-12 rounded-lg object-cover" />
+                      ) : (
+                        <div className="w-12 h-12 flex items-center justify-center bg-gray-800 rounded-lg">
+                          <Package className="w-6 h-6 text-gray-500" />
+                        </div>
+                      )}
                     </td>
                     <td className="px-4 py-4 text-sm font-medium text-white">{product.name}</td>
                     <td className="px-4 py-4 text-sm text-gray-400 font-mono">{product.sku}</td>
