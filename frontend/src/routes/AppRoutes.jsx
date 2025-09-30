@@ -14,7 +14,8 @@ import { CuentasCorrientes, ComposicionSaldos, CobranzaForm, RecibosList } from 
 import { VentasReport, ComprasReport, StockReport, DashboardReport as ReportesDashboard } from '../modules/reportes'
 import { Cotizaciones } from '../modules/cotizaciones'
 import { Facturador } from '../modules/facturador'
-import { PaginaProspectos } from '../modules/prospectos' // <-- Nueva importación
+import PaginaProspectos from '../pages/PaginaProspectos'
+import PaginaDetalleProspecto from '../pages/PaginaDetalleProspecto'
 import ConfiguracionPage from '../pages/configuracion/ConfiguracionPage'
 
 // Loading component for Suspense
@@ -45,6 +46,7 @@ const AppRoutes = () => {
 
             {/* Prospectos (Leads) */}
             <Route path="/prospectos" element={<PaginaProspectos />} />
+            <Route path="/prospectos/:id" element={<PaginaDetalleProspecto />} />
 
             {/* Ventas */}
             <Route path="/cotizaciones" element={<Cotizaciones />} />

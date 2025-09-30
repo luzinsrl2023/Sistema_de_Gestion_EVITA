@@ -28,7 +28,6 @@ import { cn } from '../../lib/utils'
 
 const navigation = [
   { name: 'Tablero', href: '/tablero', icon: LayoutDashboard },
-  { name: 'Prospectos', href: '/prospectos', icon: Contact2 },
   { name: 'Ventas', icon: FileText, children: [
     { name: 'Cotizaciones', href: '/cotizaciones' },
     { name: 'Facturador', href: '/facturador' },
@@ -52,6 +51,7 @@ const navigation = [
     { name: 'Compras', href: '/reportes/compras' },
     { name: 'Stock', href: '/reportes/stock' },
   ]},
+  { name: 'Prospectos', href: '/prospectos', icon: Contact2 },
   { name: 'Configuración', href: '/configuracion', icon: SettingsIcon },
 ]
 
