@@ -5,6 +5,37 @@
 
 import { supabase } from '../lib/supabaseClient';
 
+const PROSPECTOS_COLUMNS = `
+  id,
+  nombre,
+  apellido,
+  email,
+  telefono,
+  cargo,
+  empresa,
+  sitio_web,
+  industria,
+  tamaño_empresa,
+  pais,
+  ciudad,
+  direccion,
+  estado,
+  prioridad,
+  fuente,
+  presupuesto_estimado,
+  moneda_presupuesto,
+  notas,
+  descripcion_oportunidad,
+  fecha_proximo_contacto,
+  fecha_cierre_esperada,
+  responsable_id,
+  creado_por,
+  created_at,
+  updated_at,
+  deleted_at,
+  campos_adicionales
+`;
+
 // =============================================
 // FUNCIONES CRUD BÁSICAS
 // =============================================
@@ -67,7 +98,7 @@ export const obtenerProspectos = async (opciones = {}) => {
 
     let query = supabase
       .from('prospectos')
-      .select(`*,
+      .select(`${PROSPECTOS_COLUMNS},
         responsable:auth.users!responsable_id(id, email, raw_user_meta_data),
         creador:auth.users!creado_por(id, email, raw_user_meta_data)
       `, { count: 'exact' })
@@ -116,7 +147,7 @@ export const obtenerProspectoPorId = async (id) => {
   try {
     const { data, error } = await supabase
       .from('prospectos')
-      .select(`*,
+      .select(`${PROSPECTOS_COLUMNS},
         responsable:auth.users!responsable_id(id, email, raw_user_meta_data),
         creador:auth.users!creado_por(id, email, raw_user_meta_data)
       `)
@@ -341,7 +372,7 @@ export const obtenerProspectosProximosAVencer = async (dias = 7) => {
 
     const { data, error } = await supabase
       .from('prospectos')
-      .select(`*,
+      .select(`${PROSPECTOS_COLUMNS},
         responsable:auth.users!responsable_id(id, email, raw_user_meta_data)
       `)
       .is('deleted_at', null)
