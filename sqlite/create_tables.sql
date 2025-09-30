@@ -12,18 +12,30 @@ CREATE TABLE IF NOT EXISTS proveedores (
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Crear tabla: categorias
+CREATE TABLE IF NOT EXISTS categorias (
+  id TEXT PRIMARY KEY,
+  nombre TEXT NOT NULL UNIQUE,
+  descripcion TEXT
+);
+
 -- Crear tabla: productos
 CREATE TABLE IF NOT EXISTS productos (
     id TEXT PRIMARY KEY,
     nombre TEXT NOT NULL,
     descripcion TEXT,
-    categoria TEXT NOT NULL, -- ENUM: 'limpieza', 'articulos_generales', 'electricidad', 'otros'
     sku TEXT UNIQUE,
+    categoria_id TEXT,
+    proveedor_id TEXT,
     stock_actual INTEGER DEFAULT 0,
     stock_minimo INTEGER DEFAULT 0,
-    precio_venta REAL NOT NULL,
+    precio_compra REAL DEFAULT 0,
+    margen_ganancia REAL DEFAULT 0, -- Margen de ganancia en porcentaje (ej. 20 para 20%)
+    precio_final REAL, -- Se calcula: precio_compra * (1 + margen_ganancia / 100)
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (categoria_id) REFERENCES categorias(id) ON DELETE SET NULL,
+    FOREIGN KEY (proveedor_id) REFERENCES proveedores(id) ON DELETE SET NULL
 );
 
 -- Crear tabla: ordenes_compra
@@ -156,6 +168,8 @@ CREATE TABLE IF NOT EXISTS detalles_asiento (
 );
 
 -- Crear índices para mejorar el rendimiento
+CREATE INDEX IF NOT EXISTS idx_productos_categoria ON productos(categoria_id);
+CREATE INDEX IF NOT EXISTS idx_productos_proveedor ON productos(proveedor_id);
 CREATE INDEX IF NOT EXISTS idx_ordenes_compra_proveedor ON ordenes_compra(proveedor_id);
 CREATE INDEX IF NOT EXISTS idx_ordenes_compra_fecha ON ordenes_compra(fecha_orden);
 CREATE INDEX IF NOT EXISTS idx_detalles_orden_compra_orden ON detalles_orden_compra(orden_compra_id);
@@ -180,3 +194,23 @@ INSERT OR IGNORE INTO cuentas_contables (id, nombre, tipo) VALUES
 ('7', 'Ventas', 'ingreso'),
 ('8', 'Compras', 'egreso'),
 ('9', 'Gastos Operativos', 'egreso');
+
+-- Insertar categorías iniciales
+INSERT OR IGNORE INTO categorias (id, nombre, descripcion) VALUES
+  ('cat_limpieza', 'Limpieza', 'Productos de limpieza y desinfección'),
+  ('cat_electricidad', 'Electricidad', 'Productos eléctricos y accesorios'),
+  ('cat_higiene', 'Higiene', 'Productos de cuidado personal');
+
+-- Actualizar productos con categorías según nombre (ejemplo)
+-- Nota: Esto tendrá efecto si la tabla de productos ya contiene datos.
+UPDATE productos
+SET categoria_id = (SELECT id FROM categorias WHERE nombre = 'Limpieza')
+WHERE lower(nombre) LIKE '%limpiador%' OR lower(nombre) LIKE '%detergente%' OR lower(nombre) LIKE '%desinfectante%';
+
+UPDATE productos
+SET categoria_id = (SELECT id FROM categorias WHERE nombre = 'Electricidad')
+WHERE lower(nombre) LIKE '%cable%' OR lower(nombre) LIKE '%bombillas%' OR lower(nombre) LIKE '%enchufe%';
+
+UPDATE productos
+SET categoria_id = (SELECT id FROM categorias WHERE nombre = 'Higiene')
+WHERE lower(nombre) LIKE '%jabón%';
