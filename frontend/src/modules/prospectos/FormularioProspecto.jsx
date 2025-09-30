@@ -40,16 +40,31 @@ const FormularioProspecto = ({ prospectoInicial, onClose }) => {
         setError(null);
 
         try {
+            let resultado;
+
             if (esEdicion) {
-                await actualizarProspecto(prospectoInicial.id, formData);
+                resultado = await actualizarProspecto(prospectoInicial.id, formData);
             } else {
-                await crearProspecto(formData);
+                resultado = await crearProspecto(formData);
             }
-            // Cierra el formulario y notifica que hubo una actualización
-            onClose(true);
+
+            if (resultado?.error) {
+                const supabaseError = resultado.error;
+                throw supabaseError instanceof Error
+                    ? supabaseError
+                    : new Error(supabaseError?.message || 'No se pudo guardar el prospecto');
+            }
+
+            onClose({
+                updated: true,
+                message: esEdicion
+                    ? 'Prospecto actualizado correctamente'
+                    : 'Prospecto creado correctamente',
+                data: resultado?.data || null,
+            });
         } catch (err) {
-            setError(err.message);
             console.error(err);
+            setError(err?.message || 'Ocurrió un error inesperado');
         } finally {
             setLoading(false);
         }
@@ -147,7 +162,7 @@ const FormularioProspecto = ({ prospectoInicial, onClose }) => {
                     <div className="flex justify-end space-x-4 mt-6">
                         <button
                             type="button"
-                            onClick={() => onClose(false)} // Cierra sin actualizar
+                            onClick={() => onClose({ updated: false })}
                             className="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-lg transition duration-300"
                             disabled={loading}
                         >
