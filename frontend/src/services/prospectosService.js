@@ -15,7 +15,7 @@ const PROSPECTO_BASE_COLUMNS = [
   'empresa',
   'sitio_web',
   'industria',
-  '"tamaño_empresa"',
+  'tamano_empresa', // ya sin tilde
   'pais',
   'ciudad',
   'direccion',
