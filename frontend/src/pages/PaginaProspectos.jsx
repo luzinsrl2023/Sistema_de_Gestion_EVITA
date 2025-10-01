@@ -45,7 +45,35 @@ import {
   obtenerEstadisticasProspectos,
   obtenerProspectosProximosAVencer
 } from '../services/prospectosService';
+
+const safeParse = (value) => {
+  try {
+    return JSON.parse(value);
+  } catch (error) {
+    return null;
+  }
+};
+
+const formatUserDisplay = (user) => {
+  if (!user) return '-';
+  const value = typeof user === 'string' ? safeParse(user) : user;
+  return value?.full_name || value?.nombre || value?.email || value?.id || '-';
+};
 import FormularioProspecto from '../components/prospectos/FormularioProspecto';
+
+const safeParse = (value) => {
+  try {
+    return JSON.parse(value);
+  } catch (error) {
+    return null;
+  }
+};
+
+const formatUserDisplay = (user) => {
+  if (!user) return '-';
+  const value = typeof user === 'string' ? safeParse(user) : user;
+  return value?.full_name || value?.nombre || value?.email || value?.id || '-';
+};
 
 // Configuración de colores para estados
 const estadoColores = {
@@ -414,11 +442,7 @@ const PaginaProspectos = () => {
                             color={prioridadColores[prospecto.prioridad] || 'default'}
                           />
                         </TableCell>
-                        <TableCell>
-                          {prospecto.responsable?.raw_user_meta_data?.full_name ||
-                           prospecto.responsable?.email ||
-                           '-'}
-                        </TableCell>
+                        <TableCell>{formatUserDisplay(prospecto.responsable)}</TableCell>
                         <TableCell>
                           {prospecto.presupuesto_estimado ?
                             `$${prospecto.presupuesto_estimado.toLocaleString()}` :

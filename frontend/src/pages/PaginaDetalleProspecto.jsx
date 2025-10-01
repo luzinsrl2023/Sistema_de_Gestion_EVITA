@@ -27,6 +27,20 @@ import {
 } from '@mui/icons-material';
 import { obtenerProspectoPorId } from '../services/prospectosService';
 
+const safeParse = (value) => {
+  try {
+    return JSON.parse(value);
+  } catch (error) {
+    return null;
+  }
+};
+
+const formatUserDisplay = (user) => {
+  if (!user) return '-';
+  const value = typeof user === 'string' ? safeParse(user) : user;
+  return value?.full_name || value?.nombre || value?.email || value?.id || '-';
+};
+
 // Configuración de colores (igual que en PaginaProspectos)
 const estadoColores = {
   'Nuevo': 'info',
@@ -292,11 +306,7 @@ const PaginaDetalleProspecto = () => {
                   />
 
                   {prospecto.responsable && (
-                    <InfoItem
-                      label="Responsable"
-                      value={prospecto.responsable.raw_user_meta_data?.full_name ||
-                             prospecto.responsable.email}
-                    />
+                  <InfoItem label="Responsable" value={formatUserDisplay(prospecto.responsable)} />
                   )}
                 </Grid>
               </Grid>
@@ -400,9 +410,7 @@ const PaginaDetalleProspecto = () => {
                   <Typography variant="subtitle2" color="text.secondary">
                     Creado por
                   </Typography>
-                  <Typography variant="body2">
-                    {prospecto.creador.raw_user_meta_data?.full_name || prospecto.creador.email}
-                  </Typography>
+                  <Typography variant="body2">{formatUserDisplay(prospecto.creador)}</Typography>
                 </Box>
               )}
             </CardContent>
