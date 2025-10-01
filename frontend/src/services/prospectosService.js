@@ -5,6 +5,10 @@
 
 import { supabase } from '../lib/supabaseClient';
 
+// =============================================
+// DEFINICIÓN DE COLUMNAS
+// =============================================
+
 const PROSPECTO_BASE_COLUMNS = [
   'id',
   'nombre',
@@ -15,7 +19,7 @@ const PROSPECTO_BASE_COLUMNS = [
   'empresa',
   'sitio_web',
   'industria',
-  'tamano_empresa', // ya sin tilde
+  'tamano_empresa', // ✅ ya sin tilde
   'pais',
   'ciudad',
   'direccion',
@@ -50,19 +54,12 @@ const PROSPECTO_SELECT_WITH_RESPONSABLE = `${PROSPECTO_BASE_COLUMNS},responsable
 
 /**
  * Crea un nuevo prospecto en la base de datos
- * @param {Object} datosProspecto - Datos del prospecto a crear
- * @returns {Object} - Prospecto creado o error
  */
 export const crearProspecto = async (datosProspecto) => {
   try {
-    // Obtener el usuario actual
     const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Usuario no autenticado');
 
-    if (!user) {
-      throw new Error('Usuario no autenticado');
-    }
-
-    // Preparar datos con el usuario creador
     const datosCompletos = {
       ...datosProspecto,
       creado_por: user.id,
@@ -75,11 +72,7 @@ export const crearProspecto = async (datosProspecto) => {
       .select(PROSPECTO_SELECT_COLUMNS)
       .single();
 
-    if (error) {
-      console.error('Error al crear prospecto:', error);
-      throw error;
-    }
-
+    if (error) throw error;
     return { data, error: null };
   } catch (error) {
     console.error('Error en crearProspecto:', error);
@@ -89,8 +82,6 @@ export const crearProspecto = async (datosProspecto) => {
 
 /**
  * Obtiene todos los prospectos activos
- * @param {Object} opciones - Opciones de filtrado y paginación
- * @returns {Array} - Lista de prospectos
  */
 export const obtenerProspectos = async (opciones = {}) => {
   try {
@@ -109,32 +100,18 @@ export const obtenerProspectos = async (opciones = {}) => {
       .select(PROSPECTO_SELECT_COLUMNS, { count: 'exact' })
       .is('deleted_at', null);
 
-    // Aplicar filtros
-    if (estado) {
-      query = query.eq('estado', estado);
-    }
-
-    if (responsable_id) {
-      query = query.eq('responsable_id', responsable_id);
-    }
-
+    if (estado) query = query.eq('estado', estado);
+    if (responsable_id) query = query.eq('responsable_id', responsable_id);
     if (busqueda) {
       query = query.or(`nombre.ilike.%${busqueda}%,apellido.ilike.%${busqueda}%,empresa.ilike.%${busqueda}%,email.ilike.%${busqueda}%`);
     }
 
-    // Aplicar ordenamiento
     query = query.order(ordenarPor, { ascending: orden === 'ASC' });
-
-    // Aplicar paginación
     const desde = (pagina - 1) * limite;
     query = query.range(desde, desde + limite - 1);
 
     const { data, error, count } = await query;
-
-    if (error) {
-      console.error('Error al obtener prospectos:', error);
-      throw error;
-    }
+    if (error) throw error;
 
     return { data, count, error: null };
   } catch (error) {
@@ -145,8 +122,6 @@ export const obtenerProspectos = async (opciones = {}) => {
 
 /**
  * Obtiene un prospecto específico por ID
- * @param {string} id - ID del prospecto
- * @returns {Object} - Prospecto encontrado
  */
 export const obtenerProspectoPorId = async (id) => {
   try {
@@ -157,11 +132,7 @@ export const obtenerProspectoPorId = async (id) => {
       .is('deleted_at', null)
       .single();
 
-    if (error) {
-      console.error('Error al obtener prospecto:', error);
-      throw error;
-    }
-
+    if (error) throw error;
     return { data, error: null };
   } catch (error) {
     console.error('Error en obtenerProspectoPorId:', error);
@@ -171,9 +142,6 @@ export const obtenerProspectoPorId = async (id) => {
 
 /**
  * Actualiza un prospecto existente
- * @param {string} id - ID del prospecto
- * @param {Object} datosActualizados - Datos a actualizar
- * @returns {Object} - Prospecto actualizado
  */
 export const actualizarProspecto = async (id, datosActualizados) => {
   try {
@@ -184,11 +152,7 @@ export const actualizarProspecto = async (id, datosActualizados) => {
       .select(PROSPECTO_SELECT_COLUMNS)
       .single();
 
-    if (error) {
-      console.error('Error al actualizar prospecto:', error);
-      throw error;
-    }
-
+    if (error) throw error;
     return { data, error: null };
   } catch (error) {
     console.error('Error en actualizarProspecto:', error);
@@ -198,9 +162,6 @@ export const actualizarProspecto = async (id, datosActualizados) => {
 
 /**
  * Actualiza el estado de un prospecto
- * @param {string} id - ID del prospecto
- * @param {string} nuevoEstado - Nuevo estado del prospecto
- * @returns {Object} - Prospecto actualizado
  */
 export const actualizarEstadoProspecto = async (id, nuevoEstado) => {
   try {
@@ -214,11 +175,7 @@ export const actualizarEstadoProspecto = async (id, nuevoEstado) => {
       .select(PROSPECTO_SELECT_COLUMNS)
       .single();
 
-    if (error) {
-      console.error('Error al actualizar estado:', error);
-      throw error;
-    }
-
+    if (error) throw error;
     return { data, error: null };
   } catch (error) {
     console.error('Error en actualizarEstadoProspecto:', error);
@@ -228,8 +185,6 @@ export const actualizarEstadoProspecto = async (id, nuevoEstado) => {
 
 /**
  * Elimina un prospecto (soft delete)
- * @param {string} id - ID del prospecto
- * @returns {Object} - Resultado de la eliminación
  */
 export const eliminarProspecto = async (id) => {
   try {
@@ -243,11 +198,7 @@ export const eliminarProspecto = async (id) => {
       .select(PROSPECTO_SELECT_COLUMNS)
       .single();
 
-    if (error) {
-      console.error('Error al eliminar prospecto:', error);
-      throw error;
-    }
-
+    if (error) throw error;
     return { data, error: null };
   } catch (error) {
     console.error('Error en eliminarProspecto:', error);
@@ -261,20 +212,14 @@ export const eliminarProspecto = async (id) => {
 
 /**
  * Obtiene estadísticas de prospectos
- * @returns {Object} - Estadísticas de prospectos
  */
 export const obtenerEstadisticasProspectos = async () => {
   try {
     const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Usuario no autenticado');
 
-    if (!user) {
-      throw new Error('Usuario no autenticado');
-    }
-
-    // Verificar si es administrador
     const isAdmin = user.user_metadata?.role === 'admin';
 
-    // Consulta de conteo por estado
     let queryEstados = supabase
       .from('prospectos')
       .select('estado', { count: 'exact', head: false })
@@ -286,7 +231,6 @@ export const obtenerEstadisticasProspectos = async () => {
 
     const { data: dataEstados, error: errorEstados } = await queryEstados;
 
-    // Consulta de valor total por estado
     let queryValor = supabase
       .from('prospectos')
       .select('estado, presupuesto_estimado')
@@ -299,11 +243,8 @@ export const obtenerEstadisticasProspectos = async () => {
 
     const { data: dataValor, error: errorValor } = await queryValor;
 
-    if (errorEstados || errorValor) {
-      throw errorEstados || errorValor;
-    }
+    if (errorEstados || errorValor) throw errorEstados || errorValor;
 
-    // Procesar estadísticas
     const estadisticas = {
       total: dataEstados.length,
       porEstado: {},
@@ -311,13 +252,11 @@ export const obtenerEstadisticasProspectos = async () => {
       valorPorEstado: {}
     };
 
-    // Contar por estado
     dataEstados.forEach(prospecto => {
       estadisticas.porEstado[prospecto.estado] =
         (estadisticas.porEstado[prospecto.estado] || 0) + 1;
     });
 
-    // Sumar valores por estado
     dataValor.forEach(prospecto => {
       estadisticas.valorTotal += parseFloat(prospecto.presupuesto_estimado || 0);
       estadisticas.valorPorEstado[prospecto.estado] =
@@ -334,9 +273,6 @@ export const obtenerEstadisticasProspectos = async () => {
 
 /**
  * Asigna un prospecto a un usuario
- * @param {string} prospectoId - ID del prospecto
- * @param {string} usuarioId - ID del usuario a asignar
- * @returns {Object} - Prospecto actualizado
  */
 export const asignarProspecto = async (prospectoId, usuarioId) => {
   try {
@@ -350,11 +286,7 @@ export const asignarProspecto = async (prospectoId, usuarioId) => {
       .select(PROSPECTO_SELECT_COLUMNS)
       .single();
 
-    if (error) {
-      console.error('Error al asignar prospecto:', error);
-      throw error;
-    }
-
+    if (error) throw error;
     return { data, error: null };
   } catch (error) {
     console.error('Error en asignarProspecto:', error);
@@ -364,8 +296,6 @@ export const asignarProspecto = async (prospectoId, usuarioId) => {
 
 /**
  * Obtiene prospectos próximos a vencer (por fecha de cierre)
- * @param {number} dias - Días para considerar como próximo a vencer
- * @returns {Array} - Lista de prospectos próximos a vencer
  */
 export const obtenerProspectosProximosAVencer = async (dias = 7) => {
   try {
@@ -381,14 +311,11 @@ export const obtenerProspectosProximosAVencer = async (dias = 7) => {
       .lte('fecha_cierre_esperada', fechaLimite.toISOString().split('T')[0])
       .order('fecha_cierre_esperada', { ascending: true });
 
-    if (error) {
-      console.error('Error al obtener prospectos próximos a vencer:', error);
-      throw error;
-    }
-
+    if (error) throw error;
     return { data, error: null };
   } catch (error) {
     console.error('Error en obtenerProspectosProximosAVencer:', error);
     return { data: [], error };
   }
 };
+
