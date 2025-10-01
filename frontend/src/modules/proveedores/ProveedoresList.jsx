@@ -15,12 +15,14 @@ import {
   Import,
   Download,
   FileSpreadsheet,
-  FileText
+  FileText,
+  Loader
 } from 'lucide-react'
 import { formatCurrency, formatDate, cn } from '../../lib/utils'
 import { DataTable, exportToExcel, exportTableToPDF } from '../../common'
 import * as XLSX from 'xlsx'
 import { getProveedores, createProveedor, updateProveedor, deleteProveedor } from '../../services/proveedores'
+import { updateProductosPorProveedor } from '../../services/productos'
 
 const paymentTermsOptions = ['15 días', '20 días', '30 días', '60 días', '90 días', 'Contado']
 const paymentMethods = ['Efectivo', 'Transferencia', 'Mercado Pago', 'Tarjeta de Crédito', 'Tarjeta de Débito', 'Cheque']
@@ -406,6 +408,7 @@ export default function ProveedoresList() {
   const [showMarginUpdate, setShowMarginUpdate] = useState(false)
   const [selectedSupplierForMargin, setSelectedSupplierForMargin] = useState('')
   const [marginPercentage, setMarginPercentage] = useState(0)
+  const [isUpdatingMargin, setIsUpdatingMargin] = useState(false)
 
   // Add function to update all products from a supplier
   const handleUpdateSupplierMargin = async () => {
@@ -415,55 +418,25 @@ export default function ProveedoresList() {
     }
 
     try {
-      // Get current products from localStorage
-      let products = []
-      try {
-        const raw = localStorage.getItem('evita-productos')
-        if (raw) products = JSON.parse(raw)
-      } catch (_) {}
+      setIsUpdatingMargin(true)
+      const { data, updated, error } = await updateProductosPorProveedor(selectedSupplierForMargin, marginPercentage)
+      if (error) throw error
 
-      if (products.length === 0) {
-        alert('No se encontraron productos para actualizar')
-        return
-      }
-
-      // Filter and update products by supplier
-      let updatedCount = 0
-      const updatedProducts = products.map(product => {
-        // Check if product has supplier field and matches selected supplier
-        if (product.supplier === selectedSupplierForMargin) {
-          // Calculate new price with margin - corrected formula
-          const marginDecimal = marginPercentage / 100
-          // To add a margin, we multiply cost by (1 + margin)
-          // To apply an increase percentage, we also multiply by (1 + percentage/100)
-          const increaseFactor = 1 + marginDecimal
-          const newPrice = product.cost * increaseFactor
-          
-          updatedCount++
-          return {
-            ...product,
-            price: isNaN(newPrice) || !isFinite(newPrice) || newPrice <= 0 ? product.price : newPrice
-          }
-        }
-        return product
-      })
-
-      // Save updated products
-      localStorage.setItem('evita-productos', JSON.stringify(updatedProducts))
-      
-      if (updatedCount > 0) {
-        alert(`Se actualizaron los precios de ${updatedCount} productos con un aumento del ${marginPercentage}%`)
+      if (!updated) {
+        alert('No se encontraron productos asociados a este proveedor en Supabase.')
       } else {
-        alert('No se encontraron productos asociados a este proveedor. Asegúrese de que los productos tengan asignado el proveedor.')
+        const supplierName = suppliers.find((s) => s.id === selectedSupplierForMargin)?.name || 'el proveedor'
+        alert(`Se actualizaron los precios de ${updated} productos de ${supplierName} aplicando un aumento del ${marginPercentage}%`)
       }
-      
-      // Reset form
+
       setSelectedSupplierForMargin('')
       setMarginPercentage(0)
       setShowMarginUpdate(false)
     } catch (error) {
       console.error('Error updating supplier margin:', error)
       alert('Error al actualizar los precios de los productos')
+    } finally {
+      setIsUpdatingMargin(false)
     }
   }
 
@@ -993,7 +966,7 @@ export default function ProveedoresList() {
                 >
                   <option value="">Seleccione un proveedor</option>
                   {suppliers.map(supplier => (
-                    <option key={supplier.id} value={supplier.name}>{supplier.name}</option>
+                    <option key={supplier.id} value={supplier.id}>{supplier.name}</option>
                   ))}
                 </select>
               </div>
@@ -1029,9 +1002,21 @@ export default function ProveedoresList() {
                 </button>
                 <button
                   onClick={handleUpdateSupplierMargin}
-                  className="px-6 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg font-medium transition-colors"
+                  className={`px-6 py-2 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 ${
+                    isUpdatingMargin
+                      ? 'bg-yellow-500/80 text-white cursor-not-allowed'
+                      : 'bg-yellow-600 hover:bg-yellow-700 text-white'
+                  }`}
+                  disabled={isUpdatingMargin}
                 >
-                  Aplicar Aumento
+                  {isUpdatingMargin ? (
+                    <>
+                      <Loader className="h-4 w-4 animate-spin" />
+                      Actualizando...
+                    </>
+                  ) : (
+                    'Aplicar Aumento'
+                  )}
                 </button>
               </div>
             </div>

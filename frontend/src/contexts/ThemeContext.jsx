@@ -353,34 +353,105 @@ export const ThemeProvider = ({ children }) => {
   const [logoUrl, setLogoUrl] = useState(DEFAULT_LOGO_DATA_URL)
   const [isCustomLogo, setIsCustomLogo] = useState(false)
 
+  // Function to validate image URL
+  const validateImageUrl = (url) => {
+    return new Promise((resolve) => {
+      if (!url) {
+        resolve(false);
+        return;
+      }
+      
+      // Check if it's a blob URL (which becomes invalid after reload)
+      if (url.startsWith('blob:')) {
+        resolve(false);
+        return;
+      }
+      
+      // For data URLs, they should be valid
+      if (url.startsWith('data:')) {
+        resolve(true);
+        return;
+      }
+      
+      // For regular URLs, try to check if it's accessible
+      // We'll just return true for now as we can't easily validate remote URLs without loading them
+      resolve(true);
+    });
+  };
+
   useEffect(() => {
-    // Load theme and logo from localStorage
-    const savedTheme = localStorage.getItem('evita-theme')
-    if (savedTheme && themes[savedTheme]) {
-      setCurrentTheme(savedTheme)
-      setTheme(themes[savedTheme])
-    }
-    const savedLogo = localStorage.getItem('evita-logo')
-    if (savedLogo) {
-      setLogoUrl(savedLogo)
-      setIsCustomLogo(true)
-    } else {
-      setLogoUrl(DEFAULT_LOGO_DATA_URL)
-      setIsCustomLogo(false)
-    }
+    const initializeTheme = async () => {
+      // Load theme from localStorage
+      const savedTheme = localStorage.getItem('evita-theme')
+      if (savedTheme && themes[savedTheme]) {
+        setCurrentTheme(savedTheme)
+        setTheme(themes[savedTheme])
+      }
+      
+      // Try to load logo from localStorage first
+      let savedLogo = localStorage.getItem('evita-logo')
+      let isValid = savedLogo ? await validateImageUrl(savedLogo) : false;
+      
+      if (isValid && savedLogo) {
+        setLogoUrl(savedLogo)
+        setIsCustomLogo(savedLogo !== DEFAULT_LOGO_DATA_URL)
+      } else {
+        // If localStorage logo is invalid, try to load from database
+        try {
+          const { getCompanyConfig } = await import('../services/companyService');
+          const companyConfig = await getCompanyConfig();
+          
+          if (companyConfig?.logo_url) {
+            // Update localStorage with the valid URL from database
+            localStorage.setItem('evita-logo', companyConfig.logo_url);
+            setLogoUrl(companyConfig.logo_url)
+            setIsCustomLogo(companyConfig.logo_url !== DEFAULT_LOGO_DATA_URL)
+          } else {
+            setLogoUrl(DEFAULT_LOGO_DATA_URL)
+            setIsCustomLogo(false)
+          }
+        } catch (error) {
+          console.error('Error loading company config:', error);
+          setLogoUrl(DEFAULT_LOGO_DATA_URL)
+          setIsCustomLogo(false)
+        }
+      }
+    };
+    
+    initializeTheme();
   }, [])
 
-  const setAppLogo = (url, path) => {
+  const setAppLogo = async (url, path) => {
     if (url) {
       localStorage.setItem('evita-logo', url)
-      localStorage.setItem('evita-logo-path', path)
+      if (path) {
+        localStorage.setItem('evita-logo-path', path)
+      } else {
+        localStorage.removeItem('evita-logo-path')
+      }
       setLogoUrl(url)
-      setIsCustomLogo(true)
+      setIsCustomLogo(url !== DEFAULT_LOGO_DATA_URL)
+      
+      // Also update in the company config database
+      try {
+        const { upsertCompanyConfig } = await import('../services/companyService');
+        await upsertCompanyConfig({ logo_url: url, logo_path: path || null });
+      } catch (error) {
+        console.error('Error updating company config with logo:', error);
+      }
     } else {
       localStorage.removeItem('evita-logo')
       localStorage.removeItem('evita-logo-path')
       setLogoUrl(DEFAULT_LOGO_DATA_URL)
       setIsCustomLogo(false)
+      
+      // Also update in the company config database
+      try {
+        const { upsertCompanyConfig } = await import('../services/companyService');
+        await upsertCompanyConfig({ logo_url: null, logo_path: null });
+      } catch (error) {
+        console.error('Error updating company config to remove logo:', error);
+      }
     }
   }
 

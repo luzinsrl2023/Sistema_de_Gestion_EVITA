@@ -85,10 +85,8 @@ export const uploadFile = async (file, bucketName, fileName = null, options = {}
       const fileExt = file.name.split('.').pop()
       const finalFileName = fileName || `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
       
-      // Guardar en localStorage para persistencia en desarrollo
-      if (bucketName === BUCKETS.LOGOS) {
-        localStorage.setItem('evita-logo', fileUrl)
-      }
+      // For logo uploads in development, we return the blob URL but shouldn't store it in localStorage
+      // since blob URLs become invalid after page refresh. The ThemeContext will handle proper storage.
       
       return {
         success: true,

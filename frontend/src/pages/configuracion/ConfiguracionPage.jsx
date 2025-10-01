@@ -4,7 +4,6 @@ import {
   Palette,
   User,
   Building2,
-  Upload,
   Trash2,
   Loader,
   Check,
@@ -28,7 +27,7 @@ import { cn } from '../../lib/utils'
 import { uploadLogo, deleteFile, BUCKETS, initializeBuckets } from '../../lib/supabaseStorage'
 import * as XLSX from 'xlsx'
 import Modal from '../../components/common/Modal'
-import { DEFAULT_LOGO_DATA_URL } from '../../common/brandAssets'
+import { DEFAULT_LOGO_DATA_URL, DEFAULT_LOGO_OPTIONS } from '../../common/brandAssets'
 
 const COLOR_MAP = {
   'green-500': '#10b981',
@@ -129,6 +128,7 @@ export default function ConfiguracionPage() {
   const [uploadingLogo, setUploadingLogo] = useState(false)
   const [logoProgress, setLogoProgress] = useState(0)
   const [storageInitialized, setStorageInitialized] = useState(false)
+  const [applyingDefaultLogo, setApplyingDefaultLogo] = useState(false)
   
   // Estados para configuración del sistema
   const [autoSave, setAutoSave] = useState(
@@ -315,6 +315,19 @@ export default function ConfiguracionPage() {
     } catch (error) {
       console.error('Error removing logo:', error)
       showErrorMessage('No se pudo eliminar el logo: ' + error.message)
+    }
+  }
+
+  const handleApplyDefaultLogo = async (logoOption) => {
+    try {
+      setApplyingDefaultLogo(true)
+      await setAppLogo(logoOption.url, undefined)
+      showSuccessMessage(`Logo "${logoOption.label}" aplicado correctamente`)
+    } catch (error) {
+      console.error('Error applying default logo:', error)
+      showErrorMessage('No se pudo aplicar el logo seleccionado')
+    } finally {
+      setApplyingDefaultLogo(false)
     }
   }
 
@@ -605,7 +618,7 @@ export default function ConfiguracionPage() {
                           htmlFor="logo-upload"
                           className={`flex items-center justify-center px-4 py-2 rounded-lg font-medium transition-colors cursor-pointer ${
                             uploadingLogo
-                              ? 'bg-gray-700 text-gray-400'
+                              ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
                               : 'bg-teal-600 text-white hover:bg-teal-700'
                           }`}
                         >
@@ -616,7 +629,22 @@ export default function ConfiguracionPage() {
                             </>
                           ) : (
                             <>
-                              <Upload className="h-4 w-4 mr-2" />
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="24"
+                                height="24"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                className="lucide lucide-upload h-4 w-4 mr-2"
+                              >
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                <polyline points="17 8 12 3 7 8" />
+                                <line x1="12" x2="12" y1="3" y2="15" />
+                              </svg>
                               Subir Logo
                             </>
                           )}
@@ -643,6 +671,42 @@ export default function ConfiguracionPage() {
                             Eliminar Logo
                           </button>
                         )}
+                        <div className="mt-4">
+                          <p className="text-xs font-medium text-gray-400 mb-2">
+                            Logos predeterminados EVITA
+                          </p>
+                          <div className="flex flex-wrap gap-3">
+                            {DEFAULT_LOGO_OPTIONS.map((option) => {
+                              const isActive = logoUrl === option.url || (!isCustomLogo && option.url === DEFAULT_LOGO_DATA_URL)
+                              return (
+                                <button
+                                  key={option.id}
+                                  type="button"
+                                  disabled={applyingDefaultLogo}
+                                  onClick={() => handleApplyDefaultLogo(option)}
+                                  className={`relative w-16 h-16 border rounded-lg overflow-hidden flex items-center justify-center transition-all ${
+                                    isActive
+                                      ? 'border-teal-500 ring-2 ring-teal-500/50'
+                                      : 'border-gray-700 hover:border-teal-500/60'
+                                  } ${applyingDefaultLogo ? 'opacity-60 cursor-not-allowed' : ''}`}
+                                  title={option.description}
+                                >
+                                  <img
+                                    src={option.url}
+                                    alt={option.label}
+                                    className="w-full h-full object-contain"
+                                    loading="lazy"
+                                  />
+                                  {isActive && (
+                                    <span className="absolute bottom-1 left-1 right-1 text-[10px] text-teal-200 font-medium bg-teal-900/70 rounded px-1 py-0.5 text-center">
+                                      Seleccionado
+                                    </span>
+                                  )}
+                                </button>
+                              )
+                            })}
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>

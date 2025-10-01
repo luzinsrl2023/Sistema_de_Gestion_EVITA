@@ -36,7 +36,10 @@ export default function Cotizaciones() {
         setItems(prev => prev.map(item => item.id === itemId ? { ...item, searchResults: [] } : item))
         return
       }
-      const { data } = await searchProducts(query)
+      const { data, error } = await searchProducts(query)
+      if (error) {
+        console.error('Error searching products:', error)
+      }
       setItems(prev => prev.map(item => item.id === itemId ? { ...item, searchResults: data || [] } : item))
       setActiveSearch(itemId)
     }, 300),
@@ -307,10 +310,30 @@ export default function Cotizaciones() {
                           }}
                           className={cn('px-4 py-2 cursor-pointer', `hover:bg-${theme.colors.background}`)}
                         >
-                          <p className={cn('font-semibold', `text-${theme.colors.text}`)}>{p.name}</p>
-                          {p.sku && <p className={cn('text-xs', `text-${theme.colors.textMuted}`)}>SKU: {p.sku}</p>}
-                          {p.description && <p className={cn('text-sm truncate', `text-${theme.colors.textSecondary}`)}>{p.description}</p>}
-                          {p.category_name && <p className={cn('text-xs', `text-${theme.colors.textMuted}`)}>Categoría: {p.category_name}</p>}
+                          <div className="flex items-center justify-between gap-2">
+                            <p className={cn('font-semibold', `text-${theme.colors.text}`)}>{p.name}</p>
+                            <span className={cn('text-xs font-semibold', `text-${theme.colors.primaryText}`)}>
+                              $ {Number(p.price || 0).toFixed(2)}
+                            </span>
+                          </div>
+                          {(p.sku || p.category_name) && (
+                            <div className="flex items-center justify-between text-xs">
+                              <span className={cn('tracking-wide uppercase', `text-${theme.colors.textMuted}`)}>
+                                {p.sku ? `SKU: ${p.sku}` : ''}
+                              </span>
+                              <span className={cn('text-right', `text-${theme.colors.textMuted}`)}>
+                                {p.category_name || ''}
+                              </span>
+                            </div>
+                          )}
+                          {p.supplier_name && (
+                            <p className={cn('text-xs mt-1', `text-${theme.colors.textSecondary}`)}>
+                              Proveedor: {p.supplier_name}
+                            </p>
+                          )}
+                          {p.description && (
+                            <p className={cn('text-sm truncate mt-1', `text-${theme.colors.textSecondary}`)}>{p.description}</p>
+                          )}
                         </div>
                       ))
                     ) : (
