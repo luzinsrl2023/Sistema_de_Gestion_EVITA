@@ -35,6 +35,20 @@ import {
 } from '../../services/prospectosService';
 import { supabase } from '../../lib/supabaseClient';
 
+const safeParse = (value) => {
+  try {
+    return JSON.parse(value);
+  } catch (error) {
+    return null;
+  }
+};
+
+const formatUserDisplay = (user) => {
+  if (!user) return '-';
+  const value = typeof user === 'string' ? safeParse(user) : user;
+  return value?.full_name || value?.nombre || value?.email || value?.id || '-';
+};
+
 // Opciones para selects
 const estados = [
   'Nuevo',
@@ -147,12 +161,14 @@ const FormularioProspecto = ({ abierto, prospecto, onCerrar, onGuardar }) => {
           if (error) throw error;
 
           if (data) {
-            setFormulario({
+            setFormulario((prev) => ({
+              ...prev,
               ...data,
-              presupuesto_estimado: data.presupuesto_estimado || '',
+              responsable_id: data.responsable_id ?? data.responsable?.id ?? '',
+              presupuesto_estimado: data.presupuesto_estimado ?? '',
               fecha_proximo_contacto: data.fecha_proximo_contacto || null,
               fecha_cierre_esperada: data.fecha_cierre_esperada || null
-            });
+            }));
           }
         } catch (err) {
           console.error('Error al cargar prospecto:', err);
@@ -172,7 +188,7 @@ const FormularioProspecto = ({ abierto, prospecto, onCerrar, onGuardar }) => {
       try {
         const { data, error } = await supabase
           .from('users')
-          .select('id, email, raw_user_meta_data')
+          .select('id, email, created_at')
           .order('email');
 
         if (error) throw error;
@@ -271,8 +287,12 @@ const FormularioProspecto = ({ abierto, prospecto, onCerrar, onGuardar }) => {
 
     try {
       // Preparar datos
+      const restoFormulario = { ...formulario };
+      delete restoFormulario.responsable;
+      delete restoFormulario.creador;
+
       const datosParaGuardar = {
-        ...formulario,
+        ...restoFormulario,
         presupuesto_estimado: formulario.presupuesto_estimado ?
           parseFloat(formulario.presupuesto_estimado) : null,
         fecha_proximo_contacto: formulario.fecha_proximo_contacto ?
@@ -370,7 +390,7 @@ const FormularioProspecto = ({ abierto, prospecto, onCerrar, onGuardar }) => {
             <MenuItem value="">Sin asignar</MenuItem>
             {usuarios.map(usuario => (
               <MenuItem key={usuario.id} value={usuario.id}>
-                {usuario.raw_user_meta_data?.full_name || usuario.email}
+                {formatUserDisplay(usuario)}
               </MenuItem>
             ))}
           </Select>

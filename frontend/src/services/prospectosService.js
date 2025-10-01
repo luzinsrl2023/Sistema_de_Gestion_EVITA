@@ -79,13 +79,12 @@ export const obtenerProspectos = async ({ estado = null, responsable_id = null, 
 /**
  * Obtiene un prospecto por ID
  */
-export const obtenerProspectoPorId = async (id) => {
+export const obtenerProspectoPorId = async (prospectoId) => {
   try {
     const { data, error } = await supabase
       .from('prospectos_with_users')
       .select('*')
-      .eq('id', id)
-      .is('deleted_at', null)
+      .eq('id', prospectoId)
       .single();
     if (error) throw error;
 
@@ -178,7 +177,7 @@ export const obtenerEstadisticasProspectos = async () => {
     const isAdmin = user.user_metadata?.role === 'admin';
 
     let queryEstados = supabase
-      .from('prospectos')
+      .from('prospectos_with_users')
       .select('estado', { count: 'exact', head: false })
       .is('deleted_at', null);
     if (!isAdmin) queryEstados = queryEstados.or(`responsable_id.eq.${user.id},creado_por.eq.${user.id}`);
@@ -186,7 +185,7 @@ export const obtenerEstadisticasProspectos = async () => {
     const { data: dataEstados, error: errorEstados } = await queryEstados;
 
     let queryValor = supabase
-      .from('prospectos')
+      .from('prospectos_with_users')
       .select('estado, presupuesto_estimado')
       .is('deleted_at', null)
       .not('presupuesto_estimado', 'is', null);
