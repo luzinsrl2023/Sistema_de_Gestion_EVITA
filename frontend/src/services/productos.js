@@ -141,18 +141,115 @@ export const getProductosStockBajo = async (limite = 10) => {
 };
 
 // Buscar productos por SKU o nombre
-export const searchProducts = async (query) => {
-  if (!query) return { data: [], error: null };
+export const searchProducts = async (query, limit = 15) => {
+  const trimmedQuery = query?.trim();
+  if (!trimmedQuery) {
+    return { data: [], error: null };
+  }
+
+  const sanitized = trimmedQuery.replace(/[%_]/g, (char) => `\\${char}`).replace(/'/g, "''");
+  const wildcard = `%${sanitized}%`;
+  const filters = [
+    `nombre.ilike.${wildcard}`,
+    `descripcion.ilike.${wildcard}`,
+    `sku.ilike.${wildcard}`,
+    `categoria.ilike.${wildcard}`
+  ].join(',');
+
   try {
-    const { data, error } = await supabase.functions.invoke('search-products', {
-      body: { query },
-    });
+    const { data, error } = await supabase
+      .from('productos')
+      .select(`
+        id,
+        nombre,
+        descripcion,
+        sku,
+        categoria,
+        precio,
+        costo,
+        proveedores (
+          id,
+          nombre
+        )
+      `)
+      .or(filters)
+      .order('nombre', { ascending: true })
+      .limit(limit);
 
     if (error) throw error;
-    return { data, error: null };
+
+    const mapped = (data || []).map((producto) => ({
+      id: producto.id,
+      name: producto.nombre,
+      description: producto.descripcion,
+      sku: producto.sku,
+      category_name: producto.categoria,
+      price: Number(producto.precio ?? 0),
+      cost: Number(producto.costo ?? 0),
+      supplier_id: producto.proveedores?.id ?? null,
+      supplier_name: producto.proveedores?.nombre ?? null,
+    }));
+
+    return { data: mapped, error: null };
   } catch (error) {
     console.error('Error searching products:', error);
     return { data: null, error };
+  }
+};
+
+export const updateProductosPorProveedor = async (proveedorId, porcentajeAumento) => {
+  try {
+    const factor = 1 + (Number(porcentajeAumento) || 0) / 100;
+    const timestamp = new Date().toISOString();
+
+    const { data: productos, error } = await supabase
+      .from('productos')
+      .select('id, costo, precio')
+      .eq('proveedor_id', proveedorId);
+
+    if (error) throw error;
+
+    if (!productos || productos.length === 0) {
+      return { data: [], updated: 0, error: null };
+    }
+
+    const updates = productos
+      .map((producto) => {
+        const costo = Number(producto.costo ?? 0);
+        const precioActual = Number(producto.precio ?? 0);
+        const base = costo > 0 ? costo : precioActual;
+        if (!base || !isFinite(base)) {
+          return null;
+        }
+
+        const nuevoPrecio = parseFloat((base * factor).toFixed(2));
+        if (!nuevoPrecio || !isFinite(nuevoPrecio) || nuevoPrecio <= 0) {
+          return null;
+        }
+
+        return {
+          id: producto.id,
+          precio: nuevoPrecio,
+          updated_at: timestamp,
+        };
+      })
+      .filter(Boolean);
+
+    if (!updates.length) {
+      return { data: [], updated: 0, error: null };
+    }
+
+    const { data: updatedRows, error: updateError } = await supabase
+      .from('productos')
+      .upsert(updates, { onConflict: 'id' })
+      .select('id, precio');
+
+    if (updateError) throw updateError;
+
+    return { data: updatedRows, updated: updates.length, error: null };
+  } catch (error) {
+    console.error('Error updating product prices by proveedor:', error);
+    return { data: null, updated: 0, error };
   }
 };
 
