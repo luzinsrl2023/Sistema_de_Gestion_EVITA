@@ -10,7 +10,7 @@ import { supabase } from '../lib/supabaseClient';
 // =============================================
 
 /**
- * Crea un nuevo prospecto en la base de datos
+ * Crea un nuevo prospecto
  */
 export const crearProspecto = async (datosProspecto) => {
   try {
@@ -23,21 +23,20 @@ export const crearProspecto = async (datosProspecto) => {
       responsable_id: datosProspecto.responsable_id || user.id
     };
 
+    // Insertar en la tabla principal
     const { data, error } = await supabase
       .from('prospectos')
       .insert([datosCompletos])
       .select()
       .single();
-
     if (error) throw error;
 
-    // Consultar desde la vista para devolver con relaciones
+    // Traer desde la vista para incluir responsable y creador
     const { data: prospectoView, error: errorView } = await supabase
       .from('prospectos_with_users')
       .select('*')
       .eq('id', data.id)
       .single();
-
     if (errorView) throw errorView;
 
     return { data: prospectoView, error: null };
@@ -50,18 +49,8 @@ export const crearProspecto = async (datosProspecto) => {
 /**
  * Obtiene todos los prospectos activos
  */
-export const obtenerProspectos = async (opciones = {}) => {
+export const obtenerProspectos = async ({ estado = null, responsable_id = null, limite = 50, pagina = 1, busqueda = '', ordenarPor = 'created_at', orden = 'DESC' } = {}) => {
   try {
-    const {
-      estado = null,
-      responsable_id = null,
-      limite = 50,
-      pagina = 1,
-      busqueda = '',
-      ordenarPor = 'created_at',
-      orden = 'DESC'
-    } = opciones;
-
     let query = supabase
       .from('prospectos_with_users')
       .select('*', { count: 'exact' })
@@ -88,7 +77,7 @@ export const obtenerProspectos = async (opciones = {}) => {
 };
 
 /**
- * Obtiene un prospecto específico por ID
+ * Obtiene un prospecto por ID
  */
 export const obtenerProspectoPorId = async (id) => {
   try {
@@ -98,8 +87,8 @@ export const obtenerProspectoPorId = async (id) => {
       .eq('id', id)
       .is('deleted_at', null)
       .single();
-
     if (error) throw error;
+
     return { data, error: null };
   } catch (error) {
     console.error('Error en obtenerProspectoPorId:', error);
@@ -108,28 +97,24 @@ export const obtenerProspectoPorId = async (id) => {
 };
 
 /**
- * Actualiza un prospecto existente
+ * Actualiza un prospecto
  */
 export const actualizarProspecto = async (id, datosActualizados) => {
   try {
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('prospectos')
       .update(datosActualizados)
-      .eq('id', id)
-      .select()
-      .single();
-
+      .eq('id', id);
     if (error) throw error;
 
-    const { data: prospectoView, error: errorView } = await supabase
+    const { data, error: errorView } = await supabase
       .from('prospectos_with_users')
       .select('*')
-      .eq('id', data.id)
+      .eq('id', id)
       .single();
-
     if (errorView) throw errorView;
 
-    return { data: prospectoView, error: null };
+    return { data, error: null };
   } catch (error) {
     console.error('Error en actualizarProspecto:', error);
     return { data: null, error };
@@ -137,103 +122,28 @@ export const actualizarProspecto = async (id, datosActualizados) => {
 };
 
 /**
- * Elimina un prospecto (soft delete)
- */
-export const eliminarProspecto = async (id) => {
-  try {
-    const { data, error } = await supabase
-      .from('prospectos')
-      .update({
-        deleted_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', id)
-      .select()
-      .single();
-
-    if (error) throw error;
-
-    const { data: prospectoView, error: errorView } = await supabase
-      .from('prospectos_with_users')
-      .select('*')
-      .eq('id', id)
-      .single();
-
-    if (errorView) throw errorView;
-
-    return { data: prospectoView, error: null };
-  } catch (error) {
-    console.error('Error en eliminarProspecto:', error);
-    return { data: null, error };
-  }
-};
-
-// =============================================
-// FUNCIONES AVANZADAS
-// =============================================
-
-/**
  * Actualiza el estado de un prospecto
  */
 export const actualizarEstadoProspecto = async (id, nuevoEstado) => {
-  try {
-    const { error } = await supabase
-      .from('prospectos')
-      .update({
-        estado: nuevoEstado,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', id);
+  return actualizarProspecto(id, { estado: nuevoEstado, updated_at: new Date().toISOString() });
+};
 
-    if (error) throw error;
-
-    const { data: prospectoView, error: errorView } = await supabase
-      .from('prospectos_with_users')
-      .select('*')
-      .eq('id', id)
-      .single();
-
-    if (errorView) throw errorView;
-
-    return { data: prospectoView, error: null };
-  } catch (error) {
-    console.error('Error en actualizarEstadoProspecto:', error);
-    return { data: null, error };
-  }
+/**
+ * Elimina un prospecto (soft delete)
+ */
+export const eliminarProspecto = async (id) => {
+  return actualizarProspecto(id, { deleted_at: new Date().toISOString(), updated_at: new Date().toISOString() });
 };
 
 /**
  * Asigna un prospecto a un usuario
  */
 export const asignarProspecto = async (prospectoId, usuarioId) => {
-  try {
-    const { error } = await supabase
-      .from('prospectos')
-      .update({
-        responsable_id: usuarioId,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', prospectoId);
-
-    if (error) throw error;
-
-    const { data: prospectoView, error: errorView } = await supabase
-      .from('prospectos_with_users')
-      .select('*')
-      .eq('id', prospectoId)
-      .single();
-
-    if (errorView) throw errorView;
-
-    return { data: prospectoView, error: null };
-  } catch (error) {
-    console.error('Error en asignarProspecto:', error);
-    return { data: null, error };
-  }
+  return actualizarProspecto(prospectoId, { responsable_id: usuarioId, updated_at: new Date().toISOString() });
 };
 
 /**
- * Obtiene prospectos próximos a vencer (por fecha de cierre)
+ * Obtiene prospectos próximos a vencer
  */
 export const obtenerProspectosProximosAVencer = async (dias = 7) => {
   try {
@@ -271,10 +181,7 @@ export const obtenerEstadisticasProspectos = async () => {
       .from('prospectos')
       .select('estado', { count: 'exact', head: false })
       .is('deleted_at', null);
-
-    if (!isAdmin) {
-      queryEstados = queryEstados.or(`responsable_id.eq.${user.id},creado_por.eq.${user.id}`);
-    }
+    if (!isAdmin) queryEstados = queryEstados.or(`responsable_id.eq.${user.id},creado_por.eq.${user.id}`);
 
     const { data: dataEstados, error: errorEstados } = await queryEstados;
 
@@ -283,10 +190,7 @@ export const obtenerEstadisticasProspectos = async () => {
       .select('estado, presupuesto_estimado')
       .is('deleted_at', null)
       .not('presupuesto_estimado', 'is', null);
-
-    if (!isAdmin) {
-      queryValor = queryValor.or(`responsable_id.eq.${user.id},creado_por.eq.${user.id}`);
-    }
+    if (!isAdmin) queryValor = queryValor.or(`responsable_id.eq.${user.id},creado_por.eq.${user.id}`);
 
     const { data: dataValor, error: errorValor } = await queryValor;
 
@@ -299,16 +203,10 @@ export const obtenerEstadisticasProspectos = async () => {
       valorPorEstado: {}
     };
 
-    dataEstados.forEach(prospecto => {
-      estadisticas.porEstado[prospecto.estado] =
-        (estadisticas.porEstado[prospecto.estado] || 0) + 1;
-    });
-
-    dataValor.forEach(prospecto => {
-      estadisticas.valorTotal += parseFloat(prospecto.presupuesto_estimado || 0);
-      estadisticas.valorPorEstado[prospecto.estado] =
-        (estadisticas.valorPorEstado[prospecto.estado] || 0) +
-        parseFloat(prospecto.presupuesto_estimado || 0);
+    dataEstados.forEach(p => estadisticas.porEstado[p.estado] = (estadisticas.porEstado[p.estado] || 0) + 1);
+    dataValor.forEach(p => {
+      estadisticas.valorTotal += parseFloat(p.presupuesto_estimado || 0);
+      estadisticas.valorPorEstado[p.estado] = (estadisticas.valorPorEstado[p.estado] || 0) + parseFloat(p.presupuesto_estimado || 0);
     });
 
     return { data: estadisticas, error: null };
@@ -317,3 +215,4 @@ export const obtenerEstadisticasProspectos = async () => {
     return { data: null, error };
   }
 };
+
