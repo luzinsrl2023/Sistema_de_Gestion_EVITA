@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { useTheme } from '../../contexts/ThemeContext'
+import { DEFAULT_LOGO_DATA_URL } from '../../common/brandAssets'
 import { useDebounce } from '../../hooks/useDebounce'
 import { searchProducts } from '../../services/productos'
 import { searchClients } from '../../services/clientes'
@@ -59,7 +60,7 @@ export default function Layout({ children }) {
   const location = useLocation()
   const navigate = useNavigate()
   const { user, signOut } = useAuth()
-  const { getThemeClasses, theme, logoUrl } = useTheme()
+  const { getThemeClasses, theme, logoUrl, isCustomLogo } = useTheme()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [notificationsOpen, setNotificationsOpen] = useState(false)
 
@@ -133,20 +134,13 @@ export default function Layout({ children }) {
             <div className="flex items-center gap-3">
               <div className={cn("h-10 w-10 rounded-xl flex items-center justify-center overflow-hidden shadow-lg", `bg-${theme.colors.primary}`)}>
                 {logoUrl ? (
-                  <img 
-                    src={logoUrl} 
-                    alt="Logo" 
+                  <img
+                    src={logoUrl || DEFAULT_LOGO_DATA_URL}
+                    alt="Logo"
                     className="w-full h-full object-contain"
                     onError={(e) => {
-                      console.error('Logo failed to load:', e.target.src)
-                      e.target.style.display = 'none'
-                      // Show default logo if image fails to load
-                      const parent = e.target.parentNode
-                      const defaultLogo = parent.querySelector('.default-logo')
-                      if (defaultLogo) {
-                        defaultLogo.style.display = 'block'
-                        parent.style.backgroundColor = '#10b981' // green-500
-                      }
+                      console.error('Logo failed to load:', e.currentTarget.src)
+                      e.currentTarget.src = DEFAULT_LOGO_DATA_URL
                     }}
                   />
                 ) : (
@@ -154,7 +148,7 @@ export default function Layout({ children }) {
                     fill="none" 
                     viewBox="0 0 32 32" 
                     xmlns="http://www.w3.org/2000/svg" 
-                    className="w-6 h-6 text-white default-logo"
+                    className="w-6 h-6 text-white"
                   >
                     <path d="M8 10h16c1.1 0 2 .9 2 2v8c0 1.1-.9 2-2 2H8c-1.1 0-2-.9-2-2v-8c0-1.1.9-2 2-2z" fill="currentColor" opacity="0.3"/>
                     <path d="M10 14h8v1H10v-1zm0 2h6v1h-6v-1z" fill="currentColor"/>
@@ -168,10 +162,10 @@ export default function Layout({ children }) {
               </div>
               <div>
                 <h1 className={cn("text-lg font-bold leading-tight", `text-${theme.colors.text}`)}>
-                  {logoUrl ? 'Sistema EVITA' : 'EVITA'}
+                  {isCustomLogo ? 'Sistema EVITA' : 'EVITA'}
                 </h1>
                 <p className={cn("text-xs -mt-0.5 font-medium", `text-${theme.colors.primaryText}`)}>
-                  {logoUrl ? 'Gestión Empresarial' : 'Artículos de Limpieza'}
+                  {isCustomLogo ? 'Gestión Empresarial' : 'Artículos de Limpieza'}
                 </p>
               </div>
             </div>
@@ -258,7 +252,15 @@ export default function Layout({ children }) {
         <div className={cn("flex items-center gap-3 p-6 border-b", `border-${theme.colors.border}`)}>
           <div className={cn("h-10 w-10 rounded-xl flex items-center justify-center overflow-hidden shadow-lg", `bg-${theme.colors.primary}`)}>
             {logoUrl ? (
-              <img src={logoUrl} alt="Logo" className="w-full h-full object-contain" />
+              <img
+                src={logoUrl || DEFAULT_LOGO_DATA_URL}
+                alt="Logo"
+                className="w-full h-full object-contain"
+                onError={(e) => {
+                  console.error('Logo failed to load:', e.currentTarget.src)
+                  e.currentTarget.src = DEFAULT_LOGO_DATA_URL
+                }}
+              />
             ) : (
               <svg fill="none" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 text-white">
                 <path d="M8 10h16c1.1 0 2 .9 2 2v8c0 1.1-.9 2-2 2H8c-1.1 0-2-.9-2-2v-8c0-1.1.9-2 2-2z" fill="currentColor" opacity="0.3"/>
@@ -272,8 +274,12 @@ export default function Layout({ children }) {
             )}
           </div>
           <div>
-            <h1 className={cn("text-lg font-bold leading-tight", `text-${theme.colors.text}`)}>EVITA</h1>
-            <p className={cn("text-xs -mt-0.5 font-medium", `text-${theme.colors.primaryText}`)}>Artículos de Limpieza</p>
+            <h1 className={cn("text-lg font-bold leading-tight", `text-${theme.colors.text}`)}>
+              {isCustomLogo ? 'Sistema EVITA' : 'EVITA'}
+            </h1>
+            <p className={cn("text-xs -mt-0.5 font-medium", `text-${theme.colors.primaryText}`)}>
+              {isCustomLogo ? 'Gestión Empresarial' : 'Artículos de Limpieza'}
+            </p>
           </div>
         </div>
         <nav className="p-4 space-y-2">

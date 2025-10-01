@@ -28,10 +28,81 @@ import { cn } from '../../lib/utils'
 import { uploadLogo, deleteFile, BUCKETS, initializeBuckets } from '../../lib/supabaseStorage'
 import * as XLSX from 'xlsx'
 import Modal from '../../components/common/Modal'
+import { DEFAULT_LOGO_DATA_URL } from '../../common/brandAssets'
+
+const COLOR_MAP = {
+  'green-500': '#10b981',
+  'green-600': '#059669',
+  'blue-600': '#2563eb',
+  'indigo-600': '#4f46e5',
+  'pink-600': '#db2777',
+  'purple-600': '#9333ea',
+  'violet-600': '#7c3aed',
+  'emerald-600': '#059669',
+  'orange-600': '#ea580c',
+  'red-600': '#dc2626',
+  'yellow-600': '#ca8a04',
+  'rose-600': '#e11d48',
+  'fuchsia-600': '#c026d3',
+  'gray-600': '#4b5563',
+  white: '#ffffff'
+}
+
+const hexToRgba = (hex, alpha = 1) => {
+  const normalized = hex?.replace('#', '')
+  if (!normalized || normalized.length !== 6) {
+    return hex || '#0f172a'
+  }
+  const bigint = parseInt(normalized, 16)
+  const r = (bigint >> 16) & 255
+  const g = (bigint >> 8) & 255
+  const b = bigint & 255
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`
+}
+
+const resolveColorToken = (token, fallback = '#0f172a') => {
+  if (!token) return fallback
+  if (token.startsWith('#')) {
+    return token
+  }
+  const [base, opacityPart] = token.split('/')
+  const hex = COLOR_MAP[base]
+  if (!hex) {
+    return fallback
+  }
+  if (opacityPart) {
+    const alpha = Number(opacityPart) / 100
+    return hexToRgba(hex, Number.isFinite(alpha) ? alpha : 1)
+  }
+  return hex
+}
+
+const buildPreviewGradient = (themeData) => {
+  const primary = resolveColorToken(themeData.colors?.primary)
+  const accent = resolveColorToken(themeData.colors?.accent, primary)
+  return `linear-gradient(135deg, ${primary} 0%, ${accent} 100%)`
+}
+
+const BACKGROUND_LABELS = {
+  solid: 'Fondo sólido',
+  gradient: 'Gradiente',
+  pattern: 'Patrón'
+}
+
+const formatBackgroundType = (type) => BACKGROUND_LABELS[type] || 'Personalizado'
+
+const getThemeInitials = (name = '') => {
+  const letters = name
+    .split(' ')
+    .filter(Boolean)
+    .map((word) => word[0])
+    .join('')
+  return (letters || 'EV').slice(0, 2).toUpperCase()
+}
 
 export default function ConfiguracionPage() {
   const { user } = useAuth()
-  const { currentTheme, changeTheme, theme, logoUrl, setAppLogo } = useTheme()
+  const { currentTheme, changeTheme, theme, logoUrl, setAppLogo, isCustomLogo } = useTheme()
   const [activeSection, setActiveSection] = useState('general')
   const [isExportModalOpen, setIsExportModalOpen] = useState(false)
   const [exportConfig, setExportConfig] = useState({ type: null, format: 'json' })
@@ -224,7 +295,11 @@ export default function ConfiguracionPage() {
 
   const handleRemoveLogo = async () => {
     const currentLogoPath = localStorage.getItem('evita-logo-path')
-    if (!currentLogoPath) return
+    if (!currentLogoPath) {
+      setAppLogo(null)
+      showSuccessMessage('Logo restaurado al predeterminado')
+      return
+    }
 
     try {
       const result = await deleteFile(BUCKETS.LOGOS, currentLogoPath)
@@ -505,13 +580,18 @@ export default function ConfiguracionPage() {
                       Logo
                     </label>
                     <div className="flex items-center gap-4">
-                      {logoUrl && (
-                        <img
-                          src={logoUrl}
-                          alt="Logo de la empresa"
-                          className="w-16 h-16 object-contain rounded-lg border border-gray-700"
-                        />
-                      )}
+                      <div className="flex flex-col items-center gap-2">
+                        <div className="w-16 h-16 rounded-lg border border-gray-700 bg-gray-800 flex items-center justify-center overflow-hidden">
+                          <img
+                            src={logoUrl || DEFAULT_LOGO_DATA_URL}
+                            alt="Logo de la empresa"
+                            className="w-full h-full object-contain"
+                          />
+                        </div>
+                        <span className="text-xs text-gray-500">
+                          {isCustomLogo ? 'Logo personalizado' : 'Logo predeterminado EVITA'}
+                        </span>
+                      </div>
                       <div className="flex-1">
                         <input
                           type="file"
@@ -554,7 +634,7 @@ export default function ConfiguracionPage() {
                             </p>
                           </div>
                         )}
-                        {logoUrl && (
+                        {isCustomLogo && (
                           <button
                             onClick={handleRemoveLogo}
                             className="mt-2 flex items-center gap-1 text-sm text-red-400 hover:text-red-300"
@@ -595,53 +675,78 @@ export default function ConfiguracionPage() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {Object.entries(themes).map(([key, themeData]) => (
-                <div
-                  key={key}
-                  onClick={() => handleThemeChange(key)}
-                  className={cn(
-                    'p-6 rounded-xl border cursor-pointer transition-all',
-                    currentTheme === key
-                      ? 'border-teal-500 ring-2 ring-teal-500/20 bg-teal-500/5'
-                      : 'border-gray-800 hover:border-gray-700 bg-gray-900'
-                  )}
-                >
-                  <div className="flex items-center gap-3 mb-4">
-                    <div
-                      className="w-4 h-4 rounded-full"
-                      style={{ backgroundColor: themeData.primary }}
-                    ></div>
-                    <h3 className="font-semibold text-white">
-                      {themeData.name}
-                    </h3>
-                    {currentTheme === key && (
-                      <div className="ml-auto">
-                        <div className="w-5 h-5 rounded-full bg-teal-500 flex items-center justify-center">
-                          <Check className="h-3 w-3 text-white" />
-                        </div>
-                      </div>
+              {Object.entries(themes).map(([key, themeData]) => {
+                const primaryColor = resolveColorToken(themeData.colors?.primary);
+                const accentColor = resolveColorToken(themeData.colors?.accent, primaryColor);
+                const previewGradient = buildPreviewGradient(themeData);
+                const themeInitials = getThemeInitials(themeData.name);
+                const backgroundLabel = formatBackgroundType(themeData.background?.type);
+
+                return (
+                  <div
+                    key={key}
+                    onClick={() => handleThemeChange(key)}
+                    className={cn(
+                      'p-6 rounded-xl border cursor-pointer transition-all flex flex-col gap-4 shadow-sm',
+                      currentTheme === key
+                        ? 'border-teal-500 ring-2 ring-teal-500/30 bg-teal-500/5'
+                        : 'border-gray-800 hover:border-gray-700 bg-gray-900/90 hover:bg-gray-900'
                     )}
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <div className="text-xs text-gray-400">Primario:</div>
+                  >
+                    <div className="flex items-start gap-3">
                       <div
-                        className="w-3 h-3 rounded-full"
-                        style={{ backgroundColor: themeData.primary }}
-                      ></div>
-                      <div className="text-xs text-gray-400">{themeData.primary}</div>
+                        className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-semibold text-white shadow-lg shadow-black/40"
+                        style={{ background: previewGradient }}
+                      >
+                        {themeInitials}
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-white">
+                          {themeData.name}
+                        </h3>
+                        <p className="text-xs text-gray-500">{key}</p>
+                      </div>
+                      {currentTheme === key && (
+                        <div className="ml-auto">
+                          <div className="w-5 h-5 rounded-full bg-teal-500 flex items-center justify-center">
+                            <Check className="h-3 w-3 text-white" />
+                          </div>
+                        </div>
+                      )}
                     </div>
-                    <div className="flex items-center gap-2">
-                      <div className="text-xs text-gray-400">Secundario:</div>
-                      <div
-                        className="w-3 h-3 rounded-full"
-                        style={{ backgroundColor: themeData.secondary }}
-                      ></div>
-                      <div className="text-xs text-gray-400">{themeData.secondary}</div>
+
+                    <div className="h-16 rounded-lg border border-gray-800 overflow-hidden">
+                      <div className="h-full w-full" style={{ background: previewGradient }} />
+                    </div>
+
+                    <p className="text-sm leading-relaxed text-gray-200 bg-gray-900/60 border border-gray-800 px-3 py-2 rounded-lg">
+                      {themeData.description}
+                    </p>
+
+                    <div className="flex flex-wrap gap-4 text-xs text-gray-300">
+                      <div className="flex items-center gap-2">
+                        <span className="uppercase tracking-wide text-gray-500">Primario</span>
+                        <span
+                          className="w-3 h-3 rounded-full border border-white/20"
+                          style={{ backgroundColor: primaryColor }}
+                        />
+                        <span className="font-mono text-gray-400">{themeData.colors?.primary || 'N/D'}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="uppercase tracking-wide text-gray-500">Acento</span>
+                        <span
+                          className="w-3 h-3 rounded-full border border-white/20"
+                          style={{ backgroundColor: accentColor }}
+                        />
+                        <span className="font-mono text-gray-400">{themeData.colors?.accent || 'N/D'}</span>
+                      </div>
+                      <span className="px-2 py-1 rounded-full border border-gray-700 bg-gray-800/60 text-gray-400 capitalize">
+                        {backgroundLabel}
+                      </span>
                     </div>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </div>
         )
