@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
+import { DEFAULT_LOGO_DATA_URL } from '../common/brandAssets'
 
 const ThemeContext = createContext({})
 
@@ -349,7 +350,8 @@ const BackgroundComponents = {
 export const ThemeProvider = ({ children }) => {
   const [currentTheme, setCurrentTheme] = useState('default')
   const [theme, setTheme] = useState(themes.default)
-  const [logoUrl, setLogoUrl] = useState(null)
+  const [logoUrl, setLogoUrl] = useState(DEFAULT_LOGO_DATA_URL)
+  const [isCustomLogo, setIsCustomLogo] = useState(false)
 
   useEffect(() => {
     // Load theme and logo from localStorage
@@ -361,6 +363,10 @@ export const ThemeProvider = ({ children }) => {
     const savedLogo = localStorage.getItem('evita-logo')
     if (savedLogo) {
       setLogoUrl(savedLogo)
+      setIsCustomLogo(true)
+    } else {
+      setLogoUrl(DEFAULT_LOGO_DATA_URL)
+      setIsCustomLogo(false)
     }
   }, [])
 
@@ -369,10 +375,12 @@ export const ThemeProvider = ({ children }) => {
       localStorage.setItem('evita-logo', url)
       localStorage.setItem('evita-logo-path', path)
       setLogoUrl(url)
+      setIsCustomLogo(true)
     } else {
       localStorage.removeItem('evita-logo')
       localStorage.removeItem('evita-logo-path')
-      setLogoUrl(null)
+      setLogoUrl(DEFAULT_LOGO_DATA_URL)
+      setIsCustomLogo(false)
     }
   }
 
@@ -432,6 +440,7 @@ export const ThemeProvider = ({ children }) => {
     getThemeClasses,
     renderBackground,
     logoUrl,
+    isCustomLogo,
     setAppLogo,
   }
 

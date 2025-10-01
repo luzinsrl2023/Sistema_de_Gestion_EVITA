@@ -5,6 +5,45 @@
 
 import { supabase } from '../lib/supabaseClient';
 
+const PROSPECTO_BASE_COLUMNS = [
+  'id',
+  'nombre',
+  'apellido',
+  'email',
+  'telefono',
+  'cargo',
+  'empresa',
+  'sitio_web',
+  'industria',
+  '"tamaño_empresa"',
+  'pais',
+  'ciudad',
+  'direccion',
+  'estado',
+  'prioridad',
+  'fuente',
+  'presupuesto_estimado',
+  'moneda_presupuesto',
+  'notas',
+  'descripcion_oportunidad',
+  'fecha_proximo_contacto',
+  'fecha_cierre_esperada',
+  'responsable_id',
+  'creado_por',
+  'created_at',
+  'updated_at',
+  'deleted_at',
+  'campos_adicionales'
+].join(',');
+
+const PROSPECTO_RELATION_COLUMNS = [
+  'responsable:auth.users!responsable_id(id,email,raw_user_meta_data)',
+  'creador:auth.users!creado_por(id,email,raw_user_meta_data)'
+].join(',');
+
+const PROSPECTO_SELECT_COLUMNS = `${PROSPECTO_BASE_COLUMNS},${PROSPECTO_RELATION_COLUMNS}`;
+const PROSPECTO_SELECT_WITH_RESPONSABLE = `${PROSPECTO_BASE_COLUMNS},responsable:auth.users!responsable_id(id,email,raw_user_meta_data)`;
+
 // =============================================
 // FUNCIONES CRUD BÁSICAS
 // =============================================
@@ -33,7 +72,7 @@ export const crearProspecto = async (datosProspecto) => {
     const { data, error } = await supabase
       .from('prospectos')
       .insert([datosCompletos])
-      .select()
+      .select(PROSPECTO_SELECT_COLUMNS)
       .single();
 
     if (error) {
@@ -67,10 +106,7 @@ export const obtenerProspectos = async (opciones = {}) => {
 
     let query = supabase
       .from('prospectos')
-      .select(`*,
-        responsable:auth.users!responsable_id(id, email, raw_user_meta_data),
-        creador:auth.users!creado_por(id, email, raw_user_meta_data)
-      `, { count: 'exact' })
+      .select(PROSPECTO_SELECT_COLUMNS, { count: 'exact' })
       .is('deleted_at', null);
 
     // Aplicar filtros
@@ -116,10 +152,7 @@ export const obtenerProspectoPorId = async (id) => {
   try {
     const { data, error } = await supabase
       .from('prospectos')
-      .select(`*,
-        responsable:auth.users!responsable_id(id, email, raw_user_meta_data),
-        creador:auth.users!creado_por(id, email, raw_user_meta_data)
-      `)
+      .select(PROSPECTO_SELECT_COLUMNS)
       .eq('id', id)
       .is('deleted_at', null)
       .single();
@@ -148,7 +181,7 @@ export const actualizarProspecto = async (id, datosActualizados) => {
       .from('prospectos')
       .update(datosActualizados)
       .eq('id', id)
-      .select()
+      .select(PROSPECTO_SELECT_COLUMNS)
       .single();
 
     if (error) {
@@ -178,7 +211,7 @@ export const actualizarEstadoProspecto = async (id, nuevoEstado) => {
         updated_at: new Date().toISOString()
       })
       .eq('id', id)
-      .select()
+      .select(PROSPECTO_SELECT_COLUMNS)
       .single();
 
     if (error) {
@@ -207,7 +240,7 @@ export const eliminarProspecto = async (id) => {
         updated_at: new Date().toISOString()
       })
       .eq('id', id)
-      .select()
+      .select(PROSPECTO_SELECT_COLUMNS)
       .single();
 
     if (error) {
@@ -314,7 +347,7 @@ export const asignarProspecto = async (prospectoId, usuarioId) => {
         updated_at: new Date().toISOString()
       })
       .eq('id', prospectoId)
-      .select()
+      .select(PROSPECTO_SELECT_COLUMNS)
       .single();
 
     if (error) {
@@ -341,9 +374,7 @@ export const obtenerProspectosProximosAVencer = async (dias = 7) => {
 
     const { data, error } = await supabase
       .from('prospectos')
-      .select(`*,
-        responsable:auth.users!responsable_id(id, email, raw_user_meta_data)
-      `)
+      .select(PROSPECTO_SELECT_WITH_RESPONSABLE)
       .is('deleted_at', null)
       .not('fecha_cierre_esperada', 'is', null)
       .gte('fecha_cierre_esperada', new Date().toISOString().split('T')[0])

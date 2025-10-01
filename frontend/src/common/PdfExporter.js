@@ -1,5 +1,6 @@
 import pdfMake from "pdfmake/build/pdfmake.min.js";
 import "pdfmake/build/vfs_fonts.js";
+import { DEFAULT_LOGO_DATA_URL } from './brandAssets';
 
 
 // Helpers for branding header with logo
@@ -31,6 +32,16 @@ function getCompanyInfoFromStorage() {
   }
 }
 
+function getStoredLogoUrl(override) {
+  if (override) return override
+  try {
+    const stored = localStorage.getItem('evita-logo')
+    return stored || DEFAULT_LOGO_DATA_URL
+  } catch (_) {
+    return DEFAULT_LOGO_DATA_URL
+  }
+}
+
 
 function buildHeader(logoDataUrl, brand = 'EVITA', subtitle = 'Artículos de Limpieza') {
   const info = getCompanyInfoFromStorage()
@@ -56,13 +67,13 @@ function buildHeader(logoDataUrl, brand = 'EVITA', subtitle = 'Artículos de Lim
   }
 }
 
-export async function exportTableToPDF({ title = 'Reporte', head = [], body = [], filename = 'reporte.pdf', brand = 'EVITA', subtitle = 'Artículos de Limpieza', logoUrl = (localStorage.getItem('evita-logo') || '/logo.png') }) {
+export async function exportTableToPDF({ title = 'Reporte', head = [], body = [], filename = 'reporte.pdf', brand = 'EVITA', subtitle = 'Artículos de Limpieza', logoUrl } = {}) {
   if (!pdfMake || !pdfMake.createPdf) {
     console.error('pdfMake is not properly initialized')
     return
   }
 
-  const logoDataUrl = await loadImageAsDataURL(logoUrl)
+  const logoDataUrl = await loadImageAsDataURL(getStoredLogoUrl(logoUrl))
 
   const docDefinition = {
     header: buildHeader(logoDataUrl, brand, subtitle),
@@ -90,14 +101,14 @@ export async function exportTableToPDF({ title = 'Reporte', head = [], body = []
   try { pdfMake.createPdf(docDefinition).download(filename) } catch (e) { console.warn('Fallo descarga, abriendo PDF:', e); pdfMake.createPdf(docDefinition).open() }
 }
 
-export async function exportSectionsToPDF({ title = 'Reporte', sections = [], filename = 'reporte.pdf', brand = 'EVITA', subtitle = 'Artículos de Limpieza', logoUrl = (localStorage.getItem('evita-logo') || '/logo.png') }) {
+export async function exportSectionsToPDF({ title = 'Reporte', sections = [], filename = 'reporte.pdf', brand = 'EVITA', subtitle = 'Artículos de Limpieza', logoUrl } = {}) {
   // Check if pdfMake is properly initialized
   if (!pdfMake || !pdfMake.createPdf) {
     console.error('pdfMake is not properly initialized')
     return
   }
 
-  const logoDataUrl = await loadImageAsDataURL(logoUrl)
+  const logoDataUrl = await loadImageAsDataURL(getStoredLogoUrl(logoUrl))
 
 
   const content = []
@@ -146,9 +157,9 @@ export async function exportReceiptPDF({
   filename = `recibo-${facturaId || reciboId}.pdf`,
   brand = 'EVITA',
   subtitle = 'Comprobante',
-  logoUrl = (localStorage.getItem('evita-logo') || '/logo.png')
+  logoUrl
 } = {}) {
-  const logoDataUrl = await loadImageAsDataURL(logoUrl)
+  const logoDataUrl = await loadImageAsDataURL(getStoredLogoUrl(logoUrl))
   const title = manual ? `${tipo} (Manual)` : tipo
 
   const docDefinition = {
@@ -221,9 +232,9 @@ export async function exportPurchaseOrderPDF({
   filename = `OC-${id}.pdf`,
   brand = 'EVITA',
   subtitle = 'Orden de Compra',
-  logoUrl = (localStorage.getItem('evita-logo') || '/logo.png')
+  logoUrl
 } = {}) {
-  const logoDataUrl = await loadImageAsDataURL(logoUrl)
+  const logoDataUrl = await loadImageAsDataURL(getStoredLogoUrl(logoUrl))
 
   const lines = items.length ? items.map(it => [it.name || '-', String(it.qty||0), `$ ${Number(it.price||0).toFixed(2)}`, `$ ${Number((it.qty||0)*(it.price||0)).toFixed(2)}`]) : [[{text: 'Detalle no disponible en esta versión', colSpan: 4, alignment: 'center', italics: true, color:'#6B7280'}, {}, {}, {}]]
 
