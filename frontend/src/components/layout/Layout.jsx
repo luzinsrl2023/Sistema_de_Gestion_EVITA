@@ -24,7 +24,8 @@ import {
   FileText,
   BarChart3,
   Contact2,
-  Calculator
+  Calculator,
+  User
 } from 'lucide-react'
 import { cn } from '../../lib/utils'
 
@@ -69,7 +70,7 @@ export default function Layout({ children }) {
   const { user, signOut } = useAuth()
   const { getThemeClasses, theme, logoUrl, isCustomLogo } = useTheme()
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [notificationsOpen, setNotificationsOpen] = useState(false)
+  const [userMenuOpen, setUserMenuOpen] = useState(false)
 
   // Global Search state
   const [searchTerm, setSearchTerm] = useState('')
@@ -359,17 +360,124 @@ export default function Layout({ children }) {
         {/* User section */}
         <div className={cn("absolute bottom-0 left-0 right-0 p-4 border-t", `border-${theme.colors.border}`)}>
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className={cn("h-8 w-8 rounded-full flex items-center justify-center", `bg-${theme.colors.surface}`)}>
-                <span className={cn("text-sm font-medium", `text-${theme.colors.text}`)}>
-                  {user?.email?.charAt(0).toUpperCase()}
-                </span>
-              </div>
-              <div className="text-sm">
-                <p className={cn("font-medium truncate max-w-[120px]", `text-${theme.colors.text}`)}>
-                  {user?.user_metadata?.name || user?.email?.split('@')[0]}
-                </p>
-                <p className={`text-${theme.colors.textSecondary}`}>Admin</p>
+            <div className="hidden lg:flex lg:items-center lg:gap-3">
+              <div className="relative group">
+                <button
+                  onClick={() => setUserMenuOpen(!userMenuOpen)}
+                  className={cn(
+                    "flex items-center gap-2 p-2 rounded-lg transition-all duration-200",
+                    "hover:bg-gray-700/50 focus:outline-none focus:ring-2 focus:ring-blue-500/50",
+                    `bg-${theme.colors.surface}`
+                  )}
+                >
+                  <div className={cn("h-8 w-8 rounded-full flex items-center justify-center shadow-md", `bg-${theme.colors.primary}`)}>
+                    <span className="text-sm font-semibold text-white">
+                      {user?.email?.charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                  <div className="text-left min-w-0">
+                    <p className={cn("font-medium text-sm truncate max-w-[140px]", `text-${theme.colors.text}`)}>
+                      {user?.user_metadata?.name || user?.user_metadata?.full_name || user?.email?.split('@')[0]}
+                    </p>
+                    <p className={cn("text-xs", `text-${theme.colors.textSecondary}`)}>
+                      {user?.user_metadata?.role || 'Administrador'}
+                    </p>
+                  </div>
+                  <ChevronDown className={cn("h-4 w-4 transition-transform", `text-${theme.colors.textSecondary}`, userMenuOpen && "rotate-180")} />
+                </button>
+
+                {/* User Dropdown Menu */}
+                {userMenuOpen && (
+                  <div className={cn(
+                    "absolute right-0 top-full mt-2 w-64 rounded-lg border shadow-xl z-50",
+                    `bg-${theme.colors.surface}`,
+                    `border-${theme.colors.border}`
+                  )}>
+                    {/* User Info Header */}
+                    <div className="p-4 border-b border-gray-700/50">
+                      <div className="flex items-center gap-3">
+                        <div className={cn("h-10 w-10 rounded-full flex items-center justify-center shadow-lg", `bg-${theme.colors.primary}`)}>
+                          <span className="text-base font-bold text-white">
+                            {user?.email?.charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className={cn("font-semibold text-sm", `text-${theme.colors.text}`)}>
+                            {user?.user_metadata?.name || user?.user_metadata?.full_name || user?.email?.split('@')[0]}
+                          </p>
+                          <p className={cn("text-xs", `text-${theme.colors.textSecondary}`)}>
+                            {user?.email}
+                          </p>
+                          <p className={cn("text-xs px-2 py-0.5 rounded-full inline-block mt-1",
+                            "bg-blue-500/20 text-blue-300 border border-blue-500/30"
+                          )}>
+                            {user?.user_metadata?.role || 'Administrador'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Menu Items */}
+                    <div className="p-2">
+                      <button
+                        onClick={() => {
+                          navigate('/configuracion/perfil');
+                          setUserMenuOpen(false);
+                        }}
+                        className={cn(
+                          "w-full flex items-center gap-3 px-3 py-2 text-sm rounded-md transition-colors",
+                          `text-${theme.colors.text} hover:bg-${theme.colors.background}`
+                        )}
+                      >
+                        <User className="h-4 w-4 text-gray-400" />
+                        Mi Perfil
+                      </button>
+                      <button
+                        onClick={() => {
+                          navigate('/configuracion/empresa');
+                          setUserMenuOpen(false);
+                        }}
+                        className={cn(
+                          "w-full flex items-center gap-3 px-3 py-2 text-sm rounded-md transition-colors",
+                          `text-${theme.colors.text} hover:bg-${theme.colors.background}`
+                        )}
+                      >
+                        <SettingsIcon className="h-4 w-4 text-gray-400" />
+                        Configuración
+                      </button>
+                      <button
+                        onClick={() => {
+                          navigate('/configuracion/usuarios');
+                          setUserMenuOpen(false);
+                        }}
+                        className={cn(
+                          "w-full flex items-center gap-3 px-3 py-2 text-sm rounded-md transition-colors",
+                          `text-${theme.colors.text} hover:bg-${theme.colors.background}`
+                        )}
+                      >
+                        <Users className="h-4 w-4 text-gray-400" />
+                        Gestión de Usuarios
+                      </button>
+                    </div>
+
+                    {/* Logout */}
+                    <div className="p-2 border-t border-gray-700/50">
+                      <button
+                        onClick={() => {
+                          setUserMenuOpen(false);
+                          handleSignOut();
+                        }}
+                        className={cn(
+                          "w-full flex items-center gap-3 px-3 py-2 text-sm rounded-md transition-colors",
+                          "text-red-400 hover:bg-red-500/10 hover:text-red-300"
+                        )}
+                      >
+                        <LogOut className="h-4 w-4" />
+                        Cerrar Sesión
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
             <div className="relative group">
@@ -559,21 +667,52 @@ export default function Layout({ children }) {
                       <button className="text-sm text-green-400 hover:text-green-300 transition-colors">
                         Ver todas las notificaciones
                       </button>
+                      <button
+                        onClick={() => {
+                          navigate('/configuracion/empresa');
+                          setUserMenuOpen(false);
+                        }}
+                        className={cn(
+                          "w-full flex items-center gap-3 px-3 py-2 text-sm rounded-md transition-colors",
+                          `text-${theme.colors.text} hover:bg-${theme.colors.background}`
+                        )}
+                      >
+                        <Settings className="h-4 w-4 text-gray-400" />
+                        Configuración
+                      </button>
+                      <button
+                        onClick={() => {
+                          navigate('/configuracion/usuarios');
+                          setUserMenuOpen(false);
+                        }}
+                        className={cn(
+                          "w-full flex items-center gap-3 px-3 py-2 text-sm rounded-md transition-colors",
+                          `text-${theme.colors.text} hover:bg-${theme.colors.background}`
+                        )}
+                      >
+                        <Users className="h-4 w-4 text-gray-400" />
+                        Gestión de Usuarios
+                      </button>
+                    </div>
+
+                    {/* Logout */}
+                    <div className="p-2 border-t border-gray-700/50">
+                      <button
+                        onClick={() => {
+                          setUserMenuOpen(false);
+                          handleSignOut();
+                        }}
+                        className={cn(
+                          "w-full flex items-center gap-3 px-3 py-2 text-sm rounded-md transition-colors",
+                          "text-red-400 hover:bg-red-500/10 hover:text-red-300"
+                        )}
+                      >
+                        <LogOut className="h-4 w-4" />
+                        Cerrar Sesión
+                      </button>
                     </div>
                   </div>
                 )}
-              </div>
-              <div className="hidden lg:flex lg:items-center lg:gap-3">
-                <div className={cn("h-8 w-8 rounded-full flex items-center justify-center", `bg-${theme.colors.surface}`)}>
-                  <span className={cn("text-sm font-medium", `text-${theme.colors.text}`)}>
-                    {user?.email?.charAt(0).toUpperCase()}
-                  </span>
-                </div>
-                <div className="text-sm">
-                  <p className={cn("font-medium", `text-${theme.colors.text}`)}>
-                    {user?.user_metadata?.name || user?.email?.split('@')[0]}
-                  </p>
-                </div>
               </div>
             </div>
           </div>
