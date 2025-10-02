@@ -14,6 +14,7 @@ import { CuentasCorrientes, ComposicionSaldos, CobranzaForm, RecibosList } from 
 import { VentasReport, ComprasReport, StockReport, DashboardReport as ReportesDashboard } from '../modules/reportes'
 import { Cotizaciones } from '../modules/cotizaciones'
 import { Facturador } from '../modules/facturador'
+import { AsientosContables, BalanceSumasYSaldos } from '../modules/contabilidad'
 import CotizacionesGeneradas from '../pages/CotizacionesGeneradas'
 import HistorialPrecios from '../pages/HistorialPrecios'
 import PaginaProspectos from '../pages/PaginaProspectos'
@@ -78,6 +79,10 @@ const AppRoutes = () => {
             <Route path="/reportes/ventas" element={<VentasReport />} />
             <Route path="/reportes/compras" element={<ComprasReport />} />
             <Route path="/reportes/stock" element={<StockReport />} />
+
+            {/* Contabilidad */}
+            <Route path="/contabilidad/asientos" element={<AsientosContables />} />
+            <Route path="/contabilidad/balance" element={<BalanceSumasYSaldos />} />
 
             {/* Configuración */}
             <Route path="/configuracion" element={<ConfiguracionPage />} />

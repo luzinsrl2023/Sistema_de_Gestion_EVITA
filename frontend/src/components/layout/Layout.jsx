@@ -23,7 +23,8 @@ import {
   Settings as SettingsIcon,
   FileText,
   BarChart3,
-  Contact2
+  Contact2,
+  Calculator
 } from 'lucide-react'
 import { cn } from '../../lib/utils'
 
@@ -53,6 +54,10 @@ const navigation = [
     { name: 'Ventas', href: '/reportes/ventas' },
     { name: 'Compras', href: '/reportes/compras' },
     { name: 'Stock', href: '/reportes/stock' },
+  ]},
+  { name: 'Contabilidad', icon: Calculator, children: [
+    { name: 'Asientos Contables', href: '/contabilidad/asientos' },
+    { name: 'Balance de Sumas y Saldos', href: '/contabilidad/balance' },
   ]},
   { name: 'Prospectos', href: '/prospectos', icon: Contact2 },
   { name: 'Configuración', href: '/configuracion', icon: SettingsIcon },

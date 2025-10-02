@@ -112,6 +112,13 @@ const PaginaProspectos = () => {
 
   // Cargar datos iniciales
   const cargarDatos = useCallback(async () => {
+    // No cargar datos si es usuario de prueba
+    if (isTestUser) {
+      setCargando(false);
+      setCargandoEstadisticas(false);
+      return;
+    }
+
     setCargando(true);
     try {
       const [resultadoProspectos, resultadoEstadisticas, resultadoProximos] = await Promise.all([
@@ -141,7 +148,7 @@ const PaginaProspectos = () => {
       setCargando(false);
       setCargandoEstadisticas(false);
     }
-  }, [busqueda, filtroEstado, pagina, filasPorPagina]);
+  }, [busqueda, filtroEstado, pagina, filasPorPagina, isTestUser]);
 
   useEffect(() => {
     cargarDatos();

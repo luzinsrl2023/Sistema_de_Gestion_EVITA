@@ -965,7 +965,7 @@ export default function ProveedoresList() {
                   className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-green-500"
                 >
                   <option value="">Seleccione un proveedor</option>
-                  {suppliers.map(supplier => (
+                  {suppliers.filter(s => s.status === 'activo').map(supplier => (
                     <option key={supplier.id} value={supplier.id}>{supplier.name}</option>
                   ))}
                 </select>
