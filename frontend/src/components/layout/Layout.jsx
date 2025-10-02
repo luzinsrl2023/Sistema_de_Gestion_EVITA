@@ -40,6 +40,7 @@ const navigation = [
     { name: 'Órdenes', href: '/compras' },
     { name: 'Nueva orden', href: '/compras/nueva' },
     { name: 'Actualización masiva de Productos', href: '/compras/actualizacion-productos' },
+    { name: 'Historial de Precios', href: '/compras/historial-precios' },
     { name: 'Proveedores', href: '/proveedores' },
     { name: 'Productos', href: '/productos' },
   ]},

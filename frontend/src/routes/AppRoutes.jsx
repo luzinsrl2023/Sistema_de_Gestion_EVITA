@@ -15,6 +15,7 @@ import { VentasReport, ComprasReport, StockReport, DashboardReport as ReportesDa
 import { Cotizaciones } from '../modules/cotizaciones'
 import { Facturador } from '../modules/facturador'
 import CotizacionesGeneradas from '../pages/CotizacionesGeneradas'
+import HistorialPrecios from '../pages/HistorialPrecios'
 import PaginaProspectos from '../pages/PaginaProspectos'
 import PaginaDetalleProspecto from '../pages/PaginaDetalleProspecto'
 import ConfiguracionPage from '../pages/configuracion/ConfiguracionPage'
@@ -57,9 +58,8 @@ const AppRoutes = () => {
             {/* Compras */}
             <Route path="/compras" element={<OrdenesList />} />
             <Route path="/compras/nueva" element={<OrdenForm />} />
-
-
             <Route path="/compras/actualizacion-productos" element={<ActualizacionProductos />} />
+            <Route path="/compras/historial-precios" element={<HistorialPrecios />} />
 
             {/* Facturacion */}
             <Route path="/facturas" element={<FacturasList />} />

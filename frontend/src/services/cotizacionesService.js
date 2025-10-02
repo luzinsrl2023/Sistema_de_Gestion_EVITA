@@ -3,13 +3,25 @@ import { supabase } from '../lib/supabaseClient';
 // Guardar una nueva cotización
 export const saveCotizacion = async (cotizacionData) => {
   try {
+    const payload = {
+      codigo: cotizacionData.id, // Usar el código generado como identificador único
+      cliente_nombre: cotizacionData.cliente_nombre,
+      cliente_email: cotizacionData.cliente_email,
+      fecha: cotizacionData.fecha,
+      validez_dias: cotizacionData.validez_dias,
+      notas: cotizacionData.notas,
+      subtotal: cotizacionData.subtotal,
+      iva: cotizacionData.iva,
+      total: cotizacionData.total,
+      items: cotizacionData.items,
+      estado: 'abierta',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
     const { data, error } = await supabase
       .from('cotizaciones')
-      .insert([{
-        ...cotizacionData,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      }])
+      .insert([payload])
       .select()
       .single();
 

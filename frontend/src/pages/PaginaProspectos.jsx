@@ -39,6 +39,7 @@ import {
   AssignmentInd as AssignIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import {
   obtenerProspectos,
   eliminarProspecto,
@@ -47,6 +48,20 @@ import {
 } from '../services/prospectosService';
 
 import FormularioProspecto from '../components/prospectos/FormularioProspecto';
+
+const safeParse = (value) => {
+  try {
+    return JSON.parse(value);
+  } catch (error) {
+    return null;
+  }
+};
+
+const formatUserDisplay = (user) => {
+  if (!user) return '-';
+  const value = typeof user === 'string' ? safeParse(user) : user;
+  return value?.full_name || value?.nombre || value?.email || value?.id || '-';
+};
 
 // Configuración de colores para estados
 const estadoColores = {
@@ -71,6 +86,10 @@ const prioridadColores = {
 
 const PaginaProspectos = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+
+  // Verificar si el usuario es test@example.com
+  const isTestUser = user?.email === 'test@example.com';
 
   // Estados del componente
   const [prospectos, setProspectos] = useState([]);
@@ -280,6 +299,18 @@ const PaginaProspectos = () => {
     return (
       <Box sx={{ p: 3 }}>
         <Alert severity="error">{error}</Alert>
+      </Box>
+    );
+  }
+
+  // Bloquear acceso para test@example.com
+  if (isTestUser) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Alert severity="warning">
+          El módulo de Prospectos no está disponible para usuarios de prueba.
+          Por favor, contacta al administrador para obtener acceso completo.
+        </Alert>
       </Box>
     );
   }

@@ -378,57 +378,48 @@ export const getProductoFilters = async () => {
 
 export const updateProductosPorProveedor = async (proveedorId, porcentajeAumento) => {
   try {
-    const factor = 1 + (Number(porcentajeAumento) || 0) / 100;
-    const timestamp = new Date().toISOString();
-
-    const { data: productos, error } = await supabase
-      .from('productos')
-      .select('id, costo, precio')
-      .eq('proveedor_id', proveedorId);
+    // Obtener el usuario actual
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    // Usar la función RPC que registra el historial
+    const { data, error } = await supabase.rpc('actualizar_precios_proveedor_con_historial', {
+      p_proveedor_id: proveedorId,
+      p_porcentaje: Number(porcentajeAumento),
+      p_user_id: user?.id || null,
+      p_user_email: user?.email || null
+    });
 
     if (error) throw error;
 
-    if (!productos || productos.length === 0) {
-      return { data: [], updated: 0, error: null };
+    if (!data?.success) {
+      throw new Error(data?.error || 'Error al actualizar precios');
     }
 
-    const updates = productos
-      .map((producto) => {
-        const costo = Number(producto.costo ?? 0);
-        const precioActual = Number(producto.precio ?? 0);
-        const base = costo > 0 ? costo : precioActual;
-        if (!base || !isFinite(base)) {
-          return null;
-        }
-
-        const nuevoPrecio = parseFloat((base * factor).toFixed(2));
-        if (!nuevoPrecio || !isFinite(nuevoPrecio) || nuevoPrecio <= 0) {
-          return null;
-        }
-
-        return {
-          id: producto.id,
-          precio: nuevoPrecio,
-          updated_at: timestamp,
-        };
-      })
-      .filter(Boolean);
-
-    if (!updates.length) {
-      return { data: [], updated: 0, error: null };
-    }
-
-    const { data: updatedRows, error: updateError } = await supabase
-      .from('productos')
-      .upsert(updates, { onConflict: 'id' })
-      .select('id, precio');
-
-    if (updateError) throw updateError;
-
-    return { data: updatedRows, updated: updates.length, error: null };
+    return {
+      data: data,
+      updated: data.productos_afectados,
+      error: null
+    };
   } catch (error) {
     console.error('Error updating product prices by proveedor:', error);
     return { data: null, updated: 0, error };
+  }
+};
+
+// Obtener historial de cambios de precios
+export const getHistorialPrecios = async (proveedorId = null) => {
+  try {
+    const { data, error } = await supabase.rpc('get_historial_precios', {
+      p_proveedor_id: proveedorId,
+      p_limite: 100
+    });
+
+    if (error) throw error;
+
+    return { data: data || [], error: null };
+  } catch (error) {
+    console.error('Error fetching historial precios:', error);
+    return { data: [], error };
   }
 };
 

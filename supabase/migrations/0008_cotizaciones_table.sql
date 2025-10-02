@@ -1,26 +1,41 @@
 -- =====================================================
--- Migration: Tabla de Cotizaciones
+-- Migration: Actualizar Tabla de Cotizaciones
 -- =====================================================
 
--- Crear tabla cotizaciones
-create table if not exists public.cotizaciones (
-  id text primary key,
-  cliente_nombre text not null,
-  cliente_email text,
-  fecha date not null default current_date,
-  validez_dias integer not null default 15,
-  notas text,
-  subtotal numeric(12,2) not null default 0,
-  iva numeric(12,2) not null default 0,
-  total numeric(12,2) not null default 0,
-  items jsonb not null default '[]'::jsonb,
-  created_at timestamptz default now(),
-  updated_at timestamptz default now(),
-  user_id uuid references auth.users(id) on delete set null
-);
+-- Agregar nuevas columnas a la tabla cotizaciones existente
+alter table public.cotizaciones
+add column if not exists codigo text unique;
+
+alter table public.cotizaciones
+add column if not exists cliente_nombre text;
+
+alter table public.cotizaciones
+add column if not exists cliente_email text;
+
+alter table public.cotizaciones
+add column if not exists validez_dias integer not null default 15;
+
+alter table public.cotizaciones
+add column if not exists notas text;
+
+alter table public.cotizaciones
+add column if not exists subtotal numeric(12,2) not null default 0;
+
+alter table public.cotizaciones
+add column if not exists iva numeric(12,2) not null default 0;
+
+alter table public.cotizaciones
+add column if not exists items jsonb not null default '[]'::jsonb;
+
+alter table public.cotizaciones
+add column if not exists updated_at timestamptz default now();
+
+alter table public.cotizaciones
+add column if not exists user_id uuid references auth.users(id) on delete set null;
 
 -- Índices para búsqueda rápida
-create index if not exists idx_cotizaciones_cliente on cotizaciones(cliente_nombre);
+create index if not exists idx_cotizaciones_codigo on cotizaciones(codigo);
+create index if not exists idx_cotizaciones_cliente_nombre on cotizaciones(cliente_nombre);
 create index if not exists idx_cotizaciones_fecha on cotizaciones(fecha desc);
 create index if not exists idx_cotizaciones_user_id on cotizaciones(user_id);
 
@@ -33,7 +48,8 @@ create or replace function public.get_cotizaciones(
   p_desplazamiento integer default 0
 )
 returns table(
-  id text,
+  id uuid,
+  codigo text,
   cliente_nombre text,
   cliente_email text,
   fecha date,
@@ -51,6 +67,7 @@ begin
   return query
   select
     c.id,
+    c.codigo,
     c.cliente_nombre,
     c.cliente_email,
     c.fecha,
@@ -67,7 +84,7 @@ begin
   where
     (p_busqueda is null or
      c.cliente_nombre ilike ('%' || p_busqueda || '%') or
-     c.id ilike ('%' || p_busqueda || '%') or
+     c.codigo ilike ('%' || p_busqueda || '%') or
      c.notas ilike ('%' || p_busqueda || '%')
     )
     and (p_fecha_desde is null or c.fecha >= p_fecha_desde)

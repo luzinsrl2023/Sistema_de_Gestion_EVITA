@@ -403,30 +403,6 @@ export default function Cotizaciones() {
             <p className={cn('text-sm', `text-${theme.colors.textSecondary}`)}>Gestiona tus cotizaciones comerciales</p>
           </div>
         </div>
-        <div className="flex gap-3">
-          <button
-            onClick={handleGuardar}
-            className={cn(
-              'inline-flex items-center gap-2 px-4 py-2 rounded-lg transition-colors focus:outline-none focus:ring-2',
-              `bg-${theme.colors.surface} text-${theme.colors.text} hover:bg-${theme.colors.border}`,
-              `focus:ring-${theme.colors.primary}`
-            )}
-          >
-            <Save className="h-4 w-4" />
-            Guardar
-          </button>
-          <button
-            onClick={handlePDF}
-            className={cn(
-              'inline-flex items-center gap-2 px-4 py-2 rounded-lg transition-colors focus:outline-none focus:ring-2',
-              `bg-${theme.colors.primary} text-${theme.colors.text} hover:bg-${theme.colors.primaryHover}`,
-              `focus:ring-${theme.colors.primary}`
-            )}
-          >
-            <Download className="h-4 w-4" />
-            PDF
-          </button>
-        </div>
       </div>
 
       {/* Main Content Grid - Reestructurado */}
