@@ -1,9 +1,9 @@
-import React, { useMemo, useState, useCallback } from 'react'
-import { Plus, Trash2, Download, Save, FileText, Search } from 'lucide-react'
+import React, { useMemo, useState, useCallback, useEffect, useRef } from 'react'
+import { Plus, Trash2, Download, Save, FileText, Search, Loader2, History, SlidersHorizontal, XCircle } from 'lucide-react'
 import { exportSectionsToPDF } from '../../common'
 import { useCotizaciones } from '../../hooks/useCotizaciones'
 import { useClientes } from '../../hooks/useClientes'
-import { searchProducts } from '../../services/productos'
+import { searchProducts, getProductoFilters } from '../../services/productos'
 import debounce from 'lodash.debounce'
 import { useTheme } from '../../contexts/ThemeContext'
 import { cn } from '../../lib/utils'
@@ -20,6 +20,23 @@ function nextCotizacionId() {
   }
 }
 
+const RECENT_SEARCHES_KEY = 'evita-cotizaciones-recent-searches'
+const MAX_RECENT_SEARCHES = 8
+
+const createEmptyItem = (id) => ({
+  id,
+  nombre: '',
+  cantidad: 1,
+  precio: 0,
+  searchResults: [],
+  searchStatus: 'idle',
+  searchError: null,
+  hasMore: false,
+  lastQuery: '',
+  offset: 0,
+  loadingMore: false,
+})
+
 export default function Cotizaciones() {
   const { data: cotizaciones = [], addCotizacion } = useCotizaciones()
   const { data: clientes = [] } = useClientes()
@@ -27,24 +44,255 @@ export default function Cotizaciones() {
 
   const [customer, setCustomer] = useState({ nombre: '', email: '' })
   const [meta, setMeta] = useState({ fecha: new Date().toISOString().slice(0,10), validezDias: 15, notas: '' })
-  const [items, setItems] = useState([{ id: 1, nombre: '', cantidad: 1, precio: 0, searchResults: [] }])
+  const [items, setItems] = useState([createEmptyItem(1)])
+  const itemsRef = useRef(items)
   const [activeSearch, setActiveSearch] = useState(null)
+  const [filters, setFilters] = useState({ category: 'all', priceRange: [0, 0], stock: 'all' })
+  const [filtersMeta, setFiltersMeta] = useState({ categories: [], priceRange: [0, 0], maxStock: 0 })
+  const [filtersLoading, setFiltersLoading] = useState(true)
+  const [filtersError, setFiltersError] = useState(null)
+  const [filtersReady, setFiltersReady] = useState(false)
+  const [showMobileFilters, setShowMobileFilters] = useState(false)
+  const [recentQueries, setRecentQueries] = useState([])
+  const currencyFormatter = useMemo(() => new Intl.NumberFormat('es-AR', {
+    style: 'currency',
+    currency: 'ARS',
+    maximumFractionDigits: 2,
+  }), [])
+  const minAvailablePrice = filtersMeta.priceRange?.[0] ?? 0
+  const maxAvailablePrice = filtersMeta.priceRange?.[1] ?? 0
+  const maxAvailableStock = filtersMeta.maxStock ?? 0
+  const isAnySearchLoading = useMemo(() => items.some(item => item.searchStatus === 'loading'), [items])
 
-  const handleSearch = useCallback(
-    debounce(async (query, itemId) => {
-      if (query.length < 1) {
-        setItems(prev => prev.map(item => item.id === itemId ? { ...item, searchResults: [] } : item))
-        return
+  useEffect(() => {
+    itemsRef.current = items
+  }, [items])
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(RECENT_SEARCHES_KEY)
+      if (stored) {
+        const parsed = JSON.parse(stored)
+        if (Array.isArray(parsed)) {
+          setRecentQueries(parsed.filter((entry) => typeof entry === 'string'))
+        }
       }
-      const { data, error } = await searchProducts(query)
+    } catch (error) {
+      console.warn('Unable to load recent searches', error)
+    }
+  }, [])
+
+  useEffect(() => {
+    let isMounted = true
+    async function loadFilters() {
+      setFiltersLoading(true)
+      setFiltersError(null)
+      const { data, error } = await getProductoFilters()
+      if (!isMounted) return
       if (error) {
-        console.error('Error searching products:', error)
+        setFiltersError('No se pudieron obtener los filtros disponibles')
+        setFiltersReady(true)
+      } else if (data) {
+        setFiltersMeta(data)
+        if (Array.isArray(data.priceRange) && data.priceRange.length === 2) {
+          setFilters((prev) => ({
+            ...prev,
+            priceRange: [data.priceRange[0], data.priceRange[1]]
+          }))
+        }
+        setFiltersReady(true)
       }
-      setItems(prev => prev.map(item => item.id === itemId ? { ...item, searchResults: data || [] } : item))
-      setActiveSearch(itemId)
-    }, 300),
-    []
-  )
+      setFiltersLoading(false)
+    }
+    loadFilters()
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
+  const updateRecentQueries = useCallback((query) => {
+    const normalized = query?.trim()
+    if (!normalized) return
+    setRecentQueries((prev) => {
+      const next = [normalized, ...prev.filter((entry) => entry !== normalized)].slice(0, MAX_RECENT_SEARCHES)
+      try {
+        localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(next))
+      } catch (error) {
+        console.warn('Unable to persist recent searches', error)
+      }
+      return next
+    })
+  }, [])
+
+  const performSearch = useCallback(async (rawQuery, itemId, { append = false } = {}) => {
+    const queryValue = rawQuery?.trim() ?? ''
+
+    if (!append) {
+      setItems(prev => prev.map(item => {
+        if (item.id !== itemId) return item
+        if (!queryValue) {
+          return {
+            ...item,
+            searchResults: [],
+            searchStatus: 'idle',
+            searchError: null,
+            hasMore: false,
+            lastQuery: '',
+            offset: 0,
+            loadingMore: false,
+          }
+        }
+        return {
+          ...item,
+          searchStatus: 'loading',
+          searchError: null,
+          loadingMore: false,
+        }
+      }))
+    } else {
+      setItems(prev => prev.map(item => item.id === itemId ? { ...item, loadingMore: true } : item))
+    }
+
+    if (!queryValue) {
+      return
+    }
+
+    try {
+      const currentItem = itemsRef.current.find(item => item.id === itemId)
+      const currentOffset = append && currentItem ? currentItem.offset : 0
+
+      const payloadFilters = {
+        category: filters.category !== 'all' ? filters.category : null,
+        priceRange: filters.priceRange,
+        stock: filters.stock,
+      }
+
+      const { data, error, hasMore } = await searchProducts({
+        query: queryValue,
+        limit: 12,
+        offset: currentOffset,
+        filters: payloadFilters,
+      })
+
+      if (error) {
+        throw error
+      }
+
+      setItems(prev => prev.map(item => {
+        if (item.id !== itemId) return item
+        const nextResults = append ? [...item.searchResults, ...(data || [])] : (data || [])
+        return {
+          ...item,
+          searchResults: nextResults,
+          searchStatus: nextResults.length === 0 ? 'empty' : 'success',
+          searchError: null,
+          hasMore,
+          offset: currentOffset + (data?.length ?? 0),
+          lastQuery: queryValue,
+          loadingMore: false,
+        }
+      }))
+
+      if (data?.length) {
+        updateRecentQueries(queryValue)
+      }
+    } catch (error) {
+      console.error('Error searching products:', error)
+      setItems(prev => prev.map(item => item.id === itemId ? {
+        ...item,
+        searchStatus: 'error',
+        searchError: 'No pudimos obtener los productos. Intenta nuevamente.',
+        loadingMore: false,
+      } : item))
+    }
+  }, [filters, updateRecentQueries])
+
+  const debouncedSearch = useMemo(() => debounce((value, itemId) => {
+    performSearch(value, itemId)
+  }, 300), [performSearch])
+
+  useEffect(() => {
+    return () => {
+      debouncedSearch.cancel()
+    }
+  }, [debouncedSearch])
+
+  const handleSearchChange = useCallback((value, itemId) => {
+    setItems(prev => prev.map(item => item.id === itemId ? { ...item, nombre: value } : item))
+    setActiveSearch(itemId)
+    debouncedSearch(value, itemId)
+  }, [debouncedSearch])
+
+  const handleLoadMore = useCallback((itemId) => {
+    const currentItem = itemsRef.current.find(item => item.id === itemId)
+    if (!currentItem || !currentItem.hasMore || currentItem.loadingMore || !currentItem.lastQuery) {
+      return
+    }
+    performSearch(currentItem.lastQuery, itemId, { append: true })
+  }, [performSearch])
+
+  useEffect(() => {
+    if (!filtersReady || !activeSearch) return
+    const activeItem = itemsRef.current.find(item => item.id === activeSearch)
+    if (!activeItem?.lastQuery) return
+    performSearch(activeItem.lastQuery, activeSearch)
+  }, [filtersReady, filters, activeSearch, performSearch])
+
+  const handleSelectProduct = useCallback((itemId, product) => {
+    setItems(prev => prev.map(item => {
+      if (item.id !== itemId) return item
+      const price = Number(product.price ?? 0)
+      return {
+        ...item,
+        nombre: product.name || item.nombre,
+        precio: price,
+        searchResults: [],
+        searchStatus: 'success',
+        searchError: null,
+        hasMore: false,
+        lastQuery: product.name || item.lastQuery,
+        offset: 0,
+        loadingMore: false,
+      }
+    }))
+    updateRecentQueries(product.name)
+    setActiveSearch(null)
+  }, [updateRecentQueries])
+
+  const handleRecentQueryClick = useCallback((query, itemId) => {
+    setItems(prev => prev.map(item => item.id === itemId ? { ...item, nombre: query } : item))
+    setActiveSearch(itemId)
+    performSearch(query, itemId)
+  }, [performSearch])
+
+  const handlePriceRangeChange = useCallback((index, rawValue) => {
+    const numeric = Number(rawValue)
+    setFilters(prev => {
+      const nextRange = [...prev.priceRange]
+      if (Number.isNaN(numeric)) {
+        nextRange[index] = index === 0 ? minAvailablePrice : maxAvailablePrice
+      } else {
+        const clamped = Math.min(Math.max(numeric, minAvailablePrice), maxAvailablePrice)
+        nextRange[index] = clamped
+      }
+      if (nextRange[0] > nextRange[1]) {
+        if (index === 0) {
+          nextRange[1] = nextRange[0]
+        } else {
+          nextRange[0] = nextRange[1]
+        }
+      }
+      return { ...prev, priceRange: nextRange }
+    })
+  }, [minAvailablePrice, maxAvailablePrice])
+
+  const resetFilters = useCallback(() => {
+    setFilters({
+      category: 'all',
+      priceRange: [minAvailablePrice, maxAvailablePrice],
+      stock: 'all',
+    })
+  }, [minAvailablePrice, maxAvailablePrice])
 
   const totals = useMemo(() => {
     const subtotal = items.reduce((acc, it) => acc + (Number(it.cantidad)||0) * (Number(it.precio)||0), 0)
@@ -54,10 +302,17 @@ export default function Cotizaciones() {
   }, [items])
 
   function addItem() {
-    setItems(prev => [...prev, { id: Date.now(), nombre: '', cantidad: 1, precio: 0, searchResults: [] }])
+    setItems(prev => [...prev, createEmptyItem(Date.now())])
   }
   function removeItem(id) {
-    setItems(prev => prev.length > 1 ? prev.filter(i => i.id !== id) : prev)
+    setItems(prev => {
+      if (prev.length <= 1) return prev
+      const filtered = prev.filter(i => i.id !== id)
+      if (activeSearch === id) {
+        setActiveSearch(null)
+      }
+      return filtered.length ? filtered : prev
+    })
   }
   function updateItem(id, patch) {
     setItems(prev => prev.map(i => i.id === id ? { ...i, ...patch } : i))
@@ -65,7 +320,13 @@ export default function Cotizaciones() {
 
   async function handleGuardar() {
     const id = nextCotizacionId()
-    const payload = { id, cliente: customer, fecha: meta.fecha, validezDias: meta.validezDias, notas: meta.notas, items, totales: totals }
+    const simplifiedItems = items.map(({ id: itemId, nombre, cantidad, precio }) => ({
+      id: itemId,
+      nombre,
+      cantidad,
+      precio,
+    }))
+    const payload = { id, cliente: customer, fecha: meta.fecha, validezDias: meta.validezDias, notas: meta.notas, items: simplifiedItems, totales: totals }
     await addCotizacion(payload)
     alert(`Cotización ${id} guardada`)
   }
@@ -240,149 +501,496 @@ export default function Cotizaciones() {
       {/* Items Section */}
       <div className={cn('p-5 rounded-lg', `bg-${theme.colors.surface} border border-${theme.colors.border}`)}>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-5">
-          <h2 className={cn('font-semibold text-lg flex items-center gap-2', `text-${theme.colors.text}`)}>
-            <div className={cn('w-2 h-2 rounded-full', `bg-${theme.colors.primary}`)}></div>
-            Productos
-          </h2>
-          <button
-            onClick={addItem}
-            className={cn(
-              'inline-flex items-center gap-2 px-4 py-2 rounded-lg transition-colors',
-              `bg-${theme.colors.primary} text-${theme.colors.text} hover:bg-${theme.colors.primaryHover}`
-            )}
-          >
-            <Plus className="h-4 w-4" />
-            Agregar producto
-          </button>
-        </div>
-
-        <div className="space-y-4">
-          {items.map((it) => (
-            <div
-              key={it.id}
+          <div className="space-y-1">
+            <h2 className={cn('font-semibold text-lg flex items-center gap-2', `text-${theme.colors.text}`)}>
+              <div className={cn('w-2 h-2 rounded-full', `bg-${theme.colors.primary}`)}></div>
+              Productos
+            </h2>
+            <p className={cn('text-sm', `text-${theme.colors.textSecondary}`)}>
+              Busca y agrega productos del catálogo en tiempo real mientras ajustas filtros inteligentes.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => setShowMobileFilters(prev => !prev)}
               className={cn(
-                'grid grid-cols-1 md:grid-cols-12 gap-3 items-center p-3 rounded-lg transition-colors',
-                `bg-${theme.colors.background}/50 hover:bg-${theme.colors.background}`
+                'inline-flex items-center gap-2 px-3 py-2 rounded-lg border text-sm font-medium transition-colors lg:hidden',
+                `border-${theme.colors.border} text-${theme.colors.text} bg-${theme.colors.background}`,
+                `hover:border-${theme.colors.primary} hover:text-${theme.colors.primaryText}`
               )}
             >
-              <div className="md:col-span-6 relative">
-                <label className={cn('text-xs mb-1 block', `text-${theme.colors.textMuted}`)}>Producto</label>
-                {/* Merge result: search icon + input */}
-                <div className="relative">
-                  <Search
-                    className={cn(
-                      'absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4',
-                      `text-${theme.colors.textMuted}`
-                    )}
-                  />
-                  <input
-                    autoComplete="off"
-                    className={cn(
-                      'input pl-10',
-                      `bg-${theme.colors.surface} border-${theme.colors.border} text-${theme.colors.text}`
-                    )}
-                    placeholder="Buscar por nombre, SKU, descripción o categoría"
-                    value={it.nombre}
-                    onChange={e => {
-                      const nombre = e.target.value
-                      updateItem(it.id, { nombre })
-                      handleSearch(nombre, it.id)
-                    }}
-                    onFocus={() => setActiveSearch(it.id)}
-                    onBlur={() => setTimeout(() => setActiveSearch(null), 200)}
-                  />
-                </div>
+              <SlidersHorizontal className="h-4 w-4" />
+              Filtros
+            </button>
+            <button
+              onClick={addItem}
+              className={cn(
+                'inline-flex items-center gap-2 px-4 py-2 rounded-lg transition-colors',
+                `bg-${theme.colors.primary} text-${theme.colors.text} hover:bg-${theme.colors.primaryHover}`
+              )}
+            >
+              <Plus className="h-4 w-4" />
+              Agregar producto
+            </button>
+          </div>
+        </div>
 
-                {activeSearch === it.id && it.searchResults && (
-                  <div
+        {isAnySearchLoading && (
+          <div className="mb-4 h-1 w-full overflow-hidden rounded-full bg-slate-700/40">
+            <div className="h-full w-full origin-left animate-pulse bg-green-500/80"></div>
+          </div>
+        )}
+
+        {filtersError && (
+          <div className="mb-4 flex items-center gap-2 rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+            <XCircle className="h-4 w-4" />
+            <span>{filtersError}</span>
+          </div>
+        )}
+
+        <div className="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
+          <aside
+            className={cn(
+              'rounded-xl border px-4 py-5 shadow-sm backdrop-blur-sm transition-all',
+              `bg-${theme.colors.background}`,
+              `border-${theme.colors.border}`,
+              showMobileFilters ? 'block' : 'hidden',
+              'lg:block'
+            )}
+          >
+            <div className="flex items-center justify-between gap-2 mb-4">
+              <h3 className={cn('text-xs font-semibold uppercase tracking-wide', `text-${theme.colors.textSecondary}`)}>
+                Filtros avanzados
+              </h3>
+              <button
+                type="button"
+                onClick={resetFilters}
+                className="text-xs font-semibold text-green-400 transition-colors hover:text-green-300"
+              >
+                Restablecer
+              </button>
+            </div>
+
+            {filtersLoading ? (
+              <div className="space-y-4 animate-pulse">
+                <div className="h-10 rounded-lg bg-slate-700/40" />
+                <div className="space-y-2">
+                  <div className="h-3 w-24 rounded bg-slate-700/40" />
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="h-10 rounded-lg bg-slate-700/40" />
+                    <div className="h-10 rounded-lg bg-slate-700/40" />
+                  </div>
+                </div>
+                <div className="h-10 rounded-lg bg-slate-700/40" />
+              </div>
+            ) : (
+              <div className="space-y-5">
+                <div className="space-y-2">
+                  <p className={cn('text-xs font-semibold uppercase tracking-wide', `text-${theme.colors.textMuted}`)}>
+                    Categoría
+                  </p>
+                  <select
+                    value={filters.category}
+                    onChange={e => setFilters(prev => ({ ...prev, category: e.target.value }))}
                     className={cn(
-                      'absolute z-10 w-full rounded-md mt-1 shadow-lg max-h-60 overflow-y-auto',
-                      `bg-${theme.colors.surface} border border-${theme.colors.border}`
+                      'w-full rounded-lg border px-3 py-2 text-sm transition-colors focus:outline-none focus-visible:ring-2',
+                      `bg-${theme.colors.surface}`,
+                      `border-${theme.colors.border}`,
+                      `text-${theme.colors.text}`,
+                      `focus-visible:ring-${theme.colors.primary}`
                     )}
                   >
-                    {it.searchResults.length > 0 ? (
-                      it.searchResults.map(p => (
-                        <div
-                          key={p.id}
-                          onMouseDown={() => {
-                            updateItem(it.id, { nombre: p.name, precio: p.price, searchResults: [] })
-                            setActiveSearch(null)
-                          }}
-                          className={cn('px-4 py-2 cursor-pointer', `hover:bg-${theme.colors.background}`)}
-                        >
-                          <div className="flex items-center justify-between gap-2">
-                            <p className={cn('font-semibold', `text-${theme.colors.text}`)}>{p.name}</p>
-                            <span className={cn('text-xs font-semibold', `text-${theme.colors.primaryText}`)}>
-                              $ {Number(p.price || 0).toFixed(2)}
-                            </span>
-                          </div>
-                          {(p.sku || p.category_name) && (
-                            <div className="flex items-center justify-between text-xs">
-                              <span className={cn('tracking-wide uppercase', `text-${theme.colors.textMuted}`)}>
-                                {p.sku ? `SKU: ${p.sku}` : ''}
-                              </span>
-                              <span className={cn('text-right', `text-${theme.colors.textMuted}`)}>
-                                {p.category_name || ''}
-                              </span>
-                            </div>
-                          )}
-                          {p.supplier_name && (
-                            <p className={cn('text-xs mt-1', `text-${theme.colors.textSecondary}`)}>
-                              Proveedor: {p.supplier_name}
-                            </p>
-                          )}
-                          {p.description && (
-                            <p className={cn('text-sm truncate mt-1', `text-${theme.colors.textSecondary}`)}>{p.description}</p>
-                          )}
-                        </div>
-                      ))
-                    ) : (
-                      <div className={cn('px-4 py-3 text-sm', `text-${theme.colors.textMuted}`)}>
-                        No se encontraron productos. Prueba con otra palabra o revisa la ortografía.
-                      </div>
+                    <option value="all">Todas las categorías</option>
+                    {filtersMeta.categories.map((category) => (
+                      <option key={category} value={category}>{category}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className={cn('text-xs font-semibold uppercase tracking-wide', `text-${theme.colors.textMuted}`)}>
+                      Rango de precio
+                    </p>
+                    <span className={cn('text-[11px] font-medium', `text-${theme.colors.textSecondary}`)}>
+                      {currencyFormatter.format(minAvailablePrice)} - {currencyFormatter.format(maxAvailablePrice)}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className={cn('text-[11px] uppercase tracking-wide', `text-${theme.colors.textMuted}`)}>Mín</label>
+                      <input
+                        type="number"
+                        inputMode="decimal"
+                        value={filters.priceRange[0] ?? ''}
+                        min={minAvailablePrice}
+                        max={filters.priceRange[1] ?? maxAvailablePrice}
+                        onChange={e => handlePriceRangeChange(0, e.target.value)}
+                        className={cn(
+                          'mt-1 w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus-visible:ring-2',
+                          `bg-${theme.colors.surface}`,
+                          `border-${theme.colors.border}`,
+                          `text-${theme.colors.text}`,
+                          `focus-visible:ring-${theme.colors.primary}`
+                        )}
+                      />
+                    </div>
+                    <div>
+                      <label className={cn('text-[11px] uppercase tracking-wide', `text-${theme.colors.textMuted}`)}>Máx</label>
+                      <input
+                        type="number"
+                        inputMode="decimal"
+                        value={filters.priceRange[1] ?? ''}
+                        min={filters.priceRange[0] ?? minAvailablePrice}
+                        max={maxAvailablePrice}
+                        onChange={e => handlePriceRangeChange(1, e.target.value)}
+                        className={cn(
+                          'mt-1 w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus-visible:ring-2',
+                          `bg-${theme.colors.surface}`,
+                          `border-${theme.colors.border}`,
+                          `text-${theme.colors.text}`,
+                          `focus-visible:ring-${theme.colors.primary}`
+                        )}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <p className={cn('text-xs font-semibold uppercase tracking-wide', `text-${theme.colors.textMuted}`)}>
+                    Estado de stock
+                  </p>
+                  <select
+                    value={filters.stock}
+                    onChange={e => setFilters(prev => ({ ...prev, stock: e.target.value }))}
+                    className={cn(
+                      'w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 transition-colors',
+                      `bg-${theme.colors.surface}`,
+                      `border-${theme.colors.border}`,
+                      `text-${theme.colors.text}`,
+                      `focus-visible:ring-${theme.colors.primary}`
                     )}
+                  >
+                    <option value="all">Cualquier estado</option>
+                    <option value="available">Disponible (+)</option>
+                    <option value="low">Stock bajo (≤5)</option>
+                    <option value="out_of_stock">Agotado</option>
+                  </select>
+                  <p className={cn('text-[11px]', `text-${theme.colors.textSecondary}`)}>
+                    Stock máximo registrado: {maxAvailableStock}
+                  </p>
+                </div>
+
+                {!!recentQueries.length && (
+                  <div className="space-y-2">
+                    <p className={cn('text-xs font-semibold uppercase tracking-wide', `text-${theme.colors.textMuted}`)}>
+                      Búsquedas recientes
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {recentQueries.map((query) => (
+                        <button
+                          type="button"
+                          key={query}
+                          onClick={() => handleRecentQueryClick(query, activeSearch ?? items[0]?.id ?? 1)}
+                          className={cn(
+                            'inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium transition-colors',
+                            `bg-${theme.colors.background}`,
+                            `text-${theme.colors.textSecondary}`,
+                            `hover:text-${theme.colors.text}`,
+                            `hover:border-${theme.colors.primary}`,
+                            `border border-${theme.colors.border}`
+                          )}
+                        >
+                          <History className="h-3.5 w-3.5" />
+                          {query}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
-              <div className="md:col-span-2">
-                <label className={cn('text-xs mb-1 block', `text-${theme.colors.textMuted}`)}>Cantidad</label>
-                <input
-                  type="number"
-                  min="1"
-                  className={cn('input', `bg-${theme.colors.surface} border-${theme.colors.border} text-${theme.colors.text}`)}
-                  placeholder="Cantidad"
-                  value={it.cantidad}
-                  onChange={e => updateItem(it.id, { cantidad: Number(e.target.value) })}
-                />
-              </div>
-              <div className="md:col-span-2">
-                <label className={cn('text-xs mb-1 block', `text-${theme.colors.textMuted}`)}>Precio</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  className={cn('input', `bg-${theme.colors.surface} border-${theme.colors.border} text-${theme.colors.text}`)}
-                  placeholder="Precio"
-                  value={it.precio}
-                  onChange={e => updateItem(it.id, { precio: Number(e.target.value) })}
-                />
-              </div>
-              <div className="md:col-span-1 text-right">
-                <label className={cn('text-xs mb-1 block', `text-${theme.colors.textMuted}`)}>Total</label>
-                <div className={cn('font-medium', `text-${theme.colors.text}`)}>$ {((Number(it.cantidad) || 0) * (Number(it.precio) || 0)).toFixed(2)}</div>
-              </div>
-                            <div className="md:col-span-1 flex justify-end items-center mt-5 md:mt-7">
-                <button
-                  onClick={() => removeItem(it.id)}
+            )}
+          </aside>
+
+          <div className="space-y-4">
+            {items.map((it) => {
+              const dropdownScrollHandler = (event) => {
+                const target = event.currentTarget
+                if (target.scrollHeight - target.scrollTop - target.clientHeight < 48) {
+                  handleLoadMore(it.id)
+                }
+              }
+              const queryIsEmpty = !it.nombre?.trim()
+              const showRecentSuggestions = queryIsEmpty && recentQueries.length > 0
+
+              return (
+                <div
+                  key={it.id}
                   className={cn(
-                    'inline-flex items-center justify-center p-2 rounded-lg transition-colors',
-                    `bg-${theme.colors.surface} text-${theme.colors.textSecondary} hover:text-red-600`
+                    'grid grid-cols-1 md:grid-cols-12 gap-3 items-start rounded-xl border p-4 transition-colors',
+                    `bg-${theme.colors.background}/60 border-${theme.colors.border}`,
+                    `hover:border-${theme.colors.primary}`
                   )}
                 >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-          ))}
+                  <div className="md:col-span-6 relative">
+                    <label className={cn('text-xs mb-1 block', `text-${theme.colors.textMuted}`)}>Producto</label>
+                    <div className="relative">
+                      <Search
+                        className={cn(
+                          'pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4',
+                          `text-${theme.colors.textMuted}`
+                        )}
+                      />
+                      <input
+                        autoComplete="off"
+                        className={cn(
+                          'input pl-10 transition-all focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-offset-transparent',
+                          `bg-${theme.colors.surface}`,
+                          `border-${theme.colors.border}`,
+                          `text-${theme.colors.text}`,
+                          `focus-visible:ring-${theme.colors.primary}`
+                        )}
+                        placeholder="Buscar por nombre, SKU, descripción o categoría"
+                        value={it.nombre}
+                        onChange={e => handleSearchChange(e.target.value, it.id)}
+                        onFocus={() => {
+                          setActiveSearch(it.id)
+                          if (it.nombre?.trim() && it.searchResults.length === 0) {
+                            performSearch(it.nombre, it.id)
+                          }
+                        }}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter') {
+                            event.preventDefault()
+                            const currentItem = itemsRef.current.find(item => item.id === it.id)
+                            if (currentItem?.searchResults?.length) {
+                              handleSelectProduct(it.id, currentItem.searchResults[0])
+                            }
+                          }
+                          if (event.key === 'Escape') {
+                            setActiveSearch(null)
+                          }
+                        }}
+                        onBlur={() => setTimeout(() => setActiveSearch(prev => (prev === it.id ? null : prev)), 200)}
+                      />
+                    </div>
+
+                    {activeSearch === it.id && (
+                      <div
+                        className={cn(
+                          'absolute left-0 right-0 z-20 mt-2 overflow-hidden rounded-xl border shadow-2xl backdrop-blur-sm',
+                          `bg-${theme.colors.surface}`,
+                          `border-${theme.colors.border}`
+                        )}
+                      >
+                        <div className={cn('flex items-center justify-between gap-2 px-4 py-2 text-xs uppercase tracking-wide', `border-b border-${theme.colors.border}`)}>
+                          <span className={cn('font-semibold', `text-${theme.colors.textSecondary}`)}>Sugerencias</span>
+                          {(it.searchStatus === 'loading' || it.loadingMore) && (
+                            <Loader2 className={cn('h-4 w-4 animate-spin', `text-${theme.colors.primary}`)} />
+                          )}
+                        </div>
+
+                        <div className="max-h-72 overflow-y-auto" onScroll={dropdownScrollHandler}>
+                          {it.searchStatus === 'error' && (
+                            <div className="flex items-start gap-3 px-4 py-4 text-sm text-red-300">
+                              <XCircle className="mt-0.5 h-4 w-4" />
+                              <div>
+                                <p className="font-semibold">Hubo un problema</p>
+                                <p>Intenta nuevamente o ajusta los filtros aplicados.</p>
+                              </div>
+                            </div>
+                          )}
+
+                          {it.searchStatus === 'loading' && (
+                            <div className="space-y-3 px-4 py-4">
+                              {[1, 2, 3].map((skeleton) => (
+                                <div key={skeleton} className="animate-pulse space-y-2 rounded-lg bg-slate-700/30 p-3">
+                                  <div className="h-3 w-3/4 rounded bg-slate-600/40" />
+                                  <div className="h-3 w-1/2 rounded bg-slate-600/30" />
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {it.searchStatus === 'empty' && (
+                            <div className="px-4 py-5 text-sm">
+                              <p className={cn('font-medium', `text-${theme.colors.text}`)}>No encontramos coincidencias</p>
+                              <p className={cn('mt-1 text-xs', `text-${theme.colors.textSecondary}`)}>
+                                Ajusta tus filtros o prueba con otro término de búsqueda.
+                              </p>
+                            </div>
+                          )}
+
+                          {showRecentSuggestions && it.searchStatus !== 'loading' && (
+                            <div className="px-4 py-4">
+                              <p className={cn('text-xs font-semibold uppercase tracking-wide mb-3', `text-${theme.colors.textMuted}`)}>Búsquedas recientes</p>
+                              <div className="flex flex-wrap gap-2">
+                                {recentQueries.map((query) => (
+                                  <button
+                                    type="button"
+                                    key={query}
+                                    onMouseDown={() => handleRecentQueryClick(query, it.id)}
+                                    className={cn(
+                                      'inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-medium transition-colors',
+                                      `bg-${theme.colors.background}`,
+                                      `text-${theme.colors.textSecondary}`,
+                                      `hover:text-${theme.colors.text}`,
+                                      `hover:border-${theme.colors.primary}`,
+                                      `border border-${theme.colors.border}`
+                                    )}
+                                  >
+                                    <History className="h-3.5 w-3.5" />
+                                    {query}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {it.searchResults.length > 0 && (
+                            <div className="space-y-2 px-4 py-3">
+                              {it.searchResults.map((product) => {
+                                const stockBadge = (() => {
+                                  const stock = Number(product.stock ?? 0)
+                                  if (stock <= 0) return 'bg-red-500/20 text-red-400'
+                                  if (stock <= 5) return 'bg-orange-500/20 text-orange-400'
+                                  return 'bg-emerald-500/20 text-emerald-400'
+                                })()
+                                return (
+                                  <button
+                                    key={product.id}
+                                    type="button"
+                                    onMouseDown={() => handleSelectProduct(it.id, product)}
+                                    className={cn(
+                                      'group w-full rounded-lg border px-4 py-3 text-left transition-all hover:-translate-y-0.5',
+                                      `bg-${theme.colors.surface}`,
+                                      `border-${theme.colors.border}`,
+                                      `hover:border-${theme.colors.primary}`,
+                                      `hover:shadow-lg`
+                                    )}
+                                  >
+                                    <div className="flex items-start justify-between gap-4">
+                                      <div className="space-y-1">
+                                        <p className={cn('font-semibold leading-tight', `text-${theme.colors.text}`)}>{product.name}</p>
+                                        <div className="flex flex-wrap items-center gap-2 text-xs">
+                                          {product.category_name && (
+                                            <span className={cn('rounded-full bg-slate-700/40 px-2 py-0.5', `text-${theme.colors.textSecondary}`)}>
+                                              {product.category_name}
+                                            </span>
+                                          )}
+                                          {product.sku && (
+                                            <span className={cn('rounded-full bg-slate-700/40 px-2 py-0.5 font-mono', `text-${theme.colors.textSecondary}`)}>
+                                              SKU {product.sku}
+                                            </span>
+                                          )}
+                                          <span className={cn('rounded-full px-2 py-0.5 text-xs font-semibold', stockBadge)}>
+                                            {Number(product.stock ?? 0) <= 0 ? 'Sin stock' : `${product.stock} en stock`}
+                                          </span>
+                                        </div>
+                                        {product.description && (
+                                          <p
+                                            className={cn('text-xs overflow-hidden text-ellipsis', `text-${theme.colors.textSecondary}`)}
+                                            style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}
+                                          >
+                                            {product.description}
+                                          </p>
+                                        )}
+                                        {product.supplier_name && (
+                                          <p className={cn('text-[11px] uppercase tracking-wide', `text-${theme.colors.textMuted}`)}>
+                                            Proveedor: {product.supplier_name}
+                                          </p>
+                                        )}
+                                      </div>
+                                      <div className="text-right">
+                                        <p className="text-sm font-semibold text-emerald-300">
+                                          {currencyFormatter.format(product.price || 0)}
+                                        </p>
+                                        {product.cost ? (
+                                          <p className={cn('text-[11px]', `text-${theme.colors.textMuted}`)}>
+                                            Costo base {currencyFormatter.format(product.cost)}
+                                          </p>
+                                        ) : null}
+                                      </div>
+                                    </div>
+                                  </button>
+                                )
+                              })}
+                            </div>
+                          )}
+
+                          {it.loadingMore && (
+                            <div className="flex items-center justify-center gap-2 px-4 py-3 text-xs text-slate-300">
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              Cargando más resultados…
+                            </div>
+                          )}
+                        </div>
+
+                        {it.hasMore && !it.loadingMore && (
+                          <button
+                            type="button"
+                            onMouseDown={(event) => {
+                              event.preventDefault()
+                              handleLoadMore(it.id)
+                            }}
+                            className={cn(
+                              'flex w-full items-center justify-center gap-2 px-4 py-3 text-xs font-semibold uppercase tracking-wide transition-colors',
+                              `text-${theme.colors.primaryText}`,
+                              `hover:bg-${theme.colors.primaryLight}`
+                            )}
+                          >
+                            Ver más resultados
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className={cn('text-xs mb-1 block', `text-${theme.colors.textMuted}`)}>Cantidad</label>
+                    <input
+                      type="number"
+                      min="1"
+                      className={cn('input', `bg-${theme.colors.surface} border-${theme.colors.border} text-${theme.colors.text}`)}
+                      placeholder="Cantidad"
+                      value={it.cantidad}
+                      onChange={e => updateItem(it.id, { cantidad: Number(e.target.value) })}
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className={cn('text-xs mb-1 block', `text-${theme.colors.textMuted}`)}>Precio</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      className={cn('input', `bg-${theme.colors.surface} border-${theme.colors.border} text-${theme.colors.text}`)}
+                      placeholder="Precio"
+                      value={it.precio}
+                      onChange={e => updateItem(it.id, { precio: Number(e.target.value) })}
+                    />
+                  </div>
+                  <div className="md:col-span-1 text-right">
+                    <label className={cn('text-xs mb-1 block', `text-${theme.colors.textMuted}`)}>Total</label>
+                    <div className={cn('text-sm font-semibold', `text-${theme.colors.text}`)}>
+                      {currencyFormatter.format(((Number(it.cantidad) || 0) * (Number(it.precio) || 0))) }
+                    </div>
+                  </div>
+                  <div className="md:col-span-1 flex justify-end items-start md:items-center md:mt-7">
+                    <button
+                      onClick={() => removeItem(it.id)}
+                      className={cn(
+                        'inline-flex items-center justify-center rounded-lg border px-3 py-2 text-sm transition-colors',
+                        `border-${theme.colors.border}`,
+                        `text-${theme.colors.textSecondary}`,
+                        `hover:text-red-400 hover:border-red-500`
+                      )}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
         </div>
       </div>
     </div>
