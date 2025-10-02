@@ -31,6 +31,7 @@ const navigation = [
   { name: 'Tablero', href: '/tablero', icon: LayoutDashboard },
   { name: 'Ventas', icon: FileText, children: [
     { name: 'Cotizaciones', href: '/cotizaciones' },
+    { name: 'Cotizaciones Generadas', href: '/cotizaciones-generadas' },
     { name: 'Facturador', href: '/facturador' },
     { name: 'Administrador de Comprobantes', href: '/facturas' },
     { name: 'Clientes', href: '/clientes' },

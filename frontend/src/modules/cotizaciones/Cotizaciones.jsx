@@ -4,6 +4,7 @@ import { exportSectionsToPDF } from '../../common'
 import { useCotizaciones } from '../../hooks/useCotizaciones'
 import { useClientes } from '../../hooks/useClientes'
 import { searchProducts, getProductoFilters } from '../../services/productos'
+import { saveCotizacion } from '../../services/cotizacionesService'
 import debounce from 'lodash.debounce'
 import { useTheme } from '../../contexts/ThemeContext'
 import { cn } from '../../lib/utils'
@@ -319,16 +320,49 @@ export default function Cotizaciones() {
   }
 
   async function handleGuardar() {
-    const id = nextCotizacionId()
-    const simplifiedItems = items.map(({ id: itemId, nombre, cantidad, precio }) => ({
-      id: itemId,
-      nombre,
-      cantidad,
-      precio,
-    }))
-    const payload = { id, cliente: customer, fecha: meta.fecha, validezDias: meta.validezDias, notas: meta.notas, items: simplifiedItems, totales: totals }
-    await addCotizacion(payload)
-    alert(`Cotización ${id} guardada`)
+    try {
+      const id = nextCotizacionId()
+      const simplifiedItems = items.map(({ id: itemId, nombre, cantidad, precio }) => ({
+        id: itemId,
+        nombre,
+        cantidad,
+        precio,
+      }))
+      
+      const payload = {
+        id,
+        cliente_nombre: customer.nombre,
+        cliente_email: customer.email,
+        fecha: meta.fecha,
+        validez_dias: meta.validezDias,
+        notas: meta.notas,
+        items: simplifiedItems,
+        subtotal: totals.subtotal,
+        iva: totals.iva,
+        total: totals.total
+      }
+      
+      const { data, error } = await saveCotizacion(payload)
+      
+      if (error) {
+        console.error('Error al guardar cotización:', error)
+        alert('Error al guardar la cotización. Por favor, intenta nuevamente.')
+        return
+      }
+      
+      // También guardar en el hook local para compatibilidad
+      await addCotizacion(payload)
+      
+      alert(`Cotización ${id} guardada exitosamente`)
+      
+      // Opcional: limpiar el formulario
+      // setCustomer({ nombre: '', email: '' })
+      // setItems([createEmptyItem(1)])
+      // setMeta({ fecha: new Date().toISOString().slice(0,10), validezDias: 15, notas: '' })
+    } catch (err) {
+      console.error('Error inesperado:', err)
+      alert('Error al guardar la cotización. Por favor, intenta nuevamente.')
+    }
   }
 
   async function handlePDF() {
@@ -395,15 +429,15 @@ export default function Cotizaciones() {
         </div>
       </div>
 
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Client Information Card */}
-        <div className={cn('lg:col-span-1 p-5 rounded-lg', `bg-${theme.colors.surface} border border-${theme.colors.border}`)}>
-          <h2 className={cn('font-semibold text-lg mb-4 flex items-center gap-2', `text-${theme.colors.text}`)}>
+      {/* Main Content Grid - Reestructurado */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Client Information Card - Más compacto */}
+        <div className={cn('lg:col-span-1 p-3 rounded-lg', `bg-${theme.colors.surface} border border-${theme.colors.border}`)}>
+          <h2 className={cn('font-semibold text-base mb-3 flex items-center gap-2', `text-${theme.colors.text}`)}>
             <div className={cn('w-2 h-2 rounded-full', `bg-${theme.colors.primary}`)}></div>
             Cliente
           </h2>
-          <div className="space-y-4">
+          <div className="space-y-3">
             <div className="form-group">
               <label className={cn('label', `text-${theme.colors.textSecondary}`)}>Nombre del cliente</label>
               <input
@@ -433,15 +467,15 @@ export default function Cotizaciones() {
           </div>
         </div>
 
-        {/* Metadata and Totals Cards */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Metadata Card */}
-          <div className={cn('p-5 rounded-lg', `bg-${theme.colors.surface} border border-${theme.colors.border}`)}>
-            <h2 className={cn('font-semibold text-lg mb-4 flex items-center gap-2', `text-${theme.colors.text}`)}>
+        {/* Metadata and Totals Cards - Reestructurado */}
+        <div className="lg:col-span-2 space-y-4">
+          {/* Metadata Card - Más compacto */}
+          <div className={cn('p-3 rounded-lg', `bg-${theme.colors.surface} border border-${theme.colors.border}`)}>
+            <h2 className={cn('font-semibold text-base mb-3 flex items-center gap-2', `text-${theme.colors.text}`)}>
               <div className={cn('w-2 h-2 rounded-full', `bg-${theme.colors.primary}`)}></div>
               Datos de la cotización
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div className="form-group">
                 <label className={cn('label', `text-${theme.colors.textSecondary}`)}>Fecha</label>
                 <input
@@ -465,33 +499,11 @@ export default function Cotizaciones() {
                 <label className={cn('label', `text-${theme.colors.textSecondary}`)}>Notas</label>
                 <textarea
                   className={cn('input', `bg-${theme.colors.surface} border-${theme.colors.border} text-${theme.colors.text}`)}
-                  style={{ minHeight: '100px' }}
+                  style={{ minHeight: '80px' }}
                   placeholder="Notas adicionales"
                   value={meta.notas}
                   onChange={e => setMeta(v => ({ ...v, notas: e.target.value }))}
                 />
-              </div>
-            </div>
-          </div>
-
-          {/* Totals Card */}
-          <div className={cn('p-5 rounded-lg', `bg-${theme.colors.surface} border border-${theme.colors.border}`)}>
-            <h2 className={cn('font-semibold text-lg mb-4 flex items-center gap-2', `text-${theme.colors.text}`)}>
-              <div className={cn('w-2 h-2 rounded-full', `bg-${theme.colors.primary}`)}></div>
-              Resumen
-            </h2>
-            <div className="space-y-3">
-              <div className={cn('flex justify-between', `text-${theme.colors.textSecondary}`)}>
-                <span>Subtotal</span>
-                <span className="font-medium">$ {totals.subtotal.toFixed(2)}</span>
-              </div>
-              <div className={cn('flex justify-between', `text-${theme.colors.textSecondary}`)}>
-                <span>IVA (21%)</span>
-                <span className="font-medium">$ {totals.iva.toFixed(2)}</span>
-              </div>
-              <div className={cn('flex justify-between pt-3', `border-t border-${theme.colors.border}`)}>
-                <span className={cn('font-semibold', `text-${theme.colors.text}`)}>Total</span>
-                <span className={cn('font-bold text-lg', `text-${theme.colors.primaryText}`)}>$ {totals.total.toFixed(2)}</span>
               </div>
             </div>
           </div>
@@ -990,6 +1002,55 @@ export default function Cotizaciones() {
                 </div>
               )
             })}
+          </div>
+        </div>
+      </div>
+
+      {/* Resumen de Totales - Movido al final */}
+      <div className={cn('p-4 rounded-lg', `bg-${theme.colors.surface} border border-${theme.colors.border}`)}>
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="flex-1">
+            <h2 className={cn('font-semibold text-lg mb-3 flex items-center gap-2', `text-${theme.colors.text}`)}>
+              <div className={cn('w-2 h-2 rounded-full', `bg-${theme.colors.primary}`)}></div>
+              Resumen
+            </h2>
+          </div>
+          <div className="flex gap-3">
+            <button
+              onClick={handleGuardar}
+              className={cn(
+                'inline-flex items-center gap-2 px-4 py-2 rounded-lg transition-colors focus:outline-none focus:ring-2',
+                `bg-slate-800 text-white hover:bg-slate-700 focus:ring-green-500`
+              )}
+            >
+              <Save className="h-4 w-4" />
+              Guardar
+            </button>
+            <button
+              onClick={handlePDF}
+              className={cn(
+                'inline-flex items-center gap-2 px-4 py-2 rounded-lg transition-colors focus:outline-none focus:ring-2',
+                `bg-${theme.colors.primary} text-${theme.colors.text} hover:bg-${theme.colors.primaryHover}`,
+                `focus:ring-${theme.colors.primary}`
+              )}
+            >
+              <Download className="h-4 w-4" />
+              PDF
+            </button>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+          <div className="text-center">
+            <p className={cn('text-sm', `text-${theme.colors.textSecondary}`)}>Subtotal</p>
+            <p className="font-medium text-lg">$ {totals.subtotal.toFixed(2)}</p>
+          </div>
+          <div className="text-center">
+            <p className={cn('text-sm', `text-${theme.colors.textSecondary}`)}>IVA (21%)</p>
+            <p className="font-medium text-lg">$ {totals.iva.toFixed(2)}</p>
+          </div>
+          <div className="text-center border-t pt-3 md:border-t-0 md:pt-0 md:border-l border-slate-700">
+            <p className={cn('text-sm font-semibold', `text-${theme.colors.text}`)}>Total</p>
+            <p className={cn('font-bold text-xl', `text-${theme.colors.primaryText}`)}>$ {totals.total.toFixed(2)}</p>
           </div>
         </div>
       </div>

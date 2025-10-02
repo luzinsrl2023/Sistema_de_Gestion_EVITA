@@ -14,6 +14,7 @@ import { CuentasCorrientes, ComposicionSaldos, CobranzaForm, RecibosList } from 
 import { VentasReport, ComprasReport, StockReport, DashboardReport as ReportesDashboard } from '../modules/reportes'
 import { Cotizaciones } from '../modules/cotizaciones'
 import { Facturador } from '../modules/facturador'
+import CotizacionesGeneradas from '../pages/CotizacionesGeneradas'
 import PaginaProspectos from '../pages/PaginaProspectos'
 import PaginaDetalleProspecto from '../pages/PaginaDetalleProspecto'
 import ConfiguracionPage from '../pages/configuracion/ConfiguracionPage'
@@ -50,6 +51,7 @@ const AppRoutes = () => {
 
             {/* Ventas */}
             <Route path="/cotizaciones" element={<Cotizaciones />} />
+            <Route path="/cotizaciones-generadas" element={<CotizacionesGeneradas />} />
             <Route path="/facturador" element={<Facturador />} />
 
             {/* Compras */}
