@@ -46,19 +46,6 @@ import {
   obtenerProspectosProximosAVencer
 } from '../services/prospectosService';
 
-const safeParse = (value) => {
-  try {
-    return JSON.parse(value);
-  } catch (error) {
-    return null;
-  }
-};
-
-const formatUserDisplay = (user) => {
-  if (!user) return '-';
-  const value = typeof user === 'string' ? safeParse(user) : user;
-  return value?.full_name || value?.nombre || value?.email || value?.id || '-';
-};
 import FormularioProspecto from '../components/prospectos/FormularioProspecto';
 
 const safeParse = (value) => {
