@@ -140,7 +140,7 @@ export const getProductosStockBajo = async (limite = 10) => {
   }
 };
 
-// Buscar productos por SKU o nombre
+// Buscar productos por SKU o nombre usando la función de Supabase
 export const searchProducts = async (options = {}, legacyLimit) => {
   if (typeof options === 'string') {
     return searchProducts({ query: options, limit: legacyLimit ?? 12 });
@@ -154,112 +154,172 @@ export const searchProducts = async (options = {}, legacyLimit) => {
   } = options;
 
   const trimmedQuery = query?.trim() ?? '';
-  const sanitizedQuery = trimmedQuery
-    ? trimmedQuery.replace(/[%_]/g, (char) => `\\${char}`).replace(/'/g, "''")
-    : '';
-  const wildcard = sanitizedQuery ? `%${sanitizedQuery}%` : null;
 
-  const filterExpressions = wildcard
-    ? [
-        `nombre.ilike.${wildcard}`,
-        `descripcion.ilike.${wildcard}`,
-        `sku.ilike.${wildcard}`,
-        `categoria.ilike.${wildcard}`
-      ]
-    : [];
-
-  try {
-    let builder = supabase
-      .from('productos')
-      .select(`
-        id,
-        nombre,
-        descripcion,
-        sku,
-        categoria,
-        precio,
-        costo,
-        stock,
-        imagen_url,
-        created_at,
-        proveedores (
+  // Si no hay query, usar búsqueda tradicional
+  if (!trimmedQuery) {
+    try {
+      let builder = supabase
+        .from('productos')
+        .select(`
           id,
-          nombre
-        )
-      `, { count: 'exact' });
+          nombre,
+          descripcion,
+          sku,
+          categoria_id,
+          categorias(nombre),
+          precio,
+          precio_final,
+          costo,
+          stock,
+          imagen_url,
+          created_at,
+          proveedores (
+            id,
+            nombre
+          )
+        `, { count: 'exact' });
 
-    if (filterExpressions.length) {
-      builder = builder.or(filterExpressions.join(','));
+      const categoryFilter = filters?.category;
+      if (categoryFilter && categoryFilter !== 'all') {
+        builder = builder.eq('categorias.nombre', categoryFilter);
+      }
+
+      const priceRange = filters?.priceRange || [];
+      const minPrice = Number(priceRange[0]);
+      if (!Number.isNaN(minPrice)) {
+        builder = builder.gte('precio', minPrice);
+      }
+      const maxPrice = Number(priceRange[1]);
+      if (!Number.isNaN(maxPrice) && maxPrice > 0) {
+        builder = builder.lte('precio', maxPrice);
+      }
+
+      switch (filters?.stock) {
+        case 'out_of_stock':
+          builder = builder.eq('stock', 0);
+          break;
+        case 'low':
+          builder = builder.lte('stock', 5);
+          break;
+        case 'available':
+          builder = builder.gt('stock', 0);
+          break;
+        default:
+          break;
+      }
+
+      const safeOffset = Math.max(0, offset | 0);
+      const safeLimit = Math.min(Math.max(1, limit | 0), 50);
+
+      builder = builder.order('created_at', { ascending: false });
+      builder = builder.range(safeOffset, safeOffset + safeLimit - 1);
+
+      const { data, error, count } = await builder;
+
+      if (error) throw error;
+
+      const mapped = (data || []).map((producto) => ({
+        id: producto.id,
+        name: producto.nombre,
+        description: producto.descripcion,
+        sku: producto.sku,
+        category_name: producto.categorias?.nombre || null,
+        price: Number(producto.precio_final || producto.precio || 0),
+        cost: Number(producto.costo ?? 0),
+        stock: Number(producto.stock ?? 0),
+        image: producto.imagen_url || null,
+        supplier_id: producto.proveedores?.id ?? null,
+        supplier_name: producto.proveedores?.nombre ?? null,
+      }));
+
+      const hasMore = typeof count === 'number'
+        ? safeOffset + mapped.length < count
+        : mapped.length === safeLimit;
+
+      return {
+        data: mapped,
+        count: typeof count === 'number' ? count : mapped.length,
+        hasMore,
+        error: null
+      };
+    } catch (error) {
+      console.error('Error searching products:', error);
+      return { data: null, count: 0, hasMore: false, error };
     }
+  }
 
+  // Usar la función RPC de Supabase para búsqueda avanzada
+  try {
+    const safeOffset = Math.max(0, offset | 0);
+    const safeLimit = Math.min(Math.max(1, limit | 0), 50);
+
+    const { data, error } = await supabase.rpc('buscar_productos', {
+      busqueda: trimmedQuery,
+      limite: safeLimit,
+      desplazamiento: safeOffset
+    });
+
+    if (error) throw error;
+
+    let filteredData = data || [];
+
+    // Aplicar filtros adicionales en el cliente
     const categoryFilter = filters?.category;
     if (categoryFilter && categoryFilter !== 'all') {
-      builder = builder.eq('categoria', categoryFilter);
+      filteredData = filteredData.filter(p => p.category_name === categoryFilter);
     }
 
     const priceRange = filters?.priceRange || [];
     const minPrice = Number(priceRange[0]);
-    if (!Number.isNaN(minPrice)) {
-      builder = builder.gte('precio', minPrice);
-    }
     const maxPrice = Number(priceRange[1]);
-    if (!Number.isNaN(maxPrice) && maxPrice > 0) {
-      builder = builder.lte('precio', maxPrice);
+    if (!Number.isNaN(minPrice) || (!Number.isNaN(maxPrice) && maxPrice > 0)) {
+      filteredData = filteredData.filter(p => {
+        const price = Number(p.price ?? 0);
+        const meetsMin = Number.isNaN(minPrice) || price >= minPrice;
+        const meetsMax = Number.isNaN(maxPrice) || maxPrice <= 0 || price <= maxPrice;
+        return meetsMin && meetsMax;
+      });
     }
 
     switch (filters?.stock) {
       case 'out_of_stock':
-        builder = builder.eq('stock', 0);
+        filteredData = filteredData.filter(p => Number(p.stock ?? 0) === 0);
         break;
       case 'low':
-        builder = builder.lte('stock', 5);
+        filteredData = filteredData.filter(p => Number(p.stock ?? 0) <= 5);
         break;
       case 'available':
-        builder = builder.gt('stock', 0);
+        filteredData = filteredData.filter(p => Number(p.stock ?? 0) > 0);
         break;
       default:
         break;
     }
 
-    const safeOffset = Math.max(0, offset | 0);
-    const safeLimit = Math.min(Math.max(1, limit | 0), 50);
-
-    builder = trimmedQuery
-      ? builder.order('nombre', { ascending: true })
-      : builder.order('created_at', { ascending: false });
-
-    builder = builder.range(safeOffset, safeOffset + safeLimit - 1);
-
-    const { data, error, count } = await builder;
-
-    if (error) throw error;
-
-    const mapped = (data || []).map((producto) => ({
+    const mapped = filteredData.map((producto) => ({
       id: producto.id,
-      name: producto.nombre,
-      description: producto.descripcion,
+      name: producto.name,
+      description: producto.description,
       sku: producto.sku,
-      category_name: producto.categoria,
-      price: Number(producto.precio ?? 0),
-      cost: Number(producto.costo ?? 0),
+      category_name: producto.category_name,
+      price: Number(producto.price ?? 0),
+      cost: 0,
       stock: Number(producto.stock ?? 0),
-      image: producto.imagen_url || null,
-      supplier_id: producto.proveedores?.id ?? null,
-      supplier_name: producto.proveedores?.nombre ?? null,
+      image: null,
+      supplier_id: producto.supplier_id ?? null,
+      supplier_name: producto.supplier_name ?? null,
     }));
 
-    const hasMore = typeof count === 'number'
-      ? safeOffset + mapped.length < count
-      : mapped.length === safeLimit;
+    // Como la función RPC devuelve un límite fijo, asumimos que hay más si llegamos al límite
+    const hasMore = mapped.length === safeLimit;
 
     return {
       data: mapped,
-      count: typeof count === 'number' ? count : mapped.length,
+      count: mapped.length,
       hasMore,
       error: null
     };
   } catch (error) {
-    console.error('Error searching products:', error);
+    console.error('Error searching products with RPC:', error);
     return { data: null, count: 0, hasMore: false, error };
   }
 };
@@ -268,9 +328,9 @@ export const getProductoFilters = async () => {
   try {
     const [categoriesRes, minPriceRes, maxPriceRes, maxStockRes] = await Promise.all([
       supabase
-        .from('productos')
-        .select('categoria')
-        .not('categoria', 'is', null),
+        .from('categorias')
+        .select('nombre')
+        .order('nombre', { ascending: true }),
       supabase
         .from('productos')
         .select('precio')
@@ -296,9 +356,7 @@ export const getProductoFilters = async () => {
     if (maxPriceRes.error) throw maxPriceRes.error;
     if (maxStockRes.error) throw maxStockRes.error;
 
-    const categories = Array.from(
-      new Set((categoriesRes.data || []).map((row) => row?.categoria).filter(Boolean))
-    ).sort((a, b) => a.localeCompare(b, 'es'));
+    const categories = (categoriesRes.data || []).map(cat => cat.nombre).filter(Boolean);
 
     const minPrice = Number(minPriceRes.data?.precio ?? 0) || 0;
     const maxPrice = Number(maxPriceRes.data?.precio ?? minPrice) || minPrice;

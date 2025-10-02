@@ -499,14 +499,14 @@ export default function Cotizaciones() {
       </div>
 
       {/* Items Section */}
-      <div className={cn('p-5 rounded-lg', `bg-${theme.colors.surface} border border-${theme.colors.border}`)}>
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-5">
+      <div className={cn('p-3 rounded-lg', `bg-${theme.colors.surface} border border-${theme.colors.border}`)}>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
           <div className="space-y-1">
-            <h2 className={cn('font-semibold text-lg flex items-center gap-2', `text-${theme.colors.text}`)}>
+            <h2 className={cn('font-semibold text-base flex items-center gap-2', `text-${theme.colors.text}`)}>
               <div className={cn('w-2 h-2 rounded-full', `bg-${theme.colors.primary}`)}></div>
               Productos
             </h2>
-            <p className={cn('text-sm', `text-${theme.colors.textSecondary}`)}>
+            <p className={cn('text-xs', `text-${theme.colors.textSecondary}`)}>
               Busca y agrega productos del catálogo en tiempo real mientras ajustas filtros inteligentes.
             </p>
           </div>
@@ -536,43 +536,43 @@ export default function Cotizaciones() {
         </div>
 
         {isAnySearchLoading && (
-          <div className="mb-4 h-1 w-full overflow-hidden rounded-full bg-slate-700/40">
+          <div className="mb-2 h-1 w-full overflow-hidden rounded-full bg-slate-700/40">
             <div className="h-full w-full origin-left animate-pulse bg-green-500/80"></div>
           </div>
         )}
 
         {filtersError && (
-          <div className="mb-4 flex items-center gap-2 rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+          <div className="mb-2 flex items-center gap-2 rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs text-red-300">
             <XCircle className="h-4 w-4" />
             <span>{filtersError}</span>
           </div>
         )}
 
-        <div className="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
+        <div className="grid gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
           <aside
             className={cn(
-              'rounded-xl border px-4 py-5 shadow-sm backdrop-blur-sm transition-all',
+              'rounded-xl border px-3 py-3 shadow-sm backdrop-blur-sm transition-all',
               `bg-${theme.colors.background}`,
               `border-${theme.colors.border}`,
               showMobileFilters ? 'block' : 'hidden',
               'lg:block'
             )}
           >
-            <div className="flex items-center justify-between gap-2 mb-4">
-              <h3 className={cn('text-xs font-semibold uppercase tracking-wide', `text-${theme.colors.textSecondary}`)}>
+            <div className="flex items-center justify-between gap-2 mb-3">
+              <h3 className={cn('text-[10px] font-semibold uppercase tracking-wide', `text-${theme.colors.textSecondary}`)}>
                 Filtros avanzados
               </h3>
               <button
                 type="button"
                 onClick={resetFilters}
-                className="text-xs font-semibold text-green-400 transition-colors hover:text-green-300"
+                className="text-[10px] font-semibold text-green-400 transition-colors hover:text-green-300"
               >
                 Restablecer
               </button>
             </div>
 
             {filtersLoading ? (
-              <div className="space-y-4 animate-pulse">
+              <div className="space-y-3 animate-pulse">
                 <div className="h-10 rounded-lg bg-slate-700/40" />
                 <div className="space-y-2">
                   <div className="h-3 w-24 rounded bg-slate-700/40" />
@@ -584,16 +584,16 @@ export default function Cotizaciones() {
                 <div className="h-10 rounded-lg bg-slate-700/40" />
               </div>
             ) : (
-              <div className="space-y-5">
-                <div className="space-y-2">
-                  <p className={cn('text-xs font-semibold uppercase tracking-wide', `text-${theme.colors.textMuted}`)}>
+              <div className="space-y-3">
+                <div className="space-y-1.5">
+                  <p className={cn('text-[10px] font-semibold uppercase tracking-wide', `text-${theme.colors.textMuted}`)}>
                     Categoría
                   </p>
                   <select
                     value={filters.category}
                     onChange={e => setFilters(prev => ({ ...prev, category: e.target.value }))}
                     className={cn(
-                      'w-full rounded-lg border px-3 py-2 text-sm transition-colors focus:outline-none focus-visible:ring-2',
+                      'w-full rounded-lg border px-2 py-1.5 text-xs transition-colors focus:outline-none focus-visible:ring-2',
                       `bg-${theme.colors.surface}`,
                       `border-${theme.colors.border}`,
                       `text-${theme.colors.text}`,
@@ -607,18 +607,18 @@ export default function Cotizaciones() {
                   </select>
                 </div>
 
-                <div className="space-y-3">
+                <div className="space-y-2">
                   <div className="flex items-center justify-between gap-2">
-                    <p className={cn('text-xs font-semibold uppercase tracking-wide', `text-${theme.colors.textMuted}`)}>
+                    <p className={cn('text-[10px] font-semibold uppercase tracking-wide', `text-${theme.colors.textMuted}`)}>
                       Rango de precio
                     </p>
-                    <span className={cn('text-[11px] font-medium', `text-${theme.colors.textSecondary}`)}>
+                    <span className={cn('text-[9px] font-medium', `text-${theme.colors.textSecondary}`)}>
                       {currencyFormatter.format(minAvailablePrice)} - {currencyFormatter.format(maxAvailablePrice)}
                     </span>
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className={cn('text-[11px] uppercase tracking-wide', `text-${theme.colors.textMuted}`)}>Mín</label>
+                      <label className={cn('text-[9px] uppercase tracking-wide', `text-${theme.colors.textMuted}`)}>Mín</label>
                       <input
                         type="number"
                         inputMode="decimal"
@@ -627,7 +627,7 @@ export default function Cotizaciones() {
                         max={filters.priceRange[1] ?? maxAvailablePrice}
                         onChange={e => handlePriceRangeChange(0, e.target.value)}
                         className={cn(
-                          'mt-1 w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus-visible:ring-2',
+                          'mt-0.5 w-full rounded-lg border px-2 py-1 text-xs focus:outline-none focus-visible:ring-2',
                           `bg-${theme.colors.surface}`,
                           `border-${theme.colors.border}`,
                           `text-${theme.colors.text}`,
@@ -636,7 +636,7 @@ export default function Cotizaciones() {
                       />
                     </div>
                     <div>
-                      <label className={cn('text-[11px] uppercase tracking-wide', `text-${theme.colors.textMuted}`)}>Máx</label>
+                      <label className={cn('text-[9px] uppercase tracking-wide', `text-${theme.colors.textMuted}`)}>Máx</label>
                       <input
                         type="number"
                         inputMode="decimal"
@@ -645,7 +645,7 @@ export default function Cotizaciones() {
                         max={maxAvailablePrice}
                         onChange={e => handlePriceRangeChange(1, e.target.value)}
                         className={cn(
-                          'mt-1 w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus-visible:ring-2',
+                          'mt-0.5 w-full rounded-lg border px-2 py-1 text-xs focus:outline-none focus-visible:ring-2',
                           `bg-${theme.colors.surface}`,
                           `border-${theme.colors.border}`,
                           `text-${theme.colors.text}`,
@@ -656,15 +656,15 @@ export default function Cotizaciones() {
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <p className={cn('text-xs font-semibold uppercase tracking-wide', `text-${theme.colors.textMuted}`)}>
+                <div className="space-y-1.5">
+                  <p className={cn('text-[10px] font-semibold uppercase tracking-wide', `text-${theme.colors.textMuted}`)}>
                     Estado de stock
                   </p>
                   <select
                     value={filters.stock}
                     onChange={e => setFilters(prev => ({ ...prev, stock: e.target.value }))}
                     className={cn(
-                      'w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus-visible:ring-2 transition-colors',
+                      'w-full rounded-lg border px-2 py-1.5 text-xs focus:outline-none focus-visible:ring-2 transition-colors',
                       `bg-${theme.colors.surface}`,
                       `border-${theme.colors.border}`,
                       `text-${theme.colors.text}`,
@@ -676,14 +676,14 @@ export default function Cotizaciones() {
                     <option value="low">Stock bajo (≤5)</option>
                     <option value="out_of_stock">Agotado</option>
                   </select>
-                  <p className={cn('text-[11px]', `text-${theme.colors.textSecondary}`)}>
+                  <p className={cn('text-[9px]', `text-${theme.colors.textSecondary}`)}>
                     Stock máximo registrado: {maxAvailableStock}
                   </p>
                 </div>
 
                 {!!recentQueries.length && (
-                  <div className="space-y-2">
-                    <p className={cn('text-xs font-semibold uppercase tracking-wide', `text-${theme.colors.textMuted}`)}>
+                  <div className="space-y-1.5">
+                    <p className={cn('text-[10px] font-semibold uppercase tracking-wide', `text-${theme.colors.textMuted}`)}>
                       Búsquedas recientes
                     </p>
                     <div className="flex flex-wrap gap-2">
@@ -727,13 +727,13 @@ export default function Cotizaciones() {
                 <div
                   key={it.id}
                   className={cn(
-                    'grid grid-cols-1 md:grid-cols-12 gap-3 items-start rounded-xl border p-4 transition-colors',
+                    'grid grid-cols-1 md:grid-cols-12 gap-2 items-start rounded-xl border p-3 transition-colors',
                     `bg-${theme.colors.background}/60 border-${theme.colors.border}`,
                     `hover:border-${theme.colors.primary}`
                   )}
                 >
                   <div className="md:col-span-6 relative">
-                    <label className={cn('text-xs mb-1 block', `text-${theme.colors.textMuted}`)}>Producto</label>
+                    <label className={cn('text-[10px] mb-0.5 block', `text-${theme.colors.textMuted}`)}>Producto</label>
                     <div className="relative">
                       <Search
                         className={cn(
