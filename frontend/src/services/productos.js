@@ -141,23 +141,35 @@ export const getProductosStockBajo = async (limite = 10) => {
 };
 
 // Buscar productos por SKU o nombre
-export const searchProducts = async (query, limit = 15) => {
-  const trimmedQuery = query?.trim();
-  if (!trimmedQuery) {
-    return { data: [], error: null };
+export const searchProducts = async (options = {}, legacyLimit) => {
+  if (typeof options === 'string') {
+    return searchProducts({ query: options, limit: legacyLimit ?? 12 });
   }
 
-  const sanitized = trimmedQuery.replace(/[%_]/g, (char) => `\\${char}`).replace(/'/g, "''");
-  const wildcard = `%${sanitized}%`;
-  const filters = [
-    `nombre.ilike.${wildcard}`,
-    `descripcion.ilike.${wildcard}`,
-    `sku.ilike.${wildcard}`,
-    `categoria.ilike.${wildcard}`
-  ].join(',');
+  const {
+    query = '',
+    limit = 12,
+    offset = 0,
+    filters = {}
+  } = options;
+
+  const trimmedQuery = query?.trim() ?? '';
+  const sanitizedQuery = trimmedQuery
+    ? trimmedQuery.replace(/[%_]/g, (char) => `\\${char}`).replace(/'/g, "''")
+    : '';
+  const wildcard = sanitizedQuery ? `%${sanitizedQuery}%` : null;
+
+  const filterExpressions = wildcard
+    ? [
+        `nombre.ilike.${wildcard}`,
+        `descripcion.ilike.${wildcard}`,
+        `sku.ilike.${wildcard}`,
+        `categoria.ilike.${wildcard}`
+      ]
+    : [];
 
   try {
-    const { data, error } = await supabase
+    let builder = supabase
       .from('productos')
       .select(`
         id,
@@ -167,14 +179,58 @@ export const searchProducts = async (query, limit = 15) => {
         categoria,
         precio,
         costo,
+        stock,
+        imagen_url,
+        created_at,
         proveedores (
           id,
           nombre
         )
-      `)
-      .or(filters)
-      .order('nombre', { ascending: true })
-      .limit(limit);
+      `, { count: 'exact' });
+
+    if (filterExpressions.length) {
+      builder = builder.or(filterExpressions.join(','));
+    }
+
+    const categoryFilter = filters?.category;
+    if (categoryFilter && categoryFilter !== 'all') {
+      builder = builder.eq('categoria', categoryFilter);
+    }
+
+    const priceRange = filters?.priceRange || [];
+    const minPrice = Number(priceRange[0]);
+    if (!Number.isNaN(minPrice)) {
+      builder = builder.gte('precio', minPrice);
+    }
+    const maxPrice = Number(priceRange[1]);
+    if (!Number.isNaN(maxPrice) && maxPrice > 0) {
+      builder = builder.lte('precio', maxPrice);
+    }
+
+    switch (filters?.stock) {
+      case 'out_of_stock':
+        builder = builder.eq('stock', 0);
+        break;
+      case 'low':
+        builder = builder.lte('stock', 5);
+        break;
+      case 'available':
+        builder = builder.gt('stock', 0);
+        break;
+      default:
+        break;
+    }
+
+    const safeOffset = Math.max(0, offset | 0);
+    const safeLimit = Math.min(Math.max(1, limit | 0), 50);
+
+    builder = trimmedQuery
+      ? builder.order('nombre', { ascending: true })
+      : builder.order('created_at', { ascending: false });
+
+    builder = builder.range(safeOffset, safeOffset + safeLimit - 1);
+
+    const { data, error, count } = await builder;
 
     if (error) throw error;
 
@@ -186,13 +242,78 @@ export const searchProducts = async (query, limit = 15) => {
       category_name: producto.categoria,
       price: Number(producto.precio ?? 0),
       cost: Number(producto.costo ?? 0),
+      stock: Number(producto.stock ?? 0),
+      image: producto.imagen_url || null,
       supplier_id: producto.proveedores?.id ?? null,
       supplier_name: producto.proveedores?.nombre ?? null,
     }));
 
-    return { data: mapped, error: null };
+    const hasMore = typeof count === 'number'
+      ? safeOffset + mapped.length < count
+      : mapped.length === safeLimit;
+
+    return {
+      data: mapped,
+      count: typeof count === 'number' ? count : mapped.length,
+      hasMore,
+      error: null
+    };
   } catch (error) {
     console.error('Error searching products:', error);
+    return { data: null, count: 0, hasMore: false, error };
+  }
+};
+
+export const getProductoFilters = async () => {
+  try {
+    const [categoriesRes, minPriceRes, maxPriceRes, maxStockRes] = await Promise.all([
+      supabase
+        .from('productos')
+        .select('categoria')
+        .not('categoria', 'is', null),
+      supabase
+        .from('productos')
+        .select('precio')
+        .order('precio', { ascending: true })
+        .limit(1)
+        .maybeSingle(),
+      supabase
+        .from('productos')
+        .select('precio')
+        .order('precio', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      supabase
+        .from('productos')
+        .select('stock')
+        .order('stock', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+    ]);
+
+    if (categoriesRes.error) throw categoriesRes.error;
+    if (minPriceRes.error) throw minPriceRes.error;
+    if (maxPriceRes.error) throw maxPriceRes.error;
+    if (maxStockRes.error) throw maxStockRes.error;
+
+    const categories = Array.from(
+      new Set((categoriesRes.data || []).map((row) => row?.categoria).filter(Boolean))
+    ).sort((a, b) => a.localeCompare(b, 'es'));
+
+    const minPrice = Number(minPriceRes.data?.precio ?? 0) || 0;
+    const maxPrice = Number(maxPriceRes.data?.precio ?? minPrice) || minPrice;
+    const maxStock = Number(maxStockRes.data?.stock ?? 0) || 0;
+
+    return {
+      data: {
+        categories,
+        priceRange: [minPrice, maxPrice],
+        maxStock
+      },
+      error: null
+    };
+  } catch (error) {
+    console.error('Error fetching product filters:', error);
     return { data: null, error };
   }
 };
