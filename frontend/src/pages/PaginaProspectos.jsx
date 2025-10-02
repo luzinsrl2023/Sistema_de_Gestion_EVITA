@@ -48,20 +48,6 @@ import {
 
 import FormularioProspecto from '../components/prospectos/FormularioProspecto';
 
-const safeParse = (value) => {
-  try {
-    return JSON.parse(value);
-  } catch (error) {
-    return null;
-  }
-};
-
-const formatUserDisplay = (user) => {
-  if (!user) return '-';
-  const value = typeof user === 'string' ? safeParse(user) : user;
-  return value?.full_name || value?.nombre || value?.email || value?.id || '-';
-};
-
 // Configuración de colores para estados
 const estadoColores = {
   'Nuevo': 'info',
