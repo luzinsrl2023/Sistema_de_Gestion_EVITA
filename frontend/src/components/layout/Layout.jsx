@@ -71,6 +71,7 @@ export default function Layout({ children }) {
   const { getThemeClasses, theme, logoUrl, isCustomLogo } = useTheme()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
+  const [notificationsOpen, setNotificationsOpen] = useState(false)
 
   // Global Search state
   const [searchTerm, setSearchTerm] = useState('')
