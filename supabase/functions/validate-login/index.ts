@@ -1,6 +1,8 @@
 // supabase/functions/validate-login/index.ts
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+// bcrypt para Deno (compat npm)
+import bcrypt from "npm:bcryptjs@2.4.3";
 
 // --- CORS Headers ---
 const corsHeaders = {
@@ -38,22 +40,36 @@ serve(async (req) => {
       });
     }
 
-    // ⚡ Validar usuario contra Supabase Auth
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    // Buscar usuario en tabla usuarios_app
+    const { data: user, error: dbError } = await supabase
+      .from('usuarios_app')
+      .select('id, email, password_hash')
+      .eq('email', String(email).toLowerCase())
+      .maybeSingle();
 
-    if (error) {
-      // El error de Supabase ya es suficientemente informativo
-      return new Response(JSON.stringify({ success: false, error: error.message }), {
+    if (dbError) {
+      return new Response(JSON.stringify({ success: false, error: dbError.message }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (!user) {
+      return new Response(JSON.stringify({ success: false, error: 'Usuario no encontrado' }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Usuario válido
-    return new Response(JSON.stringify({ success: true, user: data.user }), {
+    const ok = await bcrypt.compare(password, user.password_hash || '');
+    if (!ok) {
+      return new Response(JSON.stringify({ success: false, error: 'Contraseña incorrecta' }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    return new Response(JSON.stringify({ success: true, user: { id: user.id, email: user.email } }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

@@ -46,53 +46,27 @@ export const login = async (email, password) => {
     return { session, error: null };
   }
 
-  // Real user authentication - Direct database query approach
+  // Producción: delegar a Edge Function con bcrypt
   try {
     console.log('🔍 Attempting login for:', email);
-    
-    // Buscar usuario en la base de datos usando service role client
-    const { data: user, error: dbError } = await supabaseAuth
-      .from('usuarios_app')
-      .select('id, email, password_hash')
-      .eq('email', email.toLowerCase())
-      .single();
-
-    if (dbError) {
-      console.error('❌ Database error:', dbError);
-      if (dbError.code === 'PGRST116') {
-        return { session: null, error: { message: 'Usuario no encontrado' } };
-      }
-      return { session: null, error: { message: 'Error al verificar credenciales' } };
+    const { data, error } = await supabase.functions.invoke('validate-login', {
+      body: { email, password }
+    });
+    if (error) {
+      return { session: null, error };
     }
-
-    if (!user) {
-      console.warn('⚠️ User not found');
-      return { session: null, error: { message: 'Usuario no encontrado' } };
+    if (!data?.success) {
+      return { session: null, error: { message: data?.error || 'Credenciales inválidas' } };
     }
-
-    // Verificar contraseña
-    // NOTA: En producción, las contraseñas deberían estar hasheadas con bcrypt
-    // Por ahora asumimos texto plano o hash simple
-    const isValidPassword = user.password_hash === password;
-    
-    if (!isValidPassword) {
-      console.warn('⚠️ Invalid password');
-      return { session: null, error: { message: 'Contraseña incorrecta' } };
-    }
-
-    // Login successful
-    console.log('✅ Login successful for user:', user.email);
     const session = {
       user: {
-        id: user.id,
-        email: user.email,
+        id: data.user.id,
+        email: data.user.email
       },
-      token: `session-${user.id}-${Date.now()}`,
+      token: `session-${data.user.id}-${Date.now()}`
     };
-
     localStorage.setItem('session', JSON.stringify(session));
     return { session, error: null };
-
   } catch (err) {
     console.error('💥 Login exception:', err);
     return { session: null, error: { message: 'Error inesperado durante el login' } };

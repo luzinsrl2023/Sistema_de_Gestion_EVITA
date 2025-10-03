@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { obtenerProspectos, eliminarProspecto } from '../../services/prospectosService';
 import FormularioProspecto from './FormularioProspecto';
+import { useTheme } from '../../contexts/ThemeContext';
 
 const combineClasses = (...clases) => clases.filter(Boolean).join(' ');
 
@@ -44,6 +45,7 @@ const TrashIcon = ({ className = '' }) => (
 );
 
 const PaginaProspectos = () => {
+    const { getThemeClasses } = useTheme();
     const [prospectos, setProspectos] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -150,12 +152,12 @@ const PaginaProspectos = () => {
     }
 
     return (
-        <div className="p-6 bg-gray-900 text-white min-h-screen">
+        <div className={`p-6 min-h-screen ${getThemeClasses('background')} ${getThemeClasses('text')}`}>
             <header className="flex justify-between items-center mb-6">
-                <h1 className="text-3xl font-bold text-green-400">Gestión de Prospectos</h1>
+                <h1 className={`text-3xl font-bold ${getThemeClasses('primaryText')}`}>Gestión de Prospectos</h1>
                 <button
                     onClick={handleCrear}
-                    className="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg inline-flex items-center transition duration-300"
+                    className={`${getThemeClasses('primary')} ${getThemeClasses('primaryHover')} text-white font-bold py-2 px-4 rounded-lg inline-flex items-center transition duration-300`}
                 >
                     <PlusIcon className="mr-2" />
                     Nuevo Prospecto
@@ -176,28 +178,28 @@ const PaginaProspectos = () => {
                 </div>
             )}
 
-            <div className="bg-gray-800 shadow-lg rounded-lg overflow-x-auto">
+            <div className={`${getThemeClasses('surface')} shadow-lg rounded-lg overflow-x-auto`}>
                 <table className="min-w-full">
-                    <thead className="bg-gray-700">
+                    <thead className={getThemeClasses('surface')}>
                         <tr>
-                            <th className="py-3 px-4 text-left">Nombre</th>
-                            <th className="py-3 px-4 text-left">Empresa</th>
-                            <th className="py-3 px-4 text-left">Email</th>
-                            <th className="py-3 px-4 text-left">Teléfono</th>
-                            <th className="py-3 px-4 text-left">Estado</th>
-                            <th className="py-3 px-4 text-center">Acciones</th>
+                            <th className={`py-3 px-4 text-left ${getThemeClasses('text')}`}>Nombre</th>
+                            <th className={`py-3 px-4 text-left ${getThemeClasses('text')}`}>Empresa</th>
+                            <th className={`py-3 px-4 text-left ${getThemeClasses('text')}`}>Email</th>
+                            <th className={`py-3 px-4 text-left ${getThemeClasses('text')}`}>Teléfono</th>
+                            <th className={`py-3 px-4 text-left ${getThemeClasses('text')}`}>Estado</th>
+                            <th className={`py-3 px-4 text-center ${getThemeClasses('text')}`}>Acciones</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-700">
+                    <tbody className={`divide-y ${getThemeClasses('border')}`}>
                         {prospectos.length > 0 ? (
                             prospectos.map(prospecto => (
-                                <tr key={prospecto.id} className="hover:bg-gray-700 transition duration-150">
-                                    <td className="py-3 px-4">{prospecto.nombre}</td>
-                                    <td className="py-3 px-4">{prospecto.empresa || '-'}</td>
-                                    <td className="py-3 px-4">{prospecto.email || '-'}</td>
-                                    <td className="py-3 px-4">{prospecto.telefono || '-'}</td>
+                                <tr key={prospecto.id} className={`hover:${getThemeClasses('surface')} transition duration-150`}>
+                                    <td className={`py-3 px-4 ${getThemeClasses('text')}`}>{prospecto.nombre}</td>
+                                    <td className={`py-3 px-4 ${getThemeClasses('text')}`}>{prospecto.empresa || '-'}</td>
+                                    <td className={`py-3 px-4 ${getThemeClasses('text')}`}>{prospecto.email || '-'}</td>
+                                    <td className={`py-3 px-4 ${getThemeClasses('text')}`}>{prospecto.telefono || '-'}</td>
                                     <td className="py-3 px-4">
-                                        <span className="px-2 py-1 text-sm rounded-full bg-blue-500 text-white">
+                                        <span className={`px-2 py-1 text-sm rounded-full ${getThemeClasses('primary')} text-white`}>
                                             {prospecto.estado}
                                         </span>
                                     </td>
@@ -223,7 +225,7 @@ const PaginaProspectos = () => {
                             ))
                         ) : (
                             <tr>
-                                <td colSpan="6" className="text-center py-6">No se encontraron prospectos.</td>
+                                <td colSpan="6" className={`text-center py-6 ${getThemeClasses('text')}`}>No se encontraron prospectos.</td>
                             </tr>
                         )}
                     </tbody>

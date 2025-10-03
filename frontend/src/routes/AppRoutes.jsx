@@ -2,6 +2,7 @@ import React, { Suspense } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import RouteErrorBoundary from './RouteErrorBoundary'
 import ModuleErrorBoundary from '../components/common/ModuleErrorBoundary'
+import { useTheme } from '../contexts/ThemeContext'
 
 // Import lazy components (they are already React.lazy in their index.js)
 import ModularDashboard from '../modules/dashboard'
@@ -22,14 +23,17 @@ import PaginaDetalleProspecto from '../pages/PaginaDetalleProspecto'
 import ConfiguracionPage from '../pages/configuracion/ConfiguracionPage'
 
 // Loading component for Suspense
-const LoadingComponent = () => (
-  <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-    <div className="text-center">
-      <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-green-500 mx-auto mb-4"></div>
-      <p className="text-white text-lg">Cargando módulo...</p>
+const LoadingComponent = () => {
+  const { getThemeClasses } = useTheme()
+  return (
+    <div className={`min-h-screen flex items-center justify-center ${getThemeClasses('background')}`}>
+      <div className="text-center">
+        <div className={`animate-spin rounded-full h-32 w-32 border-b-2 mx-auto mb-4 ${getThemeClasses('primary')}`}></div>
+        <p className={`text-lg ${getThemeClasses('text')}`}>Cargando módulo...</p>
+      </div>
     </div>
-  </div>
-)
+  )
+}
 
 const AppRoutes = () => {
   return (

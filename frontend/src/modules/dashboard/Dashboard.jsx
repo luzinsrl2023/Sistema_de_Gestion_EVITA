@@ -35,13 +35,13 @@ const mockRecentActivity = [
 ]
 
 export default function Dashboard() {
-  const { theme } = useTheme()
+  const { theme, getThemeClasses } = useTheme()
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-white">Dashboard</h1>
-        <p className="mt-1 text-gray-400">
+        <h1 className={`text-3xl font-bold ${getThemeClasses('text')}`}>Dashboard</h1>
+        <p className={`mt-1 ${getThemeClasses('textSecondary')}`}>
           Resumen de actividad y métricas clave
         </p>
       </div>
@@ -54,7 +54,7 @@ export default function Dashboard() {
           return (
             <div
               key={index}
-              className="border rounded-xl p-4 bg-gray-900 border-gray-800"
+              className={`border rounded-xl p-4 ${getThemeClasses('surface')} ${getThemeClasses('border')}`}
             >
               <div className="flex items-center justify-between">
                 <div className={`p-2 rounded-lg bg-${stat.color}-500/10 text-${stat.color}-400`}>
@@ -66,10 +66,10 @@ export default function Dashboard() {
                 </div>
               </div>
               <div className="mt-4">
-                <p className="text-2xl font-bold text-white">
+                <p className={`text-2xl font-bold ${getThemeClasses('text')}`}>
                   {typeof stat.value === 'number' ? formatCurrency(stat.value) : stat.value}
                 </p>
-                <p className="text-sm mt-1 text-gray-400">{stat.name}</p>
+                <p className={`text-sm mt-1 ${getThemeClasses('textSecondary')}`}>{stat.name}</p>
               </div>
             </div>
           )
@@ -78,12 +78,12 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Top Products */}
-        <div className="border rounded-xl bg-gray-900 border-gray-800">
-          <div className="p-6 border-b flex items-center justify-between border-gray-800">
-            <h3 className="text-xl font-semibold text-white">Productos Más Vendidos</h3>
+        <div className={`border rounded-xl ${getThemeClasses('surface')} ${getThemeClasses('border')}`}>
+          <div className={`p-6 border-b flex items-center justify-between ${getThemeClasses('border')}`}>
+            <h3 className={`text-xl font-semibold ${getThemeClasses('text')}`}>Productos Más Vendidos</h3>
             <Link
               to="/products"
-              className="text-sm font-medium flex items-center gap-1 transition-colors text-green-400 hover:text-green-300"
+              className={`text-sm font-medium flex items-center gap-1 transition-colors ${getThemeClasses('primaryText')} hover:${getThemeClasses('primaryText')}`}
             >
               Ver todos
               <ExternalLink className="h-3 w-3" />
