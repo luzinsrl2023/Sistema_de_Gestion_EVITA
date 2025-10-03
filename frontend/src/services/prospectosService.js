@@ -9,18 +9,31 @@ import { supabase } from '../lib/supabaseClient';
 // FUNCIONES CRUD BÁSICAS
 // =============================================
 
+// =============================================
+// SERVICIO DE PROSPECTOS - Sistema de autenticación personalizado
+// Basado en la vista prospectos_with_users
+// =============================================
+
+import { supabase } from '../lib/supabaseClient';
+import * as authService from '../services/authService';
+
+// =============================================
+// FUNCIONES CRUD BÁSICAS
+// =============================================
+
 /**
  * Crea un nuevo prospecto
  */
 export const crearProspecto = async (datosProspecto) => {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('Usuario no autenticado');
+    // Usar el sistema de autenticación personalizado
+    const session = authService.getSession();
+    if (!session || !session.user) throw new Error('Usuario no autenticado');
 
     const datosCompletos = {
       ...datosProspecto,
-      creado_por: user.id,
-      responsable_id: datosProspecto.responsable_id || user.id
+      creado_por: session.user.id,
+      responsable_id: datosProspecto.responsable_id || session.user.id
     };
 
     // Insertar en la tabla principal
@@ -100,6 +113,10 @@ export const obtenerProspectoPorId = async (prospectoId) => {
  */
 export const actualizarProspecto = async (id, datosActualizados) => {
   try {
+    // Verificar autenticación con el sistema personalizado
+    const session = authService.getSession();
+    if (!session || !session.user) throw new Error('Usuario no autenticado');
+
     const { error } = await supabase
       .from('prospectos')
       .update(datosActualizados)
@@ -171,16 +188,17 @@ export const obtenerProspectosProximosAVencer = async (dias = 7) => {
  */
 export const obtenerEstadisticasProspectos = async () => {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('Usuario no autenticado');
+    // Usar el sistema de autenticación personalizado
+    const session = authService.getSession();
+    if (!session || !session.user) throw new Error('Usuario no autenticado');
 
-    const isAdmin = user.user_metadata?.role === 'admin';
+    const isAdmin = session.user.email === 'claudiocaffre@evita.com' || session.user.email === 'test@example.com';
 
     let queryEstados = supabase
       .from('prospectos_with_users')
       .select('estado', { count: 'exact', head: false })
       .is('deleted_at', null);
-    if (!isAdmin) queryEstados = queryEstados.or(`responsable_id.eq.${user.id},creado_por.eq.${user.id}`);
+    if (!isAdmin) queryEstados = queryEstados.or(`responsable_id.eq.${session.user.id},creado_por.eq.${session.user.id}`);
 
     const { data: dataEstados, error: errorEstados } = await queryEstados;
 
@@ -189,7 +207,7 @@ export const obtenerEstadisticasProspectos = async () => {
       .select('estado, presupuesto_estimado')
       .is('deleted_at', null)
       .not('presupuesto_estimado', 'is', null);
-    if (!isAdmin) queryValor = queryValor.or(`responsable_id.eq.${user.id},creado_por.eq.${user.id}`);
+    if (!isAdmin) queryValor = queryValor.or(`responsable_id.eq.${session.user.id},creado_por.eq.${session.user.id}`);
 
     const { data: dataValor, error: errorValor } = await queryValor;
 
