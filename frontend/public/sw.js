@@ -1,4 +1,4 @@
-const CACHE_NAME = 'evita-cache-v1'
+const CACHE_NAME = 'evita-cache-v2'
 const ASSETS = [
   '/',
   '/index.html'
@@ -44,6 +44,15 @@ self.addEventListener('fetch', (event) => {
       if (cached) return cached
       return fetch(request)
         .then((response) => {
+          try {
+            const contentType = response.headers.get('content-type') || ''
+            // Evitar cachear HTML para recursos JS/CSS que podrían estar 404 y devuelven index.html
+            const isScriptOrStyle = request.destination === 'script' || request.destination === 'style'
+            const isHtml = contentType.includes('text/html')
+            if (isScriptOrStyle && isHtml) {
+              return response
+            }
+          } catch (_) {}
           const copy = response.clone()
           caches.open(CACHE_NAME).then((cache) => cache.put(request, copy))
           return response
