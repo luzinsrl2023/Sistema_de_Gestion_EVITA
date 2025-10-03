@@ -1,15 +1,4 @@
 // =============================================
-// SERVICIO DE PROSPECTOS - supabase-js
-// Basado en la vista prospectos_with_users
-// =============================================
-
-import { supabase } from '../lib/supabaseClient';
-
-// =============================================
-// FUNCIONES CRUD BÁSICAS
-// =============================================
-
-// =============================================
 // SERVICIO DE PROSPECTOS - Sistema de autenticación personalizado
 // Basado en la vista prospectos_with_users
 // =============================================
