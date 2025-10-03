@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabaseClient';
+import { enqueueOperation } from '../lib/offlineQueue';
 
 // Obtener todas las órdenes con información del proveedor y detalles
 export const getOrdenes = async () => {
@@ -87,6 +88,10 @@ export const createOrden = async (ordenData) => {
     return { data, error: null };
   } catch (error) {
     console.error('Error creating orden:', error);
+    if (!navigator.onLine) {
+      enqueueOperation({ type: 'insert', table: 'ordenes', payload: ordenData });
+      return { data: ordenData, queued: true, error: null };
+    }
     return { data: null, error };
   }
 };
@@ -105,6 +110,10 @@ export const updateOrden = async (id, ordenData) => {
     return { data, error: null };
   } catch (error) {
     console.error('Error updating orden:', error);
+    if (!navigator.onLine) {
+      enqueueOperation({ type: 'update', table: 'ordenes', payload: ordenData, match: { id } });
+      return { data: { id, ...ordenData }, queued: true, error: null };
+    }
     return { data: null, error };
   }
 };
@@ -121,6 +130,10 @@ export const deleteOrden = async (id) => {
     return { error: null };
   } catch (error) {
     console.error('Error deleting orden:', error);
+    if (!navigator.onLine) {
+      enqueueOperation({ type: 'delete', table: 'ordenes', payload: { id } });
+      return { error: null, queued: true };
+    }
     return { error };
   }
 };
@@ -189,6 +202,10 @@ export const addDetalleToOrden = async (ordenId, detalleData) => {
     return { data, error: null };
   } catch (error) {
     console.error('Error adding detalle to orden:', error);
+    if (!navigator.onLine) {
+      enqueueOperation({ type: 'insert', table: 'orden_detalle', payload: { ...detalleData, orden_id: ordenId } });
+      return { data: { ...detalleData, orden_id: ordenId }, queued: true, error: null };
+    }
     return { data: null, error };
   }
 };
@@ -207,6 +224,10 @@ export const updateOrdenDetalle = async (detalleId, detalleData) => {
     return { data, error: null };
   } catch (error) {
     console.error('Error updating orden detalle:', error);
+    if (!navigator.onLine) {
+      enqueueOperation({ type: 'update', table: 'orden_detalle', payload: detalleData, match: { id: detalleId } });
+      return { data: { id: detalleId, ...detalleData }, queued: true, error: null };
+    }
     return { data: null, error };
   }
 };
@@ -223,6 +244,10 @@ export const deleteOrdenDetalle = async (detalleId) => {
     return { error: null };
   } catch (error) {
     console.error('Error deleting orden detalle:', error);
+    if (!navigator.onLine) {
+      enqueueOperation({ type: 'delete', table: 'orden_detalle', payload: { id: detalleId } });
+      return { error: null, queued: true };
+    }
     return { error };
   }
 };
@@ -258,6 +283,17 @@ export const recibirOrden = async (ordenId) => {
     return { data, error: null };
   } catch (error) {
     console.error('Error receiving orden:', error);
+    if (!navigator.onLine) {
+      enqueueOperation({ type: 'update', table: 'ordenes', payload: { estado: 'recibida' }, match: { id: ordenId } });
+      // Nota: para stocks, encolar una operación por producto
+      try {
+        const { data: orden } = await getOrdenById(ordenId)
+        for (const detalle of (orden?.orden_detalle || [])) {
+          enqueueOperation({ type: 'update', table: 'productos', payload: { stock: (detalle.productos.stock || 0) + detalle.cantidad }, match: { id: detalle.productos.id } })
+        }
+      } catch {}
+      return { data: { id: ordenId, estado: 'recibida' }, queued: true, error: null };
+    }
     return { data: null, error };
   }
 };

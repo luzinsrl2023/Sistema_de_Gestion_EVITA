@@ -4,6 +4,7 @@
 // =============================================
 
 import { supabase } from '../lib/supabaseClient';
+import { enqueueOperation } from '../lib/offlineQueue';
 import * as authService from '../services/authService';
 
 // =============================================
@@ -44,6 +45,10 @@ export const crearProspecto = async (datosProspecto) => {
     return { data: prospectoView, error: null };
   } catch (error) {
     console.error('Error en crearProspecto:', error);
+    if (!navigator.onLine) {
+      enqueueOperation({ type: 'insert', table: 'prospectos', payload: { ...datosProspecto } });
+      return { data: { ...datosProspecto }, queued: true, error: null };
+    }
     return { data: null, error };
   }
 };
@@ -122,6 +127,10 @@ export const actualizarProspecto = async (id, datosActualizados) => {
     return { data, error: null };
   } catch (error) {
     console.error('Error en actualizarProspecto:', error);
+    if (!navigator.onLine) {
+      enqueueOperation({ type: 'update', table: 'prospectos', payload: datosActualizados, match: { id } });
+      return { data: { id, ...datosActualizados }, queued: true, error: null };
+    }
     return { data: null, error };
   }
 };

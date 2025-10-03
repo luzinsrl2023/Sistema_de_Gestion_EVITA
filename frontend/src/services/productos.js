@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabaseClient';
+import { enqueueOperation } from '../lib/offlineQueue';
 
 // Obtener todos los productos con información del proveedor
 export const getProductos = async () => {
@@ -62,6 +63,10 @@ export const createProducto = async (productoData) => {
     return { data, error: null };
   } catch (error) {
     console.error('Error creating producto:', error);
+    if (!navigator.onLine) {
+      enqueueOperation({ type: 'insert', table: 'productos', payload: productoData });
+      return { data: productoData, queued: true, error: null };
+    }
     return { data: null, error };
   }
 };
@@ -80,6 +85,10 @@ export const updateProducto = async (id, productoData) => {
     return { data, error: null };
   } catch (error) {
     console.error('Error updating producto:', error);
+    if (!navigator.onLine) {
+      enqueueOperation({ type: 'update', table: 'productos', payload: productoData, match: { id } });
+      return { data: { id, ...productoData }, queued: true, error: null };
+    }
     return { data: null, error };
   }
 };
@@ -96,6 +105,10 @@ export const deleteProducto = async (id) => {
     return { error: null };
   } catch (error) {
     console.error('Error deleting producto:', error);
+    if (!navigator.onLine) {
+      enqueueOperation({ type: 'delete', table: 'productos', payload: { id } });
+      return { error: null, queued: true };
+    }
     return { error };
   }
 };
@@ -114,6 +127,10 @@ export const updateStock = async (id, nuevoStock) => {
     return { data, error: null };
   } catch (error) {
     console.error('Error updating stock:', error);
+    if (!navigator.onLine) {
+      enqueueOperation({ type: 'update', table: 'productos', payload: { stock: nuevoStock }, match: { id } });
+      return { data: { id, stock: nuevoStock }, queued: true, error: null };
+    }
     return { data: null, error };
   }
 };

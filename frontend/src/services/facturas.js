@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabaseClient';
+import { enqueueOperation } from '../lib/offlineQueue';
 
 // Obtener todas las facturas con información de venta y cliente
 export const getFacturas = async () => {
@@ -75,6 +76,10 @@ export const createFactura = async (facturaData) => {
     return { data, error: null };
   } catch (error) {
     console.error('Error creating factura:', error);
+    if (!navigator.onLine) {
+      enqueueOperation({ type: 'insert', table: 'facturas', payload: facturaData });
+      return { data: facturaData, queued: true, error: null };
+    }
     return { data: null, error };
   }
 };
@@ -93,6 +98,10 @@ export const updateFactura = async (id, facturaData) => {
     return { data, error: null };
   } catch (error) {
     console.error('Error updating factura:', error);
+    if (!navigator.onLine) {
+      enqueueOperation({ type: 'update', table: 'facturas', payload: facturaData, match: { id } });
+      return { data: { id, ...facturaData }, queued: true, error: null };
+    }
     return { data: null, error };
   }
 };
@@ -109,6 +118,10 @@ export const deleteFactura = async (id) => {
     return { error: null };
   } catch (error) {
     console.error('Error deleting factura:', error);
+    if (!navigator.onLine) {
+      enqueueOperation({ type: 'delete', table: 'facturas', payload: { id } });
+      return { error: null, queued: true };
+    }
     return { error };
   }
 };
@@ -174,6 +187,10 @@ export const marcarFacturaPagada = async (id) => {
     return { data, error: null };
   } catch (error) {
     console.error('Error marking factura as paid:', error);
+    if (!navigator.onLine) {
+      enqueueOperation({ type: 'update', table: 'facturas', payload: { estado: 'pagada' }, match: { id } });
+      return { data: { id, estado: 'pagada' }, queued: true, error: null };
+    }
     return { data: null, error };
   }
 };

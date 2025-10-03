@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabaseClient';
+import { enqueueOperation } from '../lib/offlineQueue';
 
 // Obtener todos los proveedores
 export const getProveedores = async () => {
@@ -46,6 +47,10 @@ export const createProveedor = async (proveedorData) => {
     return { data, error: null };
   } catch (error) {
     console.error('Error creating proveedor:', error);
+    if (!navigator.onLine) {
+      enqueueOperation({ type: 'insert', table: 'proveedores', payload: proveedorData });
+      return { data: proveedorData, queued: true, error: null };
+    }
     return { data: null, error };
   }
 };
@@ -64,6 +69,10 @@ export const updateProveedor = async (id, proveedorData) => {
     return { data, error: null };
   } catch (error) {
     console.error('Error updating proveedor:', error);
+    if (!navigator.onLine) {
+      enqueueOperation({ type: 'update', table: 'proveedores', payload: proveedorData, match: { id } });
+      return { data: { id, ...proveedorData }, queued: true, error: null };
+    }
     return { data: null, error };
   }
 };
@@ -80,6 +89,10 @@ export const deleteProveedor = async (id) => {
     return { error: null };
   } catch (error) {
     console.error('Error deleting proveedor:', error);
+    if (!navigator.onLine) {
+      enqueueOperation({ type: 'delete', table: 'proveedores', payload: { id } });
+      return { error: null, queued: true };
+    }
     return { error };
   }
 };

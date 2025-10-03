@@ -179,6 +179,36 @@ npm run dev
 - **Base de Datos Producción**: Supabase (PostgreSQL)
 - **Autenticación**: Supabase Auth
 
+## 🌐 Modo Offline (PWA)
+
+El sistema soporta trabajo sin conexión. Cuando no haya internet:
+- La aplicación carga desde caché (Service Worker)
+- Las operaciones de escritura (crear/actualizar/eliminar) se encolan localmente
+- Al reconectarse, se sincronizan automáticamente con Supabase
+
+### Archivos y módulos clave
+- `frontend/public/sw.js`: Service Worker (cache del shell y fallback SPA)
+- `frontend/src/lib/offlineQueue.js`: Cola de operaciones en `localStorage`
+- `frontend/src/lib/offlineSync.js`: Sincroniza al evento `online`/`visibilitychange`
+- `frontend/src/lib/processSupabaseOperation.js`: Ejecuta operaciones en Supabase
+- Registro en `frontend/src/main.jsx` y arranque en `frontend/src/App.jsx`
+
+### Requisitos de despliegue
+- Netlify: asegurar fallback SPA en `frontend/public/_redirects`:
+  ```
+  /*    /index.html   200
+  ```
+- Variables de entorno:
+  ```bash
+  VITE_SUPABASE_URL=...
+  VITE_SUPABASE_ANON_KEY=...
+  # Opcional si hay backend propio
+  VITE_API_BASE_URL=https://api.tu-dominio.com
+  ```
+
+### Uso en servicios
+Los servicios CRUD ya integran `enqueueOperation` cuando `navigator.onLine === false` o falla la red. No requiere cambios en los componentes UI.
+
 ## 📞 Soporte
 Para soporte técnico o consultas sobre el sistema EVITA, contacta al equipo de desarrollo.
 

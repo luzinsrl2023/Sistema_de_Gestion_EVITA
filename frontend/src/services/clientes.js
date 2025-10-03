@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabaseClient';
+import { enqueueOperation } from '../lib/offlineQueue';
 
 // Obtener todos los clientes
 export const getClientes = async () => {
@@ -46,6 +47,10 @@ export const createCliente = async (clienteData) => {
     return { data, error: null };
   } catch (error) {
     console.error('Error creating cliente:', error);
+    if (!navigator.onLine) {
+      enqueueOperation({ type: 'insert', table: 'clientes', payload: clienteData });
+      return { data: clienteData, queued: true, error: null };
+    }
     return { data: null, error };
   }
 };
@@ -64,6 +69,10 @@ export const updateCliente = async (id, clienteData) => {
     return { data, error: null };
   } catch (error) {
     console.error('Error updating cliente:', error);
+    if (!navigator.onLine) {
+      enqueueOperation({ type: 'update', table: 'clientes', payload: clienteData, match: { id } });
+      return { data: { id, ...clienteData }, queued: true, error: null };
+    }
     return { data: null, error };
   }
 };
@@ -80,6 +89,10 @@ export const deleteCliente = async (id) => {
     return { error: null };
   } catch (error) {
     console.error('Error deleting cliente:', error);
+    if (!navigator.onLine) {
+      enqueueOperation({ type: 'delete', table: 'clientes', payload: { id } });
+      return { error: null, queued: true };
+    }
     return { error };
   }
 };
