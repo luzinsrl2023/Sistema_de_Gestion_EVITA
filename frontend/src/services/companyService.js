@@ -12,7 +12,7 @@ export const getCompanyConfig = async () => {
     .from(TABLE_NAME)
     .select('*')
     .limit(1)
-    .single() // .single() devuelve un objeto en lugar de un array
+    .maybeSingle() // evita 406 cuando no hay filas
 
   if (error && error.code !== 'PGRST116') { // PGRST116: "object not found"
     console.error('Error fetching company config:', error)

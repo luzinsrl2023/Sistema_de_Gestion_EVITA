@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { useMemo, useState, useEffect } from 'react'
 import * as XLSX from 'xlsx'
 import { supabase } from '../../lib/supabaseClient'
 
@@ -34,8 +34,27 @@ export default function ActualizacionProductos() {
   const [missing, setMissing] = useState([])
   const [updated, setUpdated] = useState(0)
   const [processing, setProcessing] = useState(false)
+  const [suppliers, setSuppliers] = useState([])
 
-  const suppliers = useMemo(() => getSuppliers(), [])
+  useEffect(() => {
+    let isMounted = true
+    async function loadSuppliers() {
+      try {
+        const { data, error } = await supabase
+          .from('proveedores')
+          .select('id,nombre')
+          .order('nombre', { ascending: true })
+
+        if (error) throw error
+        if (isMounted) setSuppliers(data || [])
+      } catch (_) {
+        // fallback a locales si falla
+        if (isMounted) setSuppliers(getSuppliers().map(s => ({ id: s.name, nombre: s.name })))
+      }
+    }
+    loadSuppliers()
+    return () => { isMounted = false }
+  }, [])
 
   function handleDownloadTemplate() {
     const data = [
@@ -132,7 +151,7 @@ export default function ActualizacionProductos() {
           >
             <option value="">Seleccione proveedor</option>
             {(suppliers || []).map((s) => (
-              <option key={s.name} value={s.name}>{s.name}</option>
+              <option key={s.id || s.nombre} value={s.nombre}>{s.nombre}</option>
             ))}
           </select>
         </div>

@@ -9,6 +9,9 @@ import AppRoutes from './routes/AppRoutes'
 import './index.css'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
+import { registerOnlineSync } from './lib/offlineSync'
+import { processSupabaseOperation } from './lib/processSupabaseOperation'
+import { useEffect } from 'react'
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth()
@@ -40,6 +43,10 @@ function ProtectedRoute({ children }) {
 const queryClient = new QueryClient()
 
 function App() {
+  useEffect(() => {
+    const unregister = registerOnlineSync(processSupabaseOperation)
+    return () => unregister()
+  }, [])
   return (
     <ThemeProvider>
       <AuthProvider>
