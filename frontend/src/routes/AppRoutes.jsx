@@ -17,7 +17,7 @@ import { Facturador } from '../modules/facturador'
 import { AsientosContables, BalanceSumasYSaldos } from '../modules/contabilidad'
 import CotizacionesGeneradas from '../pages/CotizacionesGeneradas'
 import HistorialPrecios from '../pages/HistorialPrecios'
-import PaginaProspectos from '../pages/PaginaProspectos'
+import PaginaProspectos from '../modules/prospectos/PaginaProspectos'
 import PaginaDetalleProspecto from '../pages/PaginaDetalleProspecto'
 import ConfiguracionPage from '../pages/configuracion/ConfiguracionPage'
 
