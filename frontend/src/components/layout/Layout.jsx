@@ -56,11 +56,11 @@ const navigation = [
     { name: 'Compras', href: '/reportes/compras' },
     { name: 'Stock', href: '/reportes/stock' },
   ]},
-  { name: 'Contabilidad', icon: Calculator, children: [
-    { name: 'Asientos Contables', href: '/contabilidad/asientos' },
-    { name: 'Balance de Sumas y Saldos', href: '/contabilidad/balance' },
-  ]},
-  { name: 'Prospectos', href: '/prospectos', icon: Contact2 },
+  // { name: 'Contabilidad', icon: Calculator, children: [
+  //   { name: 'Asientos Contables', href: '/contabilidad/asientos' },
+  //   { name: 'Balance de Sumas y Saldos', href: '/contabilidad/balance' },
+  // ]},
+  // { name: 'Prospectos', href: '/prospectos', icon: Contact2 },
   { name: 'Configuración', href: '/configuracion', icon: SettingsIcon },
 ]
 
