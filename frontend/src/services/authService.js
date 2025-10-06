@@ -1,4 +1,4 @@
-import { supabase } from '../lib/supabaseClient';
+import bcrypt from 'bcryptjs';
 import { supabaseAuth } from '../lib/supabaseAuth';
 
 // Note: The bcrypt dependency is no longer needed on the client-side.
@@ -73,7 +73,21 @@ export const login = async (email, password) => {
     // Verificar contraseña
     // NOTA: En producción, las contraseñas deberían estar hasheadas con bcrypt
     // Por ahora asumimos texto plano o hash simple
-    const isValidPassword = user.password_hash === password;
+    let isValidPassword = false;
+
+    try {
+      const storedHash = user.password_hash ?? '';
+      const isBcryptHash = typeof storedHash === 'string' && storedHash.startsWith('$2');
+
+      if (isBcryptHash) {
+        isValidPassword = bcrypt.compareSync(password, storedHash);
+      } else {
+        isValidPassword = storedHash === password;
+      }
+    } catch (compareError) {
+      console.error('💥 Password comparison failed:', compareError);
+      return { session: null, error: { message: 'Error al verificar credenciales' } };
+    }
     
     if (!isValidPassword) {
       console.warn('⚠️ Invalid password');
