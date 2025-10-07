@@ -13,8 +13,23 @@ export async function customLogin(email, password) {
     throw new Error("Usuario no encontrado");
   }
 
-  // Comparar contraseña (por ahora texto plano, luego bcrypt)
-  const isPasswordValid = await bcrypt.compare(password, user.password_hash);
+  let isPasswordValid = false;
+  // Comprueba si la contraseña almacenada es un hash de bcrypt
+  if (user.password_hash && user.password_hash.startsWith("$2")) {
+    isPasswordValid = await bcrypt.compare(password, user.password_hash);
+  } else {
+    // Compara como texto plano si no es un hash
+    isPasswordValid = password === user.password_hash;
+    // Si la contraseña es válida, hashea y actualiza en la base de datos
+    if (isPasswordValid) {
+      const salt = bcrypt.genSaltSync(10);
+      const hash = bcrypt.hashSync(password, salt);
+      await supabase
+        .from("usuarios_app")
+        .update({ password_hash: hash })
+        .eq("id", user.id);
+    }
+  }
 
   if (!isPasswordValid) {
     throw new Error("Contraseña incorrecta");

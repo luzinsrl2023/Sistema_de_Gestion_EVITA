@@ -1,9 +1,4 @@
-import bcrypt from 'bcryptjs';
 import { supabaseAuth } from '../lib/supabaseAuth';
-
-// Note: The bcrypt dependency is no longer needed on the client-side.
-// The registration logic might need to be updated to use an Edge Function as well,
-// but for now, we focus on fixing the login.
 
 /**
  * Registra un nuevo usuario.
@@ -27,8 +22,8 @@ export const register = async (email, password) => {
 
 
 /**
- * Inicia sesión usando autenticación directa con Supabase.
- * Funciona tanto en desarrollo como en producción.
+ * Inicia sesión de forma segura llamando a una función RPC de PostgreSQL.
+ * La función `login_and_migrate` se encarga de la lógica de autenticación y migración de contraseñas.
  */
 export const login = async (email, password) => {
   // Demo user functionality
@@ -46,53 +41,28 @@ export const login = async (email, password) => {
     return { session, error: null };
   }
 
-  // Real user authentication - Direct database query approach
+  // Real user authentication via RPC call
   try {
-    console.log('🔍 Attempting login for:', email);
-    
-    // Buscar usuario en la base de datos usando service role client
-    const { data: user, error: dbError } = await supabaseAuth
-      .from('usuarios_app')
-      .select('id, email, password_hash')
-      .eq('email', email.toLowerCase())
-      .single();
+    console.log('🔍 Attempting login via RPC for:', email);
 
-    if (dbError) {
-      console.error('❌ Database error:', dbError);
-      if (dbError.code === 'PGRST116') {
-        return { session: null, error: { message: 'Usuario no encontrado' } };
-      }
-      return { session: null, error: { message: 'Error al verificar credenciales' } };
+    const { data, error } = await supabaseAuth.rpc('login_and_migrate', {
+      email_input: email,
+      password_input: password,
+    });
+
+    if (error) {
+      console.error('❌ RPC error:', error);
+      return { session: null, error: { message: 'Error en el servidor. Inténtalo de nuevo.' } };
     }
 
-    if (!user) {
-      console.warn('⚠️ User not found');
-      return { session: null, error: { message: 'Usuario no encontrado' } };
-    }
-
-    // Verificar contraseña
-    // NOTA: En producción, las contraseñas deberían estar hasheadas con bcrypt
-    // Por ahora asumimos texto plano o hash simple
-    let isValidPassword = false;
-
-    try {
-      const storedHash = user.password_hash ?? '';
-      const isBcryptHash = typeof storedHash === 'string' && storedHash.startsWith('$2');
-
-      if (isBcryptHash) {
-        isValidPassword = bcrypt.compareSync(password, storedHash);
-      } else {
-        isValidPassword = storedHash === password;
-      }
-    } catch (compareError) {
-      console.error('💥 Password comparison failed:', compareError);
-      return { session: null, error: { message: 'Error al verificar credenciales' } };
+    // The RPC returns an array, so we check if it's empty
+    if (!data || data.length === 0) {
+      console.warn('⚠️ Invalid credentials or user not found');
+      return { session: null, error: { message: 'Email o contraseña incorrectos.' } };
     }
     
-    if (!isValidPassword) {
-      console.warn('⚠️ Invalid password');
-      return { session: null, error: { message: 'Contraseña incorrecta' } };
-    }
+    // Sucessful login returns the user object in the first element of the array
+    const user = data[0];
 
     // Login successful
     console.log('✅ Login successful for user:', user.email);
@@ -137,4 +107,3 @@ export const getSession = () => {
   }
   return null;
 };
-
