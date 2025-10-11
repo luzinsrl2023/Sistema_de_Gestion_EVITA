@@ -1,13 +1,44 @@
 import { createClient } from '@supabase/supabase-js';
+import config from '../config/environment';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// Configuración de Supabase usando el archivo de configuración
+const supabaseUrl = config.supabaseUrl;
+const supabaseAnonKey = config.supabaseAnonKey;
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('Supabase URL and Anon Key are required.');
-  throw new Error(
-    'Supabase URL and Anon Key are required. Make sure to set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in your Netlify environment variables.'
-  );
+// Configuración del cliente con opciones mejoradas para manejo de errores
+const supabaseOptions = {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: false
+  },
+  realtime: {
+    params: {
+      eventsPerSecond: 10
+    }
+  }
+};
+
+// Crear cliente de Supabase
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, supabaseOptions);
+
+// Función para verificar la conexión
+export const checkSupabaseConnection = async () => {
+  try {
+    const { data, error } = await supabase.from('usuarios_app').select('count').limit(1);
+    if (error) {
+      console.error('Error de conexión a Supabase:', error);
+      return false;
+    }
+    console.log('✅ Conexión a Supabase exitosa');
+    return true;
+  } catch (err) {
+    console.error('❌ Error de conexión a Supabase:', err);
+    return false;
+  }
+};
+
+// Verificar conexión al inicializar
+if (import.meta.env.PROD) {
+  checkSupabaseConnection();
 }
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);

@@ -405,20 +405,20 @@ export default function Cotizaciones() {
         </div>
       </div>
 
-      {/* Main Content Grid - Reestructurado */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      {/* Main Content Grid - Optimizado para mejor responsividad */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-3">
         {/* Client Information Card - Más compacto */}
-        <div className={cn('lg:col-span-1 p-3 rounded-lg', `bg-${theme.colors.surface} border border-${theme.colors.border}`)}>
-          <h2 className={cn('font-semibold text-base mb-3 flex items-center gap-2', `text-${theme.colors.text}`)}>
-            <div className={cn('w-2 h-2 rounded-full', `bg-${theme.colors.primary}`)}></div>
+        <div className={cn('lg:col-span-1 p-2 rounded-lg', `bg-${theme.colors.surface} border border-${theme.colors.border}`)}>
+          <h2 className={cn('font-semibold text-sm mb-2 flex items-center gap-2', `text-${theme.colors.text}`)}>
+            <div className={cn('w-1.5 h-1.5 rounded-full', `bg-${theme.colors.primary}`)}></div>
             Cliente
           </h2>
-          <div className="space-y-3">
+          <div className="space-y-2">
             <div className="form-group">
-              <label className={cn('label', `text-${theme.colors.textSecondary}`)}>Nombre del cliente</label>
+              <label className={cn('text-xs mb-1 block', `text-${theme.colors.textSecondary}`)}>Nombre del cliente</label>
               <input
                 list="clientes-list"
-                className={cn('input', `bg-${theme.colors.surface} border-${theme.colors.border} text-${theme.colors.text} placeholder-${theme.colors.textMuted}`)}
+                className={cn('input text-sm py-1.5', `bg-${theme.colors.surface} border-${theme.colors.border} text-${theme.colors.text} placeholder-${theme.colors.textMuted}`)}
                 placeholder="Buscar cliente"
                 value={customer.nombre}
                 onChange={e => {
@@ -432,9 +432,9 @@ export default function Cotizaciones() {
               </datalist>
             </div>
             <div className="form-group">
-              <label className={cn('label', `text-${theme.colors.textSecondary}`)}>Correo electrónico</label>
+              <label className={cn('text-xs mb-1 block', `text-${theme.colors.textSecondary}`)}>Correo electrónico</label>
               <input
-                className={cn('input', `bg-${theme.colors.surface} border-${theme.colors.border} text-${theme.colors.text} placeholder-${theme.colors.textMuted}`)}
+                className={cn('input text-sm py-1.5', `bg-${theme.colors.surface} border-${theme.colors.border} text-${theme.colors.text} placeholder-${theme.colors.textMuted}`)}
                 placeholder="Email"
                 value={customer.email}
                 onChange={e => setCustomer(v => ({ ...v, email: e.target.value }))}
@@ -443,44 +443,41 @@ export default function Cotizaciones() {
           </div>
         </div>
 
-        {/* Metadata and Totals Cards - Reestructurado */}
-        <div className="lg:col-span-2 space-y-4">
-          {/* Metadata Card - Más compacto */}
-          <div className={cn('p-3 rounded-lg', `bg-${theme.colors.surface} border border-${theme.colors.border}`)}>
-            <h2 className={cn('font-semibold text-base mb-3 flex items-center gap-2', `text-${theme.colors.text}`)}>
-              <div className={cn('w-2 h-2 rounded-full', `bg-${theme.colors.primary}`)}></div>
-              Datos de la cotización
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <div className="form-group">
-                <label className={cn('label', `text-${theme.colors.textSecondary}`)}>Fecha</label>
-                <input
-                  type="date"
-                  className={cn('input', `bg-${theme.colors.surface} border-${theme.colors.border} text-${theme.colors.text}`)}
-                  value={meta.fecha}
-                  onChange={e => setMeta(v => ({ ...v, fecha: e.target.value }))}
-                />
-              </div>
-              <div className="form-group">
-                <label className={cn('label', `text-${theme.colors.textSecondary}`)}>Validez (días)</label>
-                <input
-                  type="number"
-                  className={cn('input', `bg-${theme.colors.surface} border-${theme.colors.border} text-${theme.colors.text}`)}
-                  placeholder="Validez (días)"
-                  value={meta.validezDias}
-                  onChange={e => setMeta(v => ({ ...v, validezDias: Number(e.target.value) }))}
-                />
-              </div>
-              <div className="form-group md:col-span-3">
-                <label className={cn('label', `text-${theme.colors.textSecondary}`)}>Notas</label>
-                <textarea
-                  className={cn('input', `bg-${theme.colors.surface} border-${theme.colors.border} text-${theme.colors.text}`)}
-                  style={{ minHeight: '80px' }}
-                  placeholder="Notas adicionales"
-                  value={meta.notas}
-                  onChange={e => setMeta(v => ({ ...v, notas: e.target.value }))}
-                />
-              </div>
+        {/* Metadata Card - Más compacto */}
+        <div className={cn('lg:col-span-3 p-2 rounded-lg', `bg-${theme.colors.surface} border border-${theme.colors.border}`)}>
+          <h2 className={cn('font-semibold text-sm mb-2 flex items-center gap-2', `text-${theme.colors.text}`)}>
+            <div className={cn('w-1.5 h-1.5 rounded-full', `bg-${theme.colors.primary}`)}></div>
+            Datos de la cotización
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+            <div className="form-group">
+              <label className={cn('text-xs mb-1 block', `text-${theme.colors.textSecondary}`)}>Fecha</label>
+              <input
+                type="date"
+                className={cn('input text-sm py-1.5', `bg-${theme.colors.surface} border-${theme.colors.border} text-${theme.colors.text}`)}
+                value={meta.fecha}
+                onChange={e => setMeta(v => ({ ...v, fecha: e.target.value }))}
+              />
+            </div>
+            <div className="form-group">
+              <label className={cn('text-xs mb-1 block', `text-${theme.colors.textSecondary}`)}>Validez (días)</label>
+              <input
+                type="number"
+                className={cn('input text-sm py-1.5', `bg-${theme.colors.surface} border-${theme.colors.border} text-${theme.colors.text}`)}
+                placeholder="Validez (días)"
+                value={meta.validezDias}
+                onChange={e => setMeta(v => ({ ...v, validezDias: Number(e.target.value) }))}
+              />
+            </div>
+            <div className="form-group sm:col-span-2 lg:col-span-1">
+              <label className={cn('text-xs mb-1 block', `text-${theme.colors.textSecondary}`)}>Notas</label>
+              <textarea
+                className={cn('input text-sm py-1.5', `bg-${theme.colors.surface} border-${theme.colors.border} text-${theme.colors.text}`)}
+                style={{ minHeight: '60px' }}
+                placeholder="Notas adicionales"
+                value={meta.notas}
+                onChange={e => setMeta(v => ({ ...v, notas: e.target.value }))}
+              />
             </div>
           </div>
         </div>

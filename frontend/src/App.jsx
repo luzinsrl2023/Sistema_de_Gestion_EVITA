@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { ThemeProvider } from './contexts/ThemeContext'
@@ -9,6 +9,7 @@ import AppRoutes from './routes/AppRoutes'
 import './index.css'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
+import healthCheck, { logHealthCheckResults } from './utils/moduleHealthCheck'
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth()
@@ -40,6 +41,33 @@ function ProtectedRoute({ children }) {
 const queryClient = new QueryClient()
 
 function App() {
+  // Ejecutar verificación de salud al cargar la aplicación
+  useEffect(() => {
+    const runHealthCheck = async () => {
+      try {
+        console.log('🏥 Iniciando verificación de salud del sistema...');
+        const results = await healthCheck.runFullHealthCheck();
+        logHealthCheckResults(results);
+        
+        // Verificar si hay errores críticos
+        const criticalErrors = results.filter(r => r.status === 'error' && 
+          ['Conexión Supabase', 'Autenticación'].includes(r.module));
+        
+        if (criticalErrors.length > 0) {
+          console.error('❌ Errores críticos detectados:', criticalErrors);
+        } else {
+          console.log('✅ Sistema EVITA funcionando correctamente');
+        }
+      } catch (error) {
+        console.error('❌ Error durante la verificación de salud:', error);
+      }
+    };
+
+    // Ejecutar después de un breve delay para permitir que la aplicación se inicialice
+    const timer = setTimeout(runHealthCheck, 2000);
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
     <ThemeProvider>
       <AuthProvider>
