@@ -6,6 +6,7 @@ import Layout from './components/layout/Layout'
 import Login from './pages/auth/Login'
 import Register from './pages/auth/Register'
 import AppRoutes from './routes/AppRoutes'
+import ErrorBoundary from './components/common/ErrorBoundary'
 import './index.css'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
@@ -38,7 +39,16 @@ function ProtectedRoute({ children }) {
   return children
 }
 
-const queryClient = new QueryClient()
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 3,
+      retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      cacheTime: 10 * 60 * 1000, // 10 minutes
+    },
+  },
+})
 
 function App() {
   // Ejecutar verificación de salud al cargar la aplicación
@@ -69,29 +79,31 @@ function App() {
   }, []);
 
   return (
-    <ThemeProvider>
-      <AuthProvider>
-        <QueryClientProvider client={queryClient}>
-          <Router>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
+    <ErrorBoundary>
+      <ThemeProvider>
+        <AuthProvider>
+          <QueryClientProvider client={queryClient}>
+            <Router>
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
 
-            <Route path="/*" element={
-              <ProtectedRoute>
-                <Layout>
-                  <AppRoutes />
-                </Layout>
-              </ProtectedRoute>
-            } />
-          </Routes>
-        </Router>
-          {import.meta.env && import.meta.env.DEV && (
-            <ReactQueryDevtools initialIsOpen={false} />
-          )}
-        </QueryClientProvider>
-      </AuthProvider>
-    </ThemeProvider>
+              <Route path="/*" element={
+                <ProtectedRoute>
+                  <Layout>
+                    <AppRoutes />
+                  </Layout>
+                </ProtectedRoute>
+              } />
+            </Routes>
+          </Router>
+            {import.meta.env && import.meta.env.DEV && (
+              <ReactQueryDevtools initialIsOpen={false} />
+            )}
+          </QueryClientProvider>
+        </AuthProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
   )
 }
 

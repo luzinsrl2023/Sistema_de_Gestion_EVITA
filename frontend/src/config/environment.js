@@ -18,5 +18,14 @@ const environment = {
 const currentEnv = import.meta.env.PROD ? 'production' : 'development';
 export const config = environment[currentEnv];
 
+// Log de configuración para debugging
+console.log('🔍 Environment Configuration:', {
+  currentEnv,
+  supabaseUrl: config.supabaseUrl,
+  hasAnonKey: !!config.supabaseAnonKey,
+  keyLength: config.supabaseAnonKey?.length || 0,
+  isProduction: config.isProduction
+});
+
 export default config;
 
