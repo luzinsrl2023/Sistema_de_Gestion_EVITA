@@ -7,8 +7,9 @@ const environment = {
     isProduction: false
   },
   production: {
+    // URLs y claves de fallback para producción
     supabaseUrl: import.meta.env.VITE_SUPABASE_URL || 'https://articulosdelimpiezaevita.supabase.co',
-    supabaseAnonKey: import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFydGljdWxvc2RlbGltcGllemFldml0YSIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNzM5MjQ4MDAwLCJleHAiOjIwNTQ4MjQwMDB9.example',
+    supabaseAnonKey: import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFydGljdWxvc2RlbGltcGllemFldml0YSIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNzM5MjQ4MDAwLCJleHAiOjIwNTQ4MjQwMDB9.REPLACE_WITH_REAL_KEY',
     apiUrl: 'https://articulosdelimpiezaevita.netlify.app',
     isProduction: true
   }

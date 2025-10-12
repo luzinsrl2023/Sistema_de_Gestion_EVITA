@@ -11,19 +11,27 @@ Para que el sistema EVITA funcione correctamente en producción, es necesario co
 
 ### 2. Configurar las siguientes variables:
 
+**CRÍTICO**: Estas variables deben configurarse exactamente como se muestran:
+
 ```
 VITE_SUPABASE_URL=https://articulosdelimpiezaevita.supabase.co
-VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFydGljdWxvc2RlbGltcGllemFldml0YSIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNzM5MjQ4MDAwLCJleHAiOjIwNTQ4MjQwMDB9.example
+VITE_SUPABASE_ANON_KEY=[TU_CLAVE_ANONIMA_REAL_AQUI]
 ```
 
-### 3. Reemplazar la clave anónima
-**IMPORTANTE**: La clave `VITE_SUPABASE_ANON_KEY` mostrada arriba es un ejemplo. Debes reemplazarla con la clave anónima real de tu proyecto Supabase.
+### 3. Obtener la clave anónima real de Supabase
+**PASO CRÍTICO**: La clave `VITE_SUPABASE_ANON_KEY` debe ser la clave real de tu proyecto Supabase.
 
 Para obtener la clave real:
-1. Ve a tu proyecto en Supabase
-2. Ve a **Settings** > **API**
-3. Copia la **anon public** key
-4. Reemplaza el valor en Netlify
+1. Ve a tu proyecto en Supabase: https://supabase.com/dashboard
+2. Selecciona tu proyecto `articulosdelimpiezaevita`
+3. Ve a **Settings** > **API**
+4. Copia la **anon public** key (comienza con `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...`)
+5. Reemplaza `[TU_CLAVE_ANONIMA_REAL_AQUI]` en Netlify con esta clave
+
+### 4. Verificar que las variables estén configuradas
+Después de configurar las variables, verifica que aparezcan en:
+- Netlify Dashboard > Site Settings > Environment Variables
+- Deben mostrar exactamente los nombres: `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY`
 
 ### 4. Redesplegar
 Después de configurar las variables de entorno:

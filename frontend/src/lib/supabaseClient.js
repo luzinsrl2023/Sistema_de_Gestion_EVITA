@@ -5,6 +5,15 @@ import config from '../config/environment';
 const supabaseUrl = config.supabaseUrl;
 const supabaseAnonKey = config.supabaseAnonKey;
 
+// Logs de depuración para producción
+console.log('🔍 DEBUG: Environment check:', {
+  isProduction: import.meta.env.PROD,
+  hasEnvUrl: !!import.meta.env.VITE_SUPABASE_URL,
+  hasEnvKey: !!import.meta.env.VITE_SUPABASE_ANON_KEY,
+  finalUrl: supabaseUrl,
+  finalKeyLength: supabaseAnonKey?.length || 0
+});
+
 // Configuración del cliente con opciones mejoradas para manejo de errores
 const supabaseOptions = {
   auth: {

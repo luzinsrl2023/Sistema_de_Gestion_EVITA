@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo, useCallback } from 'react'
 import { 
   BarChart, 
   Bar, 
@@ -12,55 +12,117 @@ import {
   Pie,
   Cell
 } from 'recharts'
-import { Download, FileSpreadsheet, FileText } from 'lucide-react'
+import { Download, FileSpreadsheet, FileText, RefreshCw, TrendingUp } from 'lucide-react'
 import { formatCurrency } from '../../lib/utils'
 import { exportToExcel, exportTableToPDF } from '../../common'
-
-const salesData = [
-  { month: 'Ene', sales: 4000, purchases: 2400 },
-  { month: 'Feb', sales: 3000, purchases: 1398 },
-  { month: 'Mar', sales: 2000, purchases: 9800 },
-  { month: 'Abr', sales: 2780, purchases: 3908 },
-  { month: 'May', sales: 1890, purchases: 4800 },
-  { month: 'Jun', sales: 2390, purchases: 3800 },
-  { month: 'Jul', sales: 3490, purchases: 4300 },
-  { month: 'Ago', sales: 2000, purchases: 2400 },
-  { month: 'Sep', sales: 3000, purchases: 1398 },
-  { month: 'Oct', sales: 4000, purchases: 9800 },
-  { month: 'Nov', sales: 2780, purchases: 3908 },
-  { month: 'Dic', sales: 1890, purchases: 4800 }
-]
-
-const productData = [
-  { name: 'Producto A', value: 400 },
-  { name: 'Producto B', value: 300 },
-  { name: 'Producto C', value: 300 },
-  { name: 'Producto D', value: 200 }
-]
-
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042']
+import { TimeSeriesChart, PieChart as CustomPieChart } from '../../components/charts'
+import { useVentasReport } from '../../hooks'
+import { useChartTheme } from '../../hooks/useChartTheme'
 
 export default function VentasReport() {
-  const [timeRange, setTimeRange] = useState(() => localStorage.getItem('report:ventas:timeRange') || 'monthly')
-  React.useEffect(() => { localStorage.setItem('report:ventas:timeRange', timeRange) }, [timeRange])
+  const [timeRange, setTimeRange] = useState(() => localStorage.getItem('report:ventas:timeRange') || 'yearly')
+  
+  // Hooks personalizados optimizados
+  const { 
+    estadisticas, 
+    ventasMes, 
+    productosTop, 
+    loading, 
+    error, 
+    refresh 
+  } = useVentasReport(timeRange)
+  
+  const { colors, seriesColors, getColorByIndex } = useChartTheme()
 
-  const handleExportExcel = () => {
-    const data = salesData.map(item => ({
-      Mes: item.month,
-      Ventas: item.sales,
-      Compras: item.purchases,
+  // Efecto para guardar preferencias
+  React.useEffect(() => { 
+    localStorage.setItem('report:ventas:timeRange', timeRange) 
+  }, [timeRange])
+
+  // Handlers optimizados con useCallback
+  const handleExportExcel = useCallback(() => {
+    if (!ventasMes) return
+    
+    const data = ventasMes.map(item => ({
+      Mes: item.mes,
+      Ventas: item.ventas,
+      Cantidad: item.cantidad,
     }))
     exportToExcel({ filename: 'reporte_ventas_evita.xlsx', sheetName: 'ReporteVentas', data })
-  }
+  }, [ventasMes])
 
-  const handleExportPDF = () => {
-    const head = ['Mes', 'Ventas', 'Compras']
-    const body = salesData.map(item => [
-      item.month,
-      formatCurrency(item.sales),
-      formatCurrency(item.purchases),
+  const handleExportPDF = useCallback(() => {
+    if (!ventasMes) return
+    
+    const head = ['Mes', 'Ventas', 'Cantidad']
+    const body = ventasMes.map(item => [
+      item.mes,
+      formatCurrency(item.ventas),
+      item.cantidad,
     ])
     exportTableToPDF({ title: 'Reporte de Ventas - EVITA', head, body, filename: 'reporte_ventas_evita.pdf' })
+  }, [ventasMes])
+
+  // Datos procesados para gráficos con useMemo
+  const chartData = useMemo(() => {
+    if (!ventasMes) return []
+    
+    return ventasMes.map(item => ({
+      mes: item.mes,
+      ventas: item.ventas,
+      cantidad: item.cantidad
+    }))
+  }, [ventasMes])
+
+  const pieChartData = useMemo(() => {
+    if (!productosTop) return []
+    
+    return productosTop.map(item => ({
+      name: item.name,
+      value: item.value
+    }))
+  }, [productosTop])
+
+  // Estados de carga y error
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-white">Reporte de Ventas</h1>
+            <p className="text-gray-400 mt-1">Cargando datos...</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="bg-gray-900 border border-gray-800 rounded-lg p-4 animate-pulse">
+              <div className="h-4 bg-gray-700 rounded w-3/4 mb-2"></div>
+              <div className="h-8 bg-gray-700 rounded w-1/2"></div>
+            </div>
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-white">Reporte de Ventas</h1>
+            <p className="text-red-400 mt-1">Error al cargar datos: {error.message}</p>
+          </div>
+          <button
+            onClick={refresh}
+            className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Reintentar
+          </button>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -118,7 +180,9 @@ export default function VentasReport() {
               <TrendingUp className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-white">{formatCurrency(34000)}</p>
+              <p className="text-2xl font-bold text-white">
+                {estadisticas?.totalVentas || '$0'}
+              </p>
               <p className="text-sm text-gray-400">Ventas Totales</p>
             </div>
           </div>
@@ -129,8 +193,10 @@ export default function VentasReport() {
               <TrendingUp className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-white">{formatCurrency(28000)}</p>
-              <p className="text-sm text-gray-400">Compras Totales</p>
+              <p className="text-2xl font-bold text-white">
+                {estadisticas?.cantidadVentas || 0}
+              </p>
+              <p className="text-sm text-gray-400">Cantidad de Ventas</p>
             </div>
           </div>
         </div>
@@ -140,8 +206,10 @@ export default function VentasReport() {
               <TrendingUp className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-white">{formatCurrency(6000)}</p>
-              <p className="text-sm text-gray-400">Utilidad Bruta</p>
+              <p className="text-2xl font-bold text-white">
+                {estadisticas?.promedioVenta || '$0'}
+              </p>
+              <p className="text-sm text-gray-400">Promedio por Venta</p>
             </div>
           </div>
         </div>
@@ -151,8 +219,10 @@ export default function VentasReport() {
               <TrendingUp className="h-5 w-5" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-white">17.6%</p>
-              <p className="text-sm text-gray-400">Margen Bruto</p>
+              <p className="text-2xl font-bold text-white">
+                {estadisticas?.totalMes || '$0'}
+              </p>
+              <p className="text-sm text-gray-400">Ventas del Mes</p>
             </div>
           </div>
         </div>
@@ -160,75 +230,27 @@ export default function VentasReport() {
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
-          <h3 className="text-xl font-semibold text-white mb-4">Ventas vs Compras</h3>
-          <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={salesData}
-                margin={{
-                  top: 5,
-                  right: 30,
-                  left: 20,
-                  bottom: 5,
-                }}
-              >
-                <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                <XAxis dataKey="month" stroke="#9CA3AF" />
-                <YAxis stroke="#9CA3AF" />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: '#1F2937', borderColor: '#374151' }}
-                  itemStyle={{ color: '#F9FAFB' }}
-                  labelStyle={{ color: '#F9FAFB' }}
-                />
-                <Legend />
-                <Bar dataKey="sales" fill="#10B981" name="Ventas" />
-                <Bar dataKey="purchases" fill="#3B82F6" name="Compras" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
+        {/* Gráfico de Ventas Mensuales con TradingView */}
+        <TimeSeriesChart
+          data={chartData.map(item => ({
+            time: item.mes,
+            value: item.ventas
+          }))}
+          height={320}
+          title="Ventas Mensuales"
+          subtitle="Evolución de ventas por mes"
+          className="lg:col-span-2"
+        />
         
-        <div className="bg-gray-900 border border-gray-800 rounded-xl p-6">
-          <h3 className="text-xl font-semibold text-white mb-4">Distribución de Productos</h3>
-          <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={productData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                >
-                  {productData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip 
-                  contentStyle={{ backgroundColor: '#1F2937', borderColor: '#374151' }}
-                  itemStyle={{ color: '#F9FAFB' }}
-                  labelStyle={{ color: '#F9FAFB' }}
-                />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
+        {/* Gráfico de Productos Top con PieChart */}
+        <CustomPieChart
+          data={pieChartData}
+          height={320}
+          title="Productos Más Vendidos"
+          subtitle="Distribución por ingresos generados"
+          colorScheme="default"
+        />
       </div>
     </div>
-  )
-}
-
-// Icons
-function TrendingUp() {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
-      <polyline points="17 6 23 6 23 12"></polyline>
-    </svg>
   )
 }
