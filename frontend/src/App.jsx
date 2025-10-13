@@ -51,31 +51,33 @@ const queryClient = new QueryClient({
 })
 
 function App() {
-  // Ejecutar verificación de salud al cargar la aplicación
+  // Ejecutar verificación de salud al cargar la aplicación, solo en desarrollo
   useEffect(() => {
-    const runHealthCheck = async () => {
-      try {
-        console.log('🏥 Iniciando verificación de salud del sistema...');
-        const results = await healthCheck.runFullHealthCheck();
-        logHealthCheckResults(results);
-        
-        // Verificar si hay errores críticos
-        const criticalErrors = results.filter(r => r.status === 'error' && 
-          ['Conexión Supabase', 'Autenticación'].includes(r.module));
-        
-        if (criticalErrors.length > 0) {
-          console.error('❌ Errores críticos detectados:', criticalErrors);
-        } else {
-          console.log('✅ Sistema EVITA funcionando correctamente');
-        }
-      } catch (error) {
-        console.error('❌ Error durante la verificación de salud:', error);
-      }
-    };
+    if (import.meta.env.DEV) {
+      const runHealthCheck = async () => {
+        try {
+          console.log('🏥 Iniciando verificación de salud del sistema...');
+          const results = await healthCheck.runFullHealthCheck();
+          logHealthCheckResults(results);
 
-    // Ejecutar después de un breve delay para permitir que la aplicación se inicialice
-    const timer = setTimeout(runHealthCheck, 2000);
-    return () => clearTimeout(timer);
+          // Verificar si hay errores críticos
+          const criticalErrors = results.filter(r => r.status === 'error' &&
+            ['Conexión Supabase', 'Autenticación'].includes(r.module));
+
+          if (criticalErrors.length > 0) {
+            console.error('❌ Errores críticos detectados:', criticalErrors);
+          } else {
+            console.log('✅ Sistema EVITA funcionando correctamente');
+          }
+        } catch (error) {
+          console.error('❌ Error durante la verificación de salud:', error);
+        }
+      };
+
+      // Ejecutar después de un breve delay para permitir que la aplicación se inicialice
+      const timer = setTimeout(runHealthCheck, 2000);
+      return () => clearTimeout(timer);
+    }
   }, []);
 
   return (
