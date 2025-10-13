@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
+import { supabase } from '../../lib/supabaseClient'
 import { exportPurchaseOrderPDF } from '../../common'
 import { 
   Plus, 
@@ -39,24 +40,6 @@ function parseDaysFromTerms(terms) {
   return m ? parseInt(m[1], 10) : 30
 }
 
-function getSupplierTermsDays(name) {
-  try {
-    const raw = localStorage.getItem('evita-suppliers')
-    if (raw) {
-      const arr = JSON.parse(raw)
-      const found = Array.isArray(arr) ? arr.find(s => s.name === name) : null
-      if (found && found.paymentTerms) return parseDaysFromTerms(found.paymentTerms)
-    }
-  } catch(_) {}
-  const fallback = {
-    'TecnoGlobal S.A.': '30 días',
-    'Soluciones de Oficina Ltda.': '15 días',
-    'Componentes & Cia.': '60 días',
-    'Distribuidora Norte': 'Contado'
-  }
-  return parseDaysFromTerms(fallback[name] || '30 días')
-}
-
 function addDays(dateStr, days) {
   if (!dateStr) return ''
   const dt = new Date(dateStr + 'T00:00:00')
@@ -65,7 +48,7 @@ function addDays(dateStr, days) {
   return dt.toISOString().slice(0,10)
 }
 
-export default function OrdenFormOptimized() {
+export default function OrdenForm() {
   const { user } = useAuth()
   
   // Estados principales
@@ -75,6 +58,12 @@ export default function OrdenFormOptimized() {
   const [vencimiento, setVencimiento] = useState(addDays(new Date().toISOString().slice(0,10), 30))
   const [items, setItems] = useState([{ id: 1, producto: '', cantidad: 1, precio: 0 }])
   
+  // Estados para datos de Supabase
+  const [proveedores, setProveedores] = useState([])
+  const [productos, setProductos] = useState([])
+  const [loadingProveedores, setLoadingProveedores] = useState(true)
+  const [loadingProductos, setLoadingProductos] = useState(true)
+  
   // Estados para UX mejorada
   const [isSaving, setIsSaving] = useState(false)
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false)
@@ -82,7 +71,54 @@ export default function OrdenFormOptimized() {
   const [successMessage, setSuccessMessage] = useState('')
   const [showError, setShowError] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
-  const [isDemoMode, setIsDemoMode] = useState(true)
+
+  // Cargar proveedores desde Supabase
+  useEffect(() => {
+    const loadProveedores = async () => {
+      try {
+        setLoadingProveedores(true)
+        const { data, error } = await supabase
+          .from('proveedores')
+          .select('*')
+          .order('nombre', { ascending: true })
+
+        if (error) throw error
+        setProveedores(data || [])
+      } catch (error) {
+        console.error('Error loading proveedores:', error)
+        setErrorMessage('Error al cargar proveedores: ' + error.message)
+        setShowError(true)
+      } finally {
+        setLoadingProveedores(false)
+      }
+    }
+
+    loadProveedores()
+  }, [])
+
+  // Cargar productos desde Supabase
+  useEffect(() => {
+    const loadProductos = async () => {
+      try {
+        setLoadingProductos(true)
+        const { data, error } = await supabase
+          .from('productos')
+          .select('*')
+          .order('nombre', { ascending: true })
+
+        if (error) throw error
+        setProductos(data || [])
+      } catch (error) {
+        console.error('Error loading productos:', error)
+        setErrorMessage('Error al cargar productos: ' + error.message)
+        setShowError(true)
+      } finally {
+        setLoadingProductos(false)
+      }
+    }
+
+    loadProductos()
+  }, [])
 
   // Funciones para UX mejorada
   const showNotification = useCallback((message, type = 'success') => {
@@ -128,35 +164,81 @@ export default function OrdenFormOptimized() {
   // Manejar cambio de proveedor
   const handleSupplierChange = useCallback((value) => {
     setSupplier(value)
-    const days = getSupplierTermsDays(value)
-    setVencimiento(addDays(fecha, days))
-  }, [fecha])
+    // Buscar el proveedor seleccionado para obtener sus términos
+    const proveedorSeleccionado = proveedores.find(p => p.id === value)
+    if (proveedorSeleccionado) {
+      // Por defecto 30 días, pero se puede personalizar según el proveedor
+      const days = 30 // Se puede agregar un campo 'terminos_pago' en la tabla proveedores
+      setVencimiento(addDays(fecha, days))
+    }
+  }, [fecha, proveedores])
+
+  // Manejar cambio de producto y actualizar precio
+  const handleProductChange = useCallback((itemId, productId) => {
+    const producto = productos.find(p => p.id === productId)
+    if (producto) {
+      updateItem(itemId, 'producto', producto.nombre)
+      updateItem(itemId, 'precio', parseFloat(producto.precio))
+    }
+  }, [productos, updateItem])
 
   // Funciones de guardado y PDF
   const handleSave = useCallback(async () => {
-    if (isDemoMode) {
-      showNotification('Modo Demo: Las funciones de guardado están deshabilitadas', 'error')
+    if (!supplier) {
+      showNotification('Por favor selecciona un proveedor', 'error')
       return
     }
 
     setIsSaving(true)
     try {
-      // Simular guardado
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      // Crear la orden de compra en Supabase
+      const { data: ordenData, error: ordenError } = await supabase
+        .from('ordenes_compra')
+        .insert([{
+          id: orderId,
+          proveedor_id: supplier,
+          fecha: fecha,
+          vencimiento: vencimiento,
+          total: totals.total,
+          estado: 'pendiente',
+          usuario_id: user?.id
+        }])
+        .select()
+        .single()
+
+      if (ordenError) throw ordenError
+
+      // Crear los items de la orden
+      const itemsData = items.map(item => ({
+        orden_id: ordenData.id,
+        producto_id: productos.find(p => p.nombre === item.producto)?.id,
+        cantidad: item.cantidad,
+        precio: item.precio,
+        subtotal: item.cantidad * item.precio
+      }))
+
+      const { error: itemsError } = await supabase
+        .from('orden_items')
+        .insert(itemsData)
+
+      if (itemsError) throw itemsError
+
       showNotification(`Orden ${orderId} guardada exitosamente`)
     } catch (error) {
-      showNotification('Error al guardar la orden', 'error')
+      console.error('Error saving order:', error)
+      showNotification('Error al guardar la orden: ' + error.message, 'error')
     } finally {
       setIsSaving(false)
     }
-  }, [isDemoMode, orderId, showNotification])
+  }, [supplier, orderId, fecha, vencimiento, totals.total, items, productos, user?.id, showNotification])
 
   const handlePDF = useCallback(async () => {
     setIsGeneratingPDF(true)
     try {
+      const proveedorSeleccionado = proveedores.find(p => p.id === supplier)
       await exportPurchaseOrderPDF({
         orderId,
-        supplier,
+        supplier: proveedorSeleccionado?.nombre || 'Proveedor no seleccionado',
         fecha,
         vencimiento,
         items,
@@ -168,7 +250,7 @@ export default function OrdenFormOptimized() {
     } finally {
       setIsGeneratingPDF(false)
     }
-  }, [orderId, supplier, fecha, vencimiento, items, totals, showNotification])
+  }, [orderId, supplier, proveedores, fecha, vencimiento, items, totals, showNotification])
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4">
@@ -198,14 +280,6 @@ export default function OrdenFormOptimized() {
       )}
 
       <div className="max-w-7xl mx-auto space-y-6">
-        {/* Banner Demo Mode */}
-        {isDemoMode && (
-          <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-3">
-            <AlertCircle className="h-5 w-5" />
-            <span className="font-medium">Modo Demo: Las funciones de guardado están deshabilitadas</span>
-          </div>
-        )}
-
         {/* Header Mejorado */}
         <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-6 border border-slate-700/50 facturador-card animate-fade-in">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
@@ -221,13 +295,12 @@ export default function OrdenFormOptimized() {
             <div className="flex gap-3">
               <button
                 onClick={handleSave}
-                disabled={isSaving || isDemoMode}
-                className={cn(
-                  'inline-flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 facturador-button',
-                  isSaving || isDemoMode
+                disabled={isSaving || !supplier}
+                className={`inline-flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 facturador-button ${
+                  isSaving || !supplier
                     ? 'bg-slate-600 text-slate-300 cursor-not-allowed' 
                     : 'bg-slate-700 hover:bg-slate-600 text-white focus:ring-slate-500'
-                )}
+                }`}
               >
                 {isSaving ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -238,13 +311,12 @@ export default function OrdenFormOptimized() {
               </button>
               <button
                 onClick={handlePDF}
-                disabled={isGeneratingPDF}
-                className={cn(
-                  'inline-flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 facturador-button',
-                  isGeneratingPDF 
+                disabled={isGeneratingPDF || !supplier}
+                className={`inline-flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-800 facturador-button ${
+                  isGeneratingPDF || !supplier
                     ? 'bg-blue-600/50 text-blue-200 cursor-not-allowed' 
                     : 'bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white focus:ring-blue-500'
-                )}
+                }`}
               >
                 {isGeneratingPDF ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -292,13 +364,17 @@ export default function OrdenFormOptimized() {
                     <select
                       value={supplier}
                       onChange={(e) => handleSupplierChange(e.target.value)}
-                      className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-3 pl-10 text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent facturador-input"
+                      disabled={loadingProveedores}
+                      className="w-full bg-slate-700/50 border border-slate-600 rounded-lg px-4 py-3 pl-10 text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent facturador-input disabled:opacity-50"
                     >
-                      <option value="">Seleccionar proveedor</option>
-                      <option value="TecnoGlobal S.A.">TecnoGlobal S.A.</option>
-                      <option value="Soluciones de Oficina Ltda.">Soluciones de Oficina Ltda.</option>
-                      <option value="Componentes & Cia.">Componentes & Cia.</option>
-                      <option value="Distribuidora Norte">Distribuidora Norte</option>
+                      <option value="">
+                        {loadingProveedores ? 'Cargando proveedores...' : 'Seleccionar proveedor'}
+                      </option>
+                      {proveedores.map(proveedor => (
+                        <option key={proveedor.id} value={proveedor.id}>
+                          {proveedor.nombre}
+                        </option>
+                      ))}
                     </select>
                     <Building2 className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
                   </div>
@@ -381,15 +457,18 @@ export default function OrdenFormOptimized() {
                         </label>
                         <select
                           className="w-full bg-slate-600/50 border border-slate-500 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm facturador-input"
-                          value={item.producto}
-                          onChange={(e) => updateItem(item.id, 'producto', e.target.value)}
+                          value={productos.find(p => p.nombre === item.producto)?.id || ''}
+                          onChange={(e) => handleProductChange(item.id, e.target.value)}
+                          disabled={loadingProductos}
                         >
-                          <option value="">Seleccionar producto</option>
-                          <option value="Limpiador Multiuso EVITA Pro">Limpiador Multiuso EVITA Pro</option>
-                          <option value="Detergente Concentrado">Detergente Concentrado</option>
-                          <option value="Desinfectante de Superficies">Desinfectante de Superficies</option>
-                          <option value="Papel Higiénico Industrial">Papel Higiénico Industrial</option>
-                          <option value="Toallas de Papel">Toallas de Papel</option>
+                          <option value="">
+                            {loadingProductos ? 'Cargando productos...' : 'Seleccionar producto'}
+                          </option>
+                          {productos.map(producto => (
+                            <option key={producto.id} value={producto.id}>
+                              {producto.nombre} - ${producto.precio}
+                            </option>
+                          ))}
                         </select>
                       </div>
                       
