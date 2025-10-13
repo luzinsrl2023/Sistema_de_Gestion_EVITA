@@ -1,6 +1,6 @@
 import React, { Component, useState, useCallback } from 'react';
-import { Button } from '../common/Button';
-import { Modal } from '../common/Modal';
+import Button from '../ui/enhanced/Button';
+import Modal from '../common/Modal';
 
 class ErrorBoundary extends Component {
   constructor(props) {
