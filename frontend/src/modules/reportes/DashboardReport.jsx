@@ -186,7 +186,7 @@ export default function DashboardReport() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
         <div className="bg-gray-900 border border-gray-800 rounded-lg p-4">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-blue-500/10 text-blue-400 rounded-lg">
@@ -242,14 +242,14 @@ export default function DashboardReport() {
       </div>
 
       {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Gráfico de Ventas vs Compras con TradingView */}
         <TimeSeriesChart
           data={chartData.map(item => ({
             time: item.mes,
             value: item.ventas
           }))}
-          height={320}
+          height={280}
           title="Ventas vs Compras"
           subtitle="Comparativa mensual de ingresos y gastos"
           className="lg:col-span-2"
@@ -258,7 +258,7 @@ export default function DashboardReport() {
         {/* Gráfico de Productos Top con PieChart */}
         <CustomPieChart
           data={pieChartData}
-          height={320}
+          height={280}
           title="Productos Más Vendidos"
           subtitle="Distribución por ingresos generados"
           colorScheme="default"
