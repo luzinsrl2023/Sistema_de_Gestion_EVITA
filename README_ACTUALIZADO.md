@@ -191,6 +191,23 @@ npm run build
 - **Solución**: Gradientes, animaciones, efectos hover
 - **Resultado**: Interface moderna y atractiva
 
+## Problemas Comunes y Soluciones
+
+### Error al guardar cotización: Usuario no autenticado
+
+**Problema**: Los usuarios reciben el mensaje "Usuario no autenticado" al intentar guardar cotizaciones, excepto para `test@example.com`.
+
+**Causa**: Las políticas RLS (Row Level Security) de la tabla `cotizaciones` fueron configuradas incorrectamente, requiriendo autenticación de Supabase en lugar de permitir el sistema de autenticación personalizado de la aplicación.
+
+**Solución**: Se creó una nueva migración (`0020_fix_cotizaciones_rls_app_auth.sql`) que:
+1. Permite operaciones CRUD en la tabla `cotizaciones` para usuarios anónimos (app-auth)
+2. Mantiene las políticas para usuarios autenticados de Supabase
+3. Corrige la función `get_cotizaciones_stats` para funcionar sin `auth.uid()`
+
+**Para aplicar la solución**:
+1. Ejecutar `supabase migration up` para aplicar la nueva migración
+2. O ejecutar el script `commit-fixes.ps1` que hará commit y push de los cambios
+
 ## 📚 Documentación Adicional
 
 - 📁 **[SUPABASE_STORAGE.md](./SUPABASE_STORAGE.md)**: Guía completa de Storage

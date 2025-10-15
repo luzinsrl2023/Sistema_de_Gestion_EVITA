@@ -1,5 +1,4 @@
 import { supabase } from '../lib/supabaseClient';
-import { getSession } from './authService';
 
 // Guardar una nueva cotización
 export const saveCotizacion = async (cotizacionData) => {
@@ -7,6 +6,9 @@ export const saveCotizacion = async (cotizacionData) => {
     // Obtener la sesión desde nuestro mecanismo de sesión local
     const session = getSession();
     const userIdFromSession = session?.user?.id || null;
+
+    // For demo users, we don't require authentication
+    const isDemoUser = session?.user?.demo || false;
 
     const payload = {
       codigo: cotizacionData.id, // Usar el código generado como identificador único
@@ -21,7 +23,7 @@ export const saveCotizacion = async (cotizacionData) => {
       items: cotizacionData.items,
       estado: 'abierta',
       // Puede ser null si usamos modo sin Supabase Auth (RLS debe permitirlo)
-      usuario_id: userIdFromSession,
+      usuario_id: isDemoUser ? null : userIdFromSession,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     };
@@ -155,6 +157,19 @@ export const getCotizacionesStats = async () => {
 
     if (error) throw error;
 
+    // Handle case where data might be empty
+    if (!data || data.length === 0) {
+      return {
+        data: {
+          totalCotizaciones: 0,
+          cotizacionesMes: 0,
+          valorTotalMes: 0,
+          promedioPorCotizacion: 0
+        },
+        error: null
+      };
+    }
+
     return {
       data: {
         totalCotizaciones: Number(data[0]?.total_cotizaciones || 0),
@@ -166,7 +181,15 @@ export const getCotizacionesStats = async () => {
     };
   } catch (error) {
     console.error('Error fetching cotizaciones stats:', error);
-    return { data: null, error };
+    return { 
+      data: {
+        totalCotizaciones: 0,
+        cotizacionesMes: 0,
+        valorTotalMes: 0,
+        promedioPorCotizacion: 0
+      }, 
+      error 
+    };
   }
 };
 

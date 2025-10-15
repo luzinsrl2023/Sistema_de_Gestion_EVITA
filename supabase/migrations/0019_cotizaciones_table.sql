@@ -42,7 +42,7 @@ CREATE INDEX IF NOT EXISTS idx_cotizaciones_usuario ON public.cotizaciones (usua
 -- 4) Habilitar RLS
 ALTER TABLE public.cotizaciones ENABLE ROW LEVEL SECURITY;
 
--- 5) Políticas RLS (nota: auth.uid() funciona en Supabase; en Postgres puro falla)
+-- Políticas RLS para cotizaciones
 CREATE POLICY "Users can view their own cotizaciones" ON public.cotizaciones
   FOR SELECT USING (auth.uid() = usuario_id);
 
@@ -81,11 +81,11 @@ RETURNS TABLE (
 ) AS $$
 BEGIN
   RETURN QUERY
-  SELECT
-    COUNT(*) AS total_cotizaciones,
-    COUNT(*) FILTER (WHERE DATE_TRUNC('month', fecha) = DATE_TRUNC('month', CURRENT_DATE)) AS cotizaciones_mes,
-    COALESCE(SUM(total) FILTER (WHERE DATE_TRUNC('month', fecha) = DATE_TRUNC('month', CURRENT_DATE)), 0) AS valor_total_mes,
-    COALESCE(AVG(total), 0) AS promedio_por_cotizacion
+  SELECT 
+    COUNT(*) as total_cotizaciones,
+    COUNT(*) FILTER (WHERE DATE_TRUNC('month', fecha) = DATE_TRUNC('month', CURRENT_DATE)) as cotizaciones_mes,
+    COALESCE(SUM(total) FILTER (WHERE DATE_TRUNC('month', fecha) = DATE_TRUNC('month', CURRENT_DATE)), 0) as valor_total_mes,
+    COALESCE(AVG(total), 0) as promedio_por_cotizacion
   FROM public.cotizaciones
   WHERE usuario_id = auth.uid();
 END;
