@@ -55,7 +55,7 @@ CREATE POLICY "Users can update their own cotizaciones" ON public.cotizaciones
 CREATE POLICY "Users can delete their own cotizaciones" ON public.cotizaciones
   FOR DELETE USING (auth.uid() = usuario_id);
 
--- 6) Función trigger para updated_at
+-- Función para actualizar updated_at automáticamente
 CREATE OR REPLACE FUNCTION update_cotizaciones_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN

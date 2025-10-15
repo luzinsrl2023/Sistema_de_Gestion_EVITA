@@ -1,14 +1,12 @@
 import { supabase } from '../lib/supabaseClient';
+import { getSession } from './authService';
 
 // Guardar una nueva cotización
 export const saveCotizacion = async (cotizacionData) => {
   try {
-    // Obtener el usuario actual
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      throw new Error('Usuario no autenticado');
-    }
+    // Obtener la sesión desde nuestro mecanismo de sesión local
+    const session = getSession();
+    const userIdFromSession = session?.user?.id || null;
 
     const payload = {
       codigo: cotizacionData.id, // Usar el código generado como identificador único
@@ -22,7 +20,8 @@ export const saveCotizacion = async (cotizacionData) => {
       total: cotizacionData.total,
       items: cotizacionData.items,
       estado: 'abierta',
-      usuario_id: user.id,
+      // Puede ser null si usamos modo sin Supabase Auth (RLS debe permitirlo)
+      usuario_id: userIdFromSession,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     };
