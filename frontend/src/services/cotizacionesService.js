@@ -3,6 +3,13 @@ import { supabase } from '../lib/supabaseClient';
 // Guardar una nueva cotización
 export const saveCotizacion = async (cotizacionData) => {
   try {
+    // Obtener el usuario actual
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      throw new Error('Usuario no autenticado');
+    }
+
     const payload = {
       codigo: cotizacionData.id, // Usar el código generado como identificador único
       cliente_nombre: cotizacionData.cliente_nombre,
@@ -15,9 +22,12 @@ export const saveCotizacion = async (cotizacionData) => {
       total: cotizacionData.total,
       items: cotizacionData.items,
       estado: 'abierta',
+      usuario_id: user.id,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     };
+
+    console.log('Insertando cotización en Supabase:', payload);
 
     const { data, error } = await supabase
       .from('cotizaciones')
@@ -25,7 +35,12 @@ export const saveCotizacion = async (cotizacionData) => {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('Error de Supabase:', error);
+      throw error;
+    }
+    
+    console.log('Cotización guardada exitosamente:', data);
     return { data, error: null };
   } catch (error) {
     console.error('Error saving cotizacion:', error);

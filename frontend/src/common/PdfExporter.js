@@ -102,45 +102,72 @@ export async function exportTableToPDF({ title = 'Reporte', head = [], body = []
 }
 
 export async function exportSectionsToPDF({ title = 'Reporte', sections = [], filename = 'reporte.pdf', brand = 'EVITA', subtitle = 'Artículos de Limpieza', logoUrl } = {}) {
-  // Check if pdfMake is properly initialized
-  if (!pdfMake || !pdfMake.createPdf) {
-    console.error('pdfMake is not properly initialized')
-    return
-  }
+  try {
+    // Check if pdfMake is properly initialized
+    if (!pdfMake || !pdfMake.createPdf) {
+      console.error('pdfMake is not properly initialized')
+      throw new Error('pdfMake no está inicializado correctamente')
+    }
 
-  const logoDataUrl = await loadImageAsDataURL(getStoredLogoUrl(logoUrl))
+    console.log('Iniciando generación de PDF:', { title, filename, sectionsCount: sections.length })
 
+    const logoDataUrl = await loadImageAsDataURL(getStoredLogoUrl(logoUrl))
 
-  const content = []
-  if (title) content.push({ text: title, style: 'header' })
-  sections.forEach(({ title: sectionTitle, head = [], body = [] }, idx) => {
-    if (sectionTitle) content.push({ text: sectionTitle, style: 'subheader', margin: [0, idx === 0 ? 0 : 10, 0, 6] })
-    content.push({
-      table: {
-        headerRows: head.length ? 1 : 0,
-        widths: head.length ? head.map(() => 'auto') : [],
-        body: head.length ? [head, ...body] : body
-      },
-      layout: 'lightHorizontalLines'
+    const content = []
+    if (title) content.push({ text: title, style: 'header' })
+    
+    sections.forEach(({ title: sectionTitle, head = [], body = [] }, idx) => {
+      if (sectionTitle) {
+        content.push({ 
+          text: sectionTitle, 
+          style: 'subheader', 
+          margin: [0, idx === 0 ? 0 : 10, 0, 6] 
+        })
+      }
+      
+      // Validar que el body tenga contenido
+      if (body && body.length > 0) {
+        content.push({
+          table: {
+            headerRows: head.length ? 1 : 0,
+            widths: head.length ? head.map(() => 'auto') : [],
+            body: head.length ? [head, ...body] : body
+          },
+          layout: 'lightHorizontalLines'
+        })
+      }
     })
-  })
 
-  const docDefinition = {
-    header: buildHeader(logoDataUrl, brand, subtitle),
-    content,
-    styles: {
-      brand: { fontSize: 16, bold: true },
-      brandSub: { fontSize: 9, color: '#9CA3AF' },
-      ts: { fontSize: 8, color: '#9CA3AF', margin: [0, 2, 0, 0] },
-      header: { fontSize: 14, bold: true, margin: [0, 6, 0, 8] },
-      subheader: { fontSize: 12, bold: true, margin: [0, 0, 0, 6] },
-      label: { fontSize: 9, color: '#6B7280' },
-      docTitle: { fontSize: 16, bold: true, margin: [0, 10, 0, 8] }
-    },
-    defaultStyle: { fontSize: 10 },
-    pageMargins: [40, 80, 40, 40]
+    const docDefinition = {
+      header: buildHeader(logoDataUrl, brand, subtitle),
+      content,
+      styles: {
+        brand: { fontSize: 16, bold: true },
+        brandSub: { fontSize: 9, color: '#9CA3AF' },
+        ts: { fontSize: 8, color: '#9CA3AF', margin: [0, 2, 0, 0] },
+        header: { fontSize: 14, bold: true, margin: [0, 6, 0, 8] },
+        subheader: { fontSize: 12, bold: true, margin: [0, 0, 0, 6] },
+        label: { fontSize: 9, color: '#6B7280' },
+        docTitle: { fontSize: 16, bold: true, margin: [0, 10, 0, 8] }
+      },
+      defaultStyle: { fontSize: 10 },
+      pageMargins: [40, 80, 40, 40]
+    }
+
+    console.log('Definición del documento creada, generando PDF...')
+    
+    try {
+      pdfMake.createPdf(docDefinition).download(filename)
+      console.log('PDF descargado exitosamente:', filename)
+    } catch (downloadError) {
+      console.warn('Error en descarga, intentando abrir PDF:', downloadError)
+      pdfMake.createPdf(docDefinition).open()
+      console.log('PDF abierto exitosamente')
+    }
+  } catch (error) {
+    console.error('Error generando PDF:', error)
+    throw new Error(`Error al generar PDF: ${error.message}`)
   }
-  try { pdfMake.createPdf(docDefinition).download(filename) } catch (e) { console.warn('Fallo descarga, abriendo PDF:', e); pdfMake.createPdf(docDefinition).open() }
 }
 
 // Profesional: Recibo de Pago con layout de dos columnas, totales y firma

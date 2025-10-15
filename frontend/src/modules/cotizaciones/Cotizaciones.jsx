@@ -321,73 +321,124 @@ export default function Cotizaciones() {
 
   async function handleGuardar() {
     try {
+      // Validaciones básicas
+      if (!customer.nombre?.trim()) {
+        alert('Por favor ingresa el nombre del cliente')
+        return
+      }
+      
+      if (items.length === 0 || items.every(item => !item.nombre?.trim())) {
+        alert('Por favor agrega al menos un producto')
+        return
+      }
+
       const id = nextCotizacionId()
-      const simplifiedItems = items.map(({ id: itemId, nombre, cantidad, precio }) => ({
-        id: itemId,
-        nombre,
-        cantidad,
-        precio,
-      }))
+      const simplifiedItems = items
+        .filter(item => item.nombre?.trim()) // Solo items con nombre
+        .map(({ id: itemId, nombre, cantidad, precio }) => ({
+          id: itemId,
+          nombre: nombre.trim(),
+          cantidad: Number(cantidad) || 1,
+          precio: Number(precio) || 0,
+        }))
       
       const payload = {
         id,
-        cliente_nombre: customer.nombre,
-        cliente_email: customer.email,
+        cliente_nombre: customer.nombre.trim(),
+        cliente_email: customer.email?.trim() || null,
         fecha: meta.fecha,
-        validez_dias: meta.validezDias,
-        notas: meta.notas,
+        validez_dias: Number(meta.validezDias) || 15,
+        notas: meta.notas?.trim() || null,
         items: simplifiedItems,
         subtotal: totals.subtotal,
         iva: totals.iva,
         total: totals.total
       }
       
+      console.log('Guardando cotización:', payload)
       const { data, error } = await saveCotizacion(payload)
       
       if (error) {
         console.error('Error al guardar cotización:', error)
-        alert('Error al guardar la cotización. Por favor, intenta nuevamente.')
+        alert(`Error al guardar la cotización: ${error.message || 'Error desconocido'}`)
         return
       }
       
       // También guardar en el hook local para compatibilidad
-      await addCotizacion(payload)
+      try {
+        await addCotizacion(payload)
+      } catch (hookError) {
+        console.warn('Error guardando en hook local:', hookError)
+        // No es crítico, continuar
+      }
       
       alert(`Cotización ${id} guardada exitosamente`)
       
-      // Opcional: limpiar el formulario
-      // setCustomer({ nombre: '', email: '' })
-      // setItems([createEmptyItem(1)])
-      // setMeta({ fecha: new Date().toISOString().slice(0,10), validezDias: 15, notas: '' })
+      // Limpiar el formulario después de guardar exitosamente
+      setCustomer({ nombre: '', email: '' })
+      setItems([createEmptyItem(1)])
+      setMeta({ fecha: new Date().toISOString().slice(0,10), validezDias: 15, notas: '' })
     } catch (err) {
       console.error('Error inesperado:', err)
-      alert('Error al guardar la cotización. Por favor, intenta nuevamente.')
+      alert(`Error inesperado al guardar la cotización: ${err.message || 'Error desconocido'}`)
     }
   }
 
   async function handlePDF() {
-    const id = nextCotizacionId()
-    const head = ['Producto', 'Cantidad', 'Precio Unit.', 'Subtotal']
-    const body = items.map(it => [it.nombre || '-', String(it.cantidad||0), `$ ${Number(it.precio||0).toFixed(2)}`, `$ ${(Number(it.cantidad||0)*Number(it.precio||0)).toFixed(2)}`])
-    body.push([{ text: 'Subtotal', colSpan: 3, alignment: 'right' }, {}, {}, `$ ${totals.subtotal.toFixed(2)}`])
-    body.push([{ text: 'IVA 21%', colSpan: 3, alignment: 'right' }, {}, {}, `$ ${totals.iva.toFixed(2)}`])
-    body.push([{ text: 'TOTAL', colSpan: 3, alignment: 'right', bold: true }, {}, {}, { text: `$ ${totals.total.toFixed(2)}`, bold: true }])
+    try {
+      // Validaciones básicas
+      if (!customer.nombre?.trim()) {
+        alert('Por favor ingresa el nombre del cliente antes de generar el PDF')
+        return
+      }
+      
+      if (items.length === 0 || items.every(item => !item.nombre?.trim())) {
+        alert('Por favor agrega al menos un producto antes de generar el PDF')
+        return
+      }
 
-    await exportSectionsToPDF({
-      title: `Cotización ${id}`,
-      sections: [
-        { title: `Cliente: ${customer.nombre || '-'}`, head: [], body: [
-          [{ text: `Email: ${customer.email || '-'}` }],
-          [{ text: `Fecha: ${meta.fecha}` }],
-          [{ text: `Validez: ${meta.validezDias} días` }],
-          ...(meta.notas ? [[{ text: `Notas: ${meta.notas}` }]] : [])
-        ] },
-        { title: 'Detalle', head, body }
-      ],
-      filename: `${id}.pdf`,
-      brand: 'EVITA',
-      subtitle: 'Cotización de productos'
-    })
+      const id = nextCotizacionId()
+      const head = ['Producto', 'Cantidad', 'Precio Unit.', 'Subtotal']
+      const validItems = items.filter(item => item.nombre?.trim())
+      const body = validItems.map(it => [
+        it.nombre || '-', 
+        String(it.cantidad||0), 
+        `$ ${Number(it.precio||0).toFixed(2)}`, 
+        `$ ${(Number(it.cantidad||0)*Number(it.precio||0)).toFixed(2)}`
+      ])
+      
+      // Agregar totales
+      body.push([{ text: 'Subtotal', colSpan: 3, alignment: 'right' }, {}, {}, `$ ${totals.subtotal.toFixed(2)}`])
+      body.push([{ text: 'IVA 21%', colSpan: 3, alignment: 'right' }, {}, {}, `$ ${totals.iva.toFixed(2)}`])
+      body.push([{ text: 'TOTAL', colSpan: 3, alignment: 'right', bold: true }, {}, {}, { text: `$ ${totals.total.toFixed(2)}`, bold: true }])
+
+      console.log('Generando PDF para cotización:', id)
+      
+      await exportSectionsToPDF({
+        title: `Cotización ${id}`,
+        sections: [
+          { 
+            title: `Cliente: ${customer.nombre || '-'}`, 
+            head: [], 
+            body: [
+              [{ text: `Email: ${customer.email || '-'}` }],
+              [{ text: `Fecha: ${meta.fecha}` }],
+              [{ text: `Validez: ${meta.validezDias} días` }],
+              ...(meta.notas ? [[{ text: `Notas: ${meta.notas}` }]] : [])
+            ] 
+          },
+          { title: 'Detalle', head, body }
+        ],
+        filename: `${id}.pdf`,
+        brand: 'EVITA',
+        subtitle: 'Cotización de productos'
+      })
+      
+      console.log('PDF generado exitosamente')
+    } catch (error) {
+      console.error('Error generando PDF:', error)
+      alert(`Error al generar el PDF: ${error.message || 'Error desconocido'}`)
+    }
   }
 
   return (
